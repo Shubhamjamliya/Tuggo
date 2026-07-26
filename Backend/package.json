@@ -20,7 +20,16 @@
     "migrate:legacy-core:apply": "node scripts/migrate-legacy-core-data.js --apply",
     "cleanup:legacy-collections": "node scripts/cleanup-legacy-collections.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "migrate:atlas": "node scripts/migrateLocalToAtlas.js"
+    "migrate:atlas": "node scripts/migrateLocalToAtlas.js",
+    "migrate:old-db-users": "node scripts/migrate-old-db-users.js",
+    "migrate:old-db-users:apply": "node scripts/migrate-old-db-users.js --apply",
+    "migrate:old-db-restaurants": "node scripts/migrate-old-db-restaurants.js",
+    "migrate:old-db-restaurants:apply": "node scripts/migrate-old-db-restaurants.js --apply",
+    "migrate:old-db-categories": "node scripts/migrate-old-db-categories.js",
+    "migrate:old-db-categories:apply": "node scripts/migrate-old-db-categories.js --apply",
+    "migrate:old-db-food": "node scripts/migrate-old-db-food.js",
+    "migrate:old-db-food:apply": "node scripts/migrate-old-db-food.js --apply",
+    "audit:old-db-variations": "node scripts/audit-old-db-variations.js"
   },
   "keywords": [],
   "author": "",
@@ -59,4 +68,3 @@
     "nodemon": "^3.1.2"
   }
 }
-

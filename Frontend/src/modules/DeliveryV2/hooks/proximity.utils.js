@@ -1,6 +1,6 @@
 /**
  * Haversine formula to calculate the great-circle distance between two points on a sphere.
- * Returns distance in METERS.
+ * Returns distance in meters.
  */
 export const parseLatLng = (raw) => {
   if (!raw) return null;
@@ -30,16 +30,16 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
     return Infinity;
   }
 
-  const R = 6371e3;
-  const φ1 = (aLat * Math.PI) / 180;
-  const φ2 = (bLat * Math.PI) / 180;
-  const Δφ = ((bLat - aLat) * Math.PI) / 180;
-  const Δλ = ((bLng - aLng) * Math.PI) / 180;
+  const earthRadiusMeters = 6371e3;
+  const phi1 = (aLat * Math.PI) / 180;
+  const phi2 = (bLat * Math.PI) / 180;
+  const deltaPhi = ((bLat - aLat) * Math.PI) / 180;
+  const deltaLambda = ((bLng - aLng) * Math.PI) / 180;
 
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const haversine =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const arc = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 
-  return R * c;
+  return earthRadiusMeters * arc;
 };

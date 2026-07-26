@@ -1,0 +1,2714 @@
+{
+  "source": "E:\\Tuggo\\old db\\food.csv",
+  "applyMode": false,
+  "rawRows": 3387,
+  "processedFoods": 3023,
+  "skippedFoods": 285,
+  "activeFoods": 2849,
+  "vegFoods": 2758,
+  "foodsWithOtherPlatformPrice": 4,
+  "skippedByReason": {
+    "legacy_variant_only_missing_priced_options": 263,
+    "legacy_variant_only_tiny_fallback_price": 22
+  },
+  "fieldMapping": {
+    "name": "FoodItem.name",
+    "description": "FoodItem.description",
+    "image": "FoodItem.image",
+    "restaurant_id": "FoodItem.restaurantId via imported restaurant mapping",
+    "category_id": "FoodItem.categoryId via imported category mapping",
+    "price": "FoodItem.price",
+    "restaurant_price": "FoodItem.priceOnOtherPlatforms when usable",
+    "tax": "FoodItem.otherPlatformGst",
+    "veg": "FoodItem.foodType",
+    "status": "FoodItem.isAvailable",
+    "created_at": "FoodItem.createdAt",
+    "updated_at": "FoodItem.updatedAt"
+  },
+  "unmappedLegacyFields": [
+    "category_ids",
+    "variations",
+    "add_ons",
+    "attributes",
+    "choice_options",
+    "tax_type",
+    "discount",
+    "discount_type",
+    "available_time_starts",
+    "available_time_ends",
+    "order_count",
+    "avg_rating",
+    "rating_count",
+    "rating",
+    "recommended",
+    "slug",
+    "maximum_cart_quantity",
+    "is_halal",
+    "item_stock",
+    "sell_count",
+    "stock_type"
+  ],
+  "notes": [
+    "Foods are imported only when a real base price exists in legacy food.csv.",
+    "Legacy variation groups from variations.csv are reported but not imported because no priced option rows exist in the old dump.",
+    "The 285 variant-only legacy rows with zero price are skipped to avoid creating broken zero-price catalog items.",
+    "All imported foods are marked approvalStatus=approved because they are historical production menu items."
+  ],
+  "issues": [
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "550",
+      "duplicateOf": "546",
+      "uniqueKey": "the bella ciao|9988600998|sandwich|bella ciao special",
+      "name": "Bella Ciao Special"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "733",
+      "duplicateOf": "732",
+      "uniqueKey": "burger boys|9988023300|sandwich|grilled sandwich",
+      "name": "Grilled Sandwich"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "735",
+      "duplicateOf": "734",
+      "uniqueKey": "burger boys|9988023300|sandwich|corn sandwich",
+      "name": "Corn Sandwich"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "737",
+      "duplicateOf": "736",
+      "uniqueKey": "burger boys|9988023300|sandwich|corn cheese",
+      "name": "Corn Cheese"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "739",
+      "duplicateOf": "738",
+      "uniqueKey": "burger boys|9988023300|sandwich|cheese onion",
+      "name": "Cheese Onion"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "741",
+      "duplicateOf": "740",
+      "uniqueKey": "burger boys|9988023300|sandwich|tandoori sandwich",
+      "name": "Tandoori Sandwich"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "743",
+      "duplicateOf": "742",
+      "uniqueKey": "burger boys|9988023300|sandwich|tandoori cheese sandwich",
+      "name": "Tandoori Cheese Sandwich"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "751",
+      "duplicateOf": "750",
+      "uniqueKey": "burger boys|9988023300|sandwich|tandoori paneer",
+      "name": "Tandoori Paneer"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "753",
+      "duplicateOf": "752",
+      "uniqueKey": "burger boys|9988023300|sandwich|mint lover sandwich",
+      "name": "Mint Lover Sandwich"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "755",
+      "duplicateOf": "754",
+      "uniqueKey": "burger boys|9988023300|sandwich|mozz. classic corn",
+      "name": "Mozz. Classic Corn"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "757",
+      "duplicateOf": "756",
+      "uniqueKey": "burger boys|9988023300|sandwich|mozz. cheese onion olive",
+      "name": "Mozz. Cheese Onion Olive"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "759",
+      "duplicateOf": "758",
+      "uniqueKey": "burger boys|9988023300|sandwich|club sandwich",
+      "name": "Club Sandwich"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "1094",
+      "duplicateOf": "1017",
+      "uniqueKey": "sunotra chicken|8427954710|chinese|mushroom chilly",
+      "name": "Mushroom Chilly"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "1178",
+      "duplicateOf": "212",
+      "uniqueKey": "vicky sweets|6280595087|chinese|manchurian dry",
+      "name": "Manchurian Dry"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "1285",
+      "duplicateOf": "1280",
+      "uniqueKey": "vicky confectionary|7800000085|chinese|mushroom manchurian",
+      "name": "Mushroom Manchurian"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "1300",
+      "duplicateOf": "1279",
+      "uniqueKey": "vicky confectionary|7800000085|veg tandoori items|mushroom tikka",
+      "name": "Mushroom Tikka"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "1562",
+      "duplicateOf": "8",
+      "uniqueKey": "apna dana paani|9416917777|breakfast|mix parantha",
+      "name": "Mix Parantha"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "1675",
+      "duplicateOf": "1657",
+      "uniqueKey": "organic chicken|9878660090|raita / salad|loaded crispy chicken salad",
+      "name": "Loaded Crispy Chicken Salad"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "1696",
+      "duplicateOf": "1547",
+      "uniqueKey": "mehak dhaba|9780808244|thali|5 roti+kala channa",
+      "name": "5 Roti+kala Channa"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "1859",
+      "duplicateOf": "1711",
+      "uniqueKey": "babbar bakers|9646054018|mocktails / smoothies|virgin mojito",
+      "name": "Virgin Mojito"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "1860",
+      "duplicateOf": "1712",
+      "uniqueKey": "babbar bakers|9646054018|mocktails / smoothies|spicy mango mojito",
+      "name": "Spicy Mango Mojito"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2259",
+      "duplicateOf": "1233",
+      "uniqueKey": "hardeep vaishnoo dhabha|9915815060|indian course veg|shahi paneer",
+      "name": "Shahi Paneer"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2263",
+      "duplicateOf": "2262",
+      "uniqueKey": "burger boys|9988023300|beverages|coke can(300ml)",
+      "name": "Coke Can(300ml)"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2341",
+      "duplicateOf": "353",
+      "uniqueKey": "apna dana paani|9416917777|shakes/crush|oreo milk shake",
+      "name": "Oreo Milk Shake"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2344",
+      "duplicateOf": "350",
+      "uniqueKey": "apna dana paani|9416917777|shakes/crush|strawberry shake",
+      "name": "Strawberry Shake"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2345",
+      "duplicateOf": "352",
+      "uniqueKey": "apna dana paani|9416917777|shakes/crush|chocolate shake",
+      "name": "Chocolate Shake"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2370",
+      "duplicateOf": "2346",
+      "uniqueKey": "chatpate chatore|7740018118|beverages|cold coffee",
+      "name": "Cold Coffee"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2371",
+      "duplicateOf": "2347",
+      "uniqueKey": "chatpate chatore|7740018118|beverages|hot coffee",
+      "name": "Hot coffee"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2435",
+      "duplicateOf": "1711",
+      "uniqueKey": "babbar bakers|9646054018|mocktails / smoothies|virgin mojito",
+      "name": "Virgin Mojito"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2436",
+      "duplicateOf": "1712",
+      "uniqueKey": "babbar bakers|9646054018|mocktails / smoothies|spicy mango mojito",
+      "name": "Spicy Mango Mojito"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2437",
+      "duplicateOf": "1861",
+      "uniqueKey": "babbar bakers|9646054018|mocktails / smoothies|blue crush",
+      "name": "Blue Crush"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2438",
+      "duplicateOf": "1714",
+      "uniqueKey": "babbar bakers|9646054018|mocktails / smoothies|fruit beer",
+      "name": "Fruit Beer"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2630",
+      "duplicateOf": "2017",
+      "uniqueKey": "mr sanders island|6283411612|pizzas|margherita pizza",
+      "name": "Margherita Pizza"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2686",
+      "duplicateOf": "2684",
+      "uniqueKey": "mohan shake & juice|8000000596|beverages|choco cold coffee",
+      "name": "Choco Cold Coffee"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2880",
+      "duplicateOf": "2879",
+      "uniqueKey": "urban thekka|8283939037|beverages|cold coffee with ice",
+      "name": "Cold Coffee With Ice"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2959",
+      "duplicateOf": "2958",
+      "uniqueKey": "the diamond bite|9501345828|chinese|chilli mashroom",
+      "name": "Chilli Mashroom"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2986",
+      "duplicateOf": "2985",
+      "uniqueKey": "the diamond bite|9501345828|veg tandoori items|harayali paneer tikka",
+      "name": "Harayali Paneer Tikka"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2987",
+      "duplicateOf": "2985",
+      "uniqueKey": "the diamond bite|9501345828|veg tandoori items|harayali paneer tikka",
+      "name": "Harayali Paneer Tikka"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2988",
+      "duplicateOf": "2985",
+      "uniqueKey": "the diamond bite|9501345828|veg tandoori items|harayali paneer tikka",
+      "name": "Harayali Paneer Tikka"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "2997",
+      "duplicateOf": "2996",
+      "uniqueKey": "the diamond bite|9501345828|veg tandoori items|veg hakka noodles",
+      "name": "Veg Hakka Noodles"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3002",
+      "duplicateOf": "3001",
+      "uniqueKey": "the diamond bite|9501345828|noodles|paneer noodles",
+      "name": "Paneer Noodles"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3003",
+      "duplicateOf": "3001",
+      "uniqueKey": "the diamond bite|9501345828|noodles|paneer noodles",
+      "name": "Paneer Noodles"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3022",
+      "duplicateOf": "3021",
+      "uniqueKey": "the diamond bite|9501345828|indian course veg|punjabi dal tadka",
+      "name": "Punjabi Dal Tadka"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3057",
+      "duplicateOf": "3056",
+      "uniqueKey": "the diamond bite|9501345828|indian course veg|cheese tomato",
+      "name": "Cheese Tomato"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3058",
+      "duplicateOf": "3056",
+      "uniqueKey": "the diamond bite|9501345828|indian course veg|cheese tomato",
+      "name": "Cheese Tomato"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3081",
+      "duplicateOf": "3080",
+      "uniqueKey": "the diamond bite|9501345828|roti|paneer naan",
+      "name": "Paneer Naan"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3106",
+      "duplicateOf": "1709",
+      "uniqueKey": "babbar bakers|9646054018|sweets / desserts|lava cake with ice cream",
+      "name": "Lava Cake with ice cream"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3122",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3123",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3124",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3125",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3126",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3127",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3128",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3129",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3130",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3131",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3132",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3133",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3134",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3135",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3136",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3137",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3138",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3139",
+      "duplicateOf": "3121",
+      "uniqueKey": "superchef|9915292817|burgers|punjabi tadka crunchy burger",
+      "name": "Punjabi Tadka Crunchy Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3145",
+      "duplicateOf": "3144",
+      "uniqueKey": "superchef|9915292817|burgers|churchy paneer burger",
+      "name": "Churchy Paneer Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3162",
+      "duplicateOf": "3161",
+      "uniqueKey": "superchef|9915292817|wraps|super spicy tangy ultimate wrap",
+      "name": "Super Spicy Tangy Ultimate Wrap"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3187",
+      "duplicateOf": "3186",
+      "uniqueKey": "taste of punjab|8872600187|indian course [non veg]|chicken kabab (2plate)",
+      "name": "Chicken Kabab (2plate)"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3189",
+      "duplicateOf": "3188",
+      "uniqueKey": "taste of punjab|8872600187|indian course [non veg]|chicken malayi kabab",
+      "name": "Chicken Malayi Kabab"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3218",
+      "duplicateOf": "3217",
+      "uniqueKey": "brothers cafe|6280268182|burgers|bun pizza burger",
+      "name": "Bun Pizza Burger"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3261",
+      "duplicateOf": "3259",
+      "uniqueKey": "brothers cafe|6280268182|tea & coffee|chocolate coffee",
+      "name": "Chocolate Coffee"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3379",
+      "duplicateOf": "3378",
+      "uniqueKey": "anmol shake & snacks|8003596700|raita / salad|chips salad",
+      "name": "Chips salad"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3394",
+      "duplicateOf": "3378",
+      "uniqueKey": "anmol shake & snacks|8003596700|raita / salad|chips salad",
+      "name": "Chips salad"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3410",
+      "duplicateOf": "317",
+      "uniqueKey": "vicky sweets|6280595087|raita / salad|boondi raita",
+      "name": "Boondi Raita"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3476",
+      "duplicateOf": "9",
+      "uniqueKey": "apna dana paani|9416917777|breakfast|paneer parantha",
+      "name": "Paneer Parantha"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3477",
+      "duplicateOf": "14",
+      "uniqueKey": "apna dana paani|9416917777|breakfast|paneer parantha with curd",
+      "name": "Paneer Parantha with Curd"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3484",
+      "duplicateOf": "25",
+      "uniqueKey": "apna dana paani|9416917777|chinese|honey chilly potato",
+      "name": "Honey Chilly Potato"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3510",
+      "duplicateOf": "166",
+      "uniqueKey": "apna dana paani|9416917777|non veg tandoori|non veg platter",
+      "name": "Non Veg Platter"
+    },
+    {
+      "type": "duplicate_food_key",
+      "legacyId": "3528",
+      "duplicateOf": "344",
+      "uniqueKey": "apna dana paani|9416917777|sweets / desserts|strawberry",
+      "name": "Strawberry"
+    }
+  ],
+  "skippedPreview": [
+    {
+      "legacyId": "927",
+      "name": "Pav Bhaji",
+      "restaurantLegacyId": "10",
+      "restaurantName": "Lal Chand Chaat King",
+      "categoryLegacyId": "3",
+      "categoryName": "Chaat",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "230",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1594",
+      "name": "Lemon Chicken",
+      "restaurantLegacyId": "3",
+      "restaurantName": "Apna Dana Paani",
+      "categoryLegacyId": "69",
+      "categoryName": "Chinese Non veg",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "363",
+          "name": "Size",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1708",
+      "name": "Cold coffee",
+      "restaurantLegacyId": "23",
+      "restaurantName": "Babbar Bakers",
+      "categoryLegacyId": "14",
+      "categoryName": "Beverages",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "338",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1803",
+      "name": "Mango Shake",
+      "restaurantLegacyId": "23",
+      "restaurantName": "Babbar Bakers",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "346",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1804",
+      "name": "Chocolate Shake",
+      "restaurantLegacyId": "23",
+      "restaurantName": "Babbar Bakers",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "345",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1805",
+      "name": "Vanilla Shake",
+      "restaurantLegacyId": "23",
+      "restaurantName": "Babbar Bakers",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "344",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1806",
+      "name": "Allo Tikki Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "40",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1807",
+      "name": "Classic Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "41",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1809",
+      "name": "Cheese Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "44",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1810",
+      "name": "Corn Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "48",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1811",
+      "name": "Corn Cheese Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "49",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1812",
+      "name": "Tandoori Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "50",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1813",
+      "name": "Achari Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "51",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1814",
+      "name": "Tandoori Cheese Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "52",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1815",
+      "name": "Crunch Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "54",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1816",
+      "name": "Crunch Cheese Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "55",
+          "name": "Variants",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1817",
+      "name": "Hot Spice Creamy",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "56",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1818",
+      "name": "Maharaja Burger",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "58",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1819",
+      "name": "Maharaja Cheese",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "59",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1820",
+      "name": "Paneer Patty",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "60",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1821",
+      "name": "Paneer Crunch",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "61",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1822",
+      "name": "Tandoori Paneer",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "62",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1823",
+      "name": "Paneer Delight",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "63",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1824",
+      "name": "American Jumbo",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "24",
+      "categoryName": "Burgers",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "64",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1825",
+      "name": "Grilled Sandwich",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "65",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1826",
+      "name": "Corn Sandwich",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "66",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1827",
+      "name": "Corn Cheese",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "67",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1828",
+      "name": "Cheese Onion",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "68",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1829",
+      "name": "Tandoori Sandwich",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "69",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1830",
+      "name": "Tandoori Cheese Sandwich",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "70",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1831",
+      "name": "Achaari Sandwich",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "310",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1832",
+      "name": "Paneer Sandwich",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "311",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1833",
+      "name": "Mexican Sandwich",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "312",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1834",
+      "name": "Tandoori Paneer",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "313",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1835",
+      "name": "Mint Lover Sandwich",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "314",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1836",
+      "name": "Mozz. Classic Corn",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "315",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1837",
+      "name": "Mozz. Cheese Onion Olive",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "316",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1838",
+      "name": "Club Sandwich",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "33",
+      "categoryName": "Sandwich",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "309",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1852",
+      "name": "Butterscotch shake",
+      "restaurantLegacyId": "23",
+      "restaurantName": "Babbar Bakers",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "343",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1853",
+      "name": "Strawberry Shake",
+      "restaurantLegacyId": "23",
+      "restaurantName": "Babbar Bakers",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "342",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1854",
+      "name": "Oreo Shake",
+      "restaurantLegacyId": "23",
+      "restaurantName": "Babbar Bakers",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "341",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1857",
+      "name": "Black Crurent",
+      "restaurantLegacyId": "23",
+      "restaurantName": "Babbar Bakers",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "340",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "1858",
+      "name": "Kiwi Crush",
+      "restaurantLegacyId": "23",
+      "restaurantName": "Babbar Bakers",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "339",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2116",
+      "name": "Chicken Masala",
+      "restaurantLegacyId": "3",
+      "restaurantName": "Apna Dana Paani",
+      "categoryLegacyId": "31",
+      "categoryName": "Indian Course [Non Veg]",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "374",
+          "name": "Size",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2118",
+      "name": "Butter Chicken",
+      "restaurantLegacyId": "3",
+      "restaurantName": "Apna Dana Paani",
+      "categoryLegacyId": "31",
+      "categoryName": "Indian Course [Non Veg]",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "370",
+          "name": "Size",
+          "type": "multi",
+          "min": 1,
+          "max": 1,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2180",
+      "name": "Margherita Pizza",
+      "restaurantLegacyId": "4",
+      "restaurantName": "The Bella Ciao",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "3",
+          "name": "Variants",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2185",
+      "name": "MEXICAN ITALLIAN VEG",
+      "restaurantLegacyId": "4",
+      "restaurantName": "The Bella Ciao",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "8",
+          "name": "Variants",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2188",
+      "name": "VEG LOADED FARM FRESH",
+      "restaurantLegacyId": "4",
+      "restaurantName": "The Bella Ciao",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "11",
+          "name": "Variants",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2197",
+      "name": "Farmhouse Pizza",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "18",
+          "name": "Variants",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2240",
+      "name": "Fry Chicken",
+      "restaurantLegacyId": "3",
+      "restaurantName": "Apna Dana Paani",
+      "categoryLegacyId": "31",
+      "categoryName": "Indian Course [Non Veg]",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "33",
+          "name": "Size",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2257",
+      "name": "Corn Pizza",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "35",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2265",
+      "name": "Simple Veg Pizza",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "43",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2266",
+      "name": "Veg Lover Pizza",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "45",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2267",
+      "name": "Countryside Pizza",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "47",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2268",
+      "name": "Tandoori Panner Pizza (Medium)",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "37",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2269",
+      "name": "Margherita Pizza(Medium)",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "39",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2270",
+      "name": "Tandoori Lover Pizza",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "46",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2271",
+      "name": "Panner Pizza",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "308",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2272",
+      "name": "Achari Pizza (Medium)",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "53",
+          "name": "varient",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2275",
+      "name": "Paneer Pizza",
+      "restaurantLegacyId": "18",
+      "restaurantName": "Burger Boys",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "57",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2291",
+      "name": "Motichur Laddu(250gms)",
+      "restaurantLegacyId": "5",
+      "restaurantName": "Gupta Sweets",
+      "categoryLegacyId": "53",
+      "categoryName": "Festive Sweets",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "76",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "legacyId": "2321",
+      "name": "Carrot Juice (Seasonal)",
+      "restaurantLegacyId": "33",
+      "restaurantName": "Mohan Shake & Juice",
+      "categoryLegacyId": "29",
+      "categoryName": "Juice [Packed]",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "269",
+          "name": "Carrot Juice",
+          "type": "single",
+          "min": 0,
+          "max": 0,
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "legacyId": "2326",
+      "name": "Mosami Juice (Seasonal)",
+      "restaurantLegacyId": "33",
+      "restaurantName": "Mohan Shake & Juice",
+      "categoryLegacyId": "29",
+      "categoryName": "Juice [Packed]",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "94",
+          "name": "Mosami Juice",
+          "type": "single",
+          "min": 1,
+          "max": 2,
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "legacyId": "2434",
+      "name": "Margraita Pizza",
+      "restaurantLegacyId": "24",
+      "restaurantName": "HAV\\'N Grillz",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "105",
+          "name": "Variants",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2446",
+      "name": "Peri Peri Paneer Pizza",
+      "restaurantLegacyId": "7",
+      "restaurantName": "Pizza13",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "106",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2447",
+      "name": "Spicy Veg Pizza",
+      "restaurantLegacyId": "7",
+      "restaurantName": "Pizza13",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "107",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2448",
+      "name": "Paneer Tikka Pizza",
+      "restaurantLegacyId": "7",
+      "restaurantName": "Pizza13",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "108",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2449",
+      "name": "Farm House Pizza",
+      "restaurantLegacyId": "7",
+      "restaurantName": "Pizza13",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "109",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2450",
+      "name": "Veg Overloaded Pizza",
+      "restaurantLegacyId": "7",
+      "restaurantName": "Pizza13",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "110",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2494",
+      "name": "Single Cheese Pizza",
+      "restaurantLegacyId": "29",
+      "restaurantName": "Hungry Point",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "111",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2497",
+      "name": "Double Cheese Pizza",
+      "restaurantLegacyId": "29",
+      "restaurantName": "Hungry Point",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "112",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2500",
+      "name": "Cheese & Mushroom",
+      "restaurantLegacyId": "29",
+      "restaurantName": "Hungry Point",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "113",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2504",
+      "name": "Cheese & Corn",
+      "restaurantLegacyId": "29",
+      "restaurantName": "Hungry Point",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "114",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2513",
+      "name": "Malai Chaap",
+      "restaurantLegacyId": "15",
+      "restaurantName": "Khalsa Chaap",
+      "categoryLegacyId": "26",
+      "categoryName": "Chaaps",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "115",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2514",
+      "name": "Masala Chaap",
+      "restaurantLegacyId": "15",
+      "restaurantName": "Khalsa Chaap",
+      "categoryLegacyId": "26",
+      "categoryName": "Chaaps",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "116",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2516",
+      "name": "Lemon Chaap",
+      "restaurantLegacyId": "15",
+      "restaurantName": "Khalsa Chaap",
+      "categoryLegacyId": "26",
+      "categoryName": "Chaaps",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "117",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2518",
+      "name": "Achari Chaap",
+      "restaurantLegacyId": "15",
+      "restaurantName": "Khalsa Chaap",
+      "categoryLegacyId": "26",
+      "categoryName": "Chaaps",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "118",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2521",
+      "name": "Afgani Chaap",
+      "restaurantLegacyId": "15",
+      "restaurantName": "Khalsa Chaap",
+      "categoryLegacyId": "26",
+      "categoryName": "Chaaps",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "119",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2522",
+      "name": "Paneer tikka",
+      "restaurantLegacyId": "15",
+      "restaurantName": "Khalsa Chaap",
+      "categoryLegacyId": "26",
+      "categoryName": "Chaaps",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "120",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2525",
+      "name": "Mashroom Tikka",
+      "restaurantLegacyId": "15",
+      "restaurantName": "Khalsa Chaap",
+      "categoryLegacyId": "17",
+      "categoryName": "Veg Tandoori Items",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "121",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2538",
+      "name": "Makhni Paneer Pizza",
+      "restaurantLegacyId": "29",
+      "restaurantName": "Hungry Point",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "122",
+          "name": "variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2539",
+      "name": "Tandoori Paneer Pizza",
+      "restaurantLegacyId": "29",
+      "restaurantName": "Hungry Point",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "123",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2540",
+      "name": "Achari Pizza",
+      "restaurantLegacyId": "29",
+      "restaurantName": "Hungry Point",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "124",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 3,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2541",
+      "name": "Farm Fresh Pizza",
+      "restaurantLegacyId": "29",
+      "restaurantName": "Hungry Point",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "125",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 4,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2542",
+      "name": "Delight Pizza",
+      "restaurantLegacyId": "29",
+      "restaurantName": "Hungry Point",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_missing_priced_options",
+      "basePrice": 0,
+      "restaurantPrice": null,
+      "variationGroups": [
+        {
+          "id": "126",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 4,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2556",
+      "name": "Marghartia Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "129",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2558",
+      "name": "Corn Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "131",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2560",
+      "name": "Onion Tomato Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "132",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2561",
+      "name": "Simple Veg. Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "133",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2563",
+      "name": "Veg Corn Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "134",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2564",
+      "name": "Tandori Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "135",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2565",
+      "name": "Angery Baby Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "136",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2566",
+      "name": "Paneer Tikka Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "137",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2567",
+      "name": "Farmer Style Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "138",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2568",
+      "name": "Multy Veg. Pizza",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "1",
+      "categoryName": "Pizzas",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "139",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2569",
+      "name": "Vanila Shake",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "140",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2570",
+      "name": "Strawbery Shake",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "141",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2571",
+      "name": "Chocolate Shake",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "142",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2572",
+      "name": "Butter Scotch Shake",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "143",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "legacyId": "2573",
+      "name": "Cold Coffee",
+      "restaurantLegacyId": "8",
+      "restaurantName": "Burger Bite",
+      "categoryLegacyId": "4",
+      "categoryName": "Shakes/Crush",
+      "reason": "legacy_variant_only_tiny_fallback_price",
+      "basePrice": 0,
+      "restaurantPrice": 0.1,
+      "variationGroups": [
+        {
+          "id": "144",
+          "name": "Variant",
+          "type": "multi",
+          "min": 1,
+          "max": 2,
+          "isRequired": true
+        }
+      ]
+    }
+  ]
+}

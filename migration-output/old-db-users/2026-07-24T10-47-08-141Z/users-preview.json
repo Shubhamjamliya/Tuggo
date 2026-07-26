@@ -1,0 +1,282 @@
+[
+  {
+    "legacyId": "2",
+    "sourceLegacyIds": [
+      "2"
+    ],
+    "phone": "+919815450007",
+    "name": "gurmalak",
+    "isActive": false,
+    "isVerified": true,
+    "referralCode": "SQ94HXJ4RQ",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 43
+  },
+  {
+    "legacyId": "3290",
+    "sourceLegacyIds": [
+      "3290"
+    ],
+    "phone": "+919416917777",
+    "name": "Gurmeet Singh",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3291",
+    "sourceLegacyIds": [
+      "3291"
+    ],
+    "phone": "+916280595087",
+    "name": "Vicky Sweets",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3294",
+    "sourceLegacyIds": [
+      "3294"
+    ],
+    "phone": "+919988600998",
+    "name": "Prince Pal Singh",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3295",
+    "sourceLegacyIds": [
+      "3295"
+    ],
+    "phone": "+919872026227",
+    "name": "Gupta Sweets",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3296",
+    "sourceLegacyIds": [
+      "3296"
+    ],
+    "phone": "+919815450001",
+    "name": "Italian Haweli",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3299",
+    "sourceLegacyIds": [
+      "3299"
+    ],
+    "phone": "+919988023300",
+    "name": "Burger Boys",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 2
+  },
+  {
+    "legacyId": "3303",
+    "sourceLegacyIds": [
+      "3303"
+    ],
+    "phone": "+917083601313",
+    "name": "Robin Thind",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3319",
+    "sourceLegacyIds": [
+      "3319"
+    ],
+    "phone": "+919780382003",
+    "name": "Burger Bite",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3322",
+    "sourceLegacyIds": [
+      "3322"
+    ],
+    "phone": "+919465000409",
+    "name": "Dilraj Singh",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3323",
+    "sourceLegacyIds": [
+      "3323"
+    ],
+    "phone": "+916239834421",
+    "name": "Rahul",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 1
+  },
+  {
+    "legacyId": "3325",
+    "sourceLegacyIds": [
+      "3325"
+    ],
+    "phone": "+918058060760",
+    "name": "Sarwan Singh",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3327",
+    "sourceLegacyIds": [
+      "3327"
+    ],
+    "phone": "+919988818537",
+    "name": "HC Burger",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3328",
+    "sourceLegacyIds": [
+      "3328"
+    ],
+    "phone": "+918427954710",
+    "name": "Samanpret Singh",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3418",
+    "sourceLegacyIds": [
+      "3418"
+    ],
+    "phone": "+919878660090",
+    "name": "Organic Chicken",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3493",
+    "sourceLegacyIds": [
+      "3493"
+    ],
+    "phone": "+917743033065",
+    "name": "Simrat singh",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3542",
+    "sourceLegacyIds": [
+      "3542"
+    ],
+    "phone": "+919915815060",
+    "name": "Hardeep singh",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3547",
+    "sourceLegacyIds": [
+      "3547"
+    ],
+    "phone": "+917814960919",
+    "name": "HasijaS",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3563",
+    "sourceLegacyIds": [
+      "3563"
+    ],
+    "phone": "+917800000085",
+    "name": "Vicky Confectionery",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  },
+  {
+    "legacyId": "3607",
+    "sourceLegacyIds": [
+      "3607"
+    ],
+    "phone": "+919872578059",
+    "name": "PARMINDER SINGH",
+    "isActive": true,
+    "isVerified": true,
+    "referralCode": "",
+    "referredByLegacyId": "",
+    "walletBalance": 0,
+    "loyaltyPoint": 0
+  }
+]

@@ -1,0 +1,142 @@
+[
+  {
+    "legacyId": "1",
+    "name": "Pizzas",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e4f7d53aaf.png"
+  },
+  {
+    "legacyId": "2",
+    "name": "Indian Snacks",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e4f9cb767f.png"
+  },
+  {
+    "legacyId": "3",
+    "name": "Chaat",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e4fd11af75.png"
+  },
+  {
+    "legacyId": "4",
+    "name": "Shakes/Crush",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e4fdcd75a8.png"
+  },
+  {
+    "legacyId": "5",
+    "name": "Soups",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e51649199a.png"
+  },
+  {
+    "legacyId": "6",
+    "name": "Mocktails / Smoothies",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e500065eca.png"
+  },
+  {
+    "legacyId": "7",
+    "name": "Chinese",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e5016cfb9d.png"
+  },
+  {
+    "legacyId": "8",
+    "name": "Continental",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e5143f06c9.png"
+  },
+  {
+    "legacyId": "9",
+    "name": "Thali",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e50271c87f.png"
+  },
+  {
+    "legacyId": "10",
+    "name": "Rice",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e5032e895a.png"
+  },
+  {
+    "legacyId": "11",
+    "name": "Raita / Salad",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e5044e6299.png"
+  },
+  {
+    "legacyId": "12",
+    "name": "Ice Cream",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e505c65610.png"
+  },
+  {
+    "legacyId": "13",
+    "name": "Sweets / Desserts",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e507a64007.png"
+  },
+  {
+    "legacyId": "14",
+    "name": "Beverages",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e5088d3a36.png"
+  },
+  {
+    "legacyId": "15",
+    "name": "Breakfast",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e51e7e475f.png"
+  },
+  {
+    "legacyId": "16",
+    "name": "Noodles",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e510b5b40d.png"
+  },
+  {
+    "legacyId": "17",
+    "name": "Veg Tandoori Items",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e51579b378.png"
+  },
+  {
+    "legacyId": "18",
+    "name": "Nibbles Hurry Up",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e521fc5ade.png"
+  },
+  {
+    "legacyId": "19",
+    "name": "Indian Course Veg",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e5130d9a21.png"
+  },
+  {
+    "legacyId": "20",
+    "name": "Bread Station",
+    "isActive": true,
+    "sortOrder": 0,
+    "image": "2025-07-09-686e511c55626.png"
+  }
+]

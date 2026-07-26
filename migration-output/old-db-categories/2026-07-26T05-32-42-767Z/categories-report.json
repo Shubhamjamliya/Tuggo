@@ -1,0 +1,26 @@
+{
+  "source": "E:\\Tuggo\\old db\\categories.csv",
+  "applyMode": true,
+  "rawRows": 71,
+  "processedCategories": 71,
+  "activeCategories": 71,
+  "fieldMapping": {
+    "name": "FoodCategory.name",
+    "image": "FoodCategory.image",
+    "status": "FoodCategory.isActive",
+    "priority": "FoodCategory.sortOrder fallback",
+    "position": "FoodCategory.sortOrder fallback",
+    "created_at": "FoodCategory.createdAt",
+    "updated_at": "FoodCategory.updatedAt"
+  },
+  "unmappedLegacyFields": [
+    "parent_id",
+    "slug"
+  ],
+  "notes": [
+    "Legacy categories are imported as approved global admin categories.",
+    "foodTypeScope defaults to Both because the old category CSV does not encode a veg/non-veg scope.",
+    "parent_id is not used because the current category schema is flat."
+  ],
+  "issues": []
+}

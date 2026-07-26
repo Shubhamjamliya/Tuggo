@@ -1,0 +1,406 @@
+{
+  "foodsUpserted": 0,
+  "unresolvedCount": 3023,
+  "unresolvedPreview": [
+    {
+      "legacyId": "1",
+      "name": "Pineapple Juice",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "beverages",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "2",
+      "name": "Orange Juice",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "beverages",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "3",
+      "name": "Mix Fruit",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "beverages",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "4",
+      "name": "Cranberry Juice",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "beverages",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "5",
+      "name": "Guava Juice",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "beverages",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "6",
+      "name": "Aloo Parantha",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "7",
+      "name": "Aloo Parantha with Curd",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "8",
+      "name": "Mix Parantha",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "9",
+      "name": "Paneer Parantha",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "10",
+      "name": "Onion Parantha",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "11",
+      "name": "Veg Sandwich",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "12",
+      "name": "Cheese Sandwich",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "13",
+      "name": "Grilled Sandwich",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "14",
+      "name": "Paneer Parantha with Curd",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "15",
+      "name": "Butter Tikki",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "breakfast",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "16",
+      "name": "Cheese Chilly",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "17",
+      "name": "Cheese Garlic",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "18",
+      "name": "Cheese Finger",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "19",
+      "name": "Mushroom Chilly",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "20",
+      "name": "Mushroom Duplex",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "21",
+      "name": "Spring Roll",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "22",
+      "name": "Veg Manchurian [DRY]",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "23",
+      "name": "Veg Manchurian [GRAVY]",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "24",
+      "name": "Honey Chilly Cauliflower",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "25",
+      "name": "Honey Chilly Potato",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "26",
+      "name": "Crispy Corn Chilly (CHEF SPL)",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "27",
+      "name": "Veg Gold Coin",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "28",
+      "name": "Chilly Chaap",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "29",
+      "name": "Veg Choupsey",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "30",
+      "name": "Red Pasta",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "31",
+      "name": "White Pasta",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "32",
+      "name": "Boiled Veg",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "33",
+      "name": "Cheese Cocktail Kabab",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "34",
+      "name": "Mix Pasta",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "chinese",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "35",
+      "name": "Veg Noodles",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "noodles",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "36",
+      "name": "Garlic Noodles",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "noodles",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "37",
+      "name": "Chilly Garlic Noodles",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "noodles",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "38",
+      "name": "Hakka Noodles",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "noodles",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "39",
+      "name": "Paneer Tikka",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "40",
+      "name": "Achari Paneer Tikka",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "41",
+      "name": "Mushroom Tikka",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "42",
+      "name": "Mushroom Malai Tikka",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "43",
+      "name": "Paneer Malai Tikka",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "44",
+      "name": "Paneer Pahadi Tikka",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "45",
+      "name": "Paneer Irani Tikka",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "46",
+      "name": "Veg Seekh Kabab",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "47",
+      "name": "Afghani Chaap",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "48",
+      "name": "Malai Chaap",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "49",
+      "name": "Pahadi Chaap",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    },
+    {
+      "legacyId": "50",
+      "name": "Veg Platter",
+      "restaurantUniqueKey": "apna dana paani|9416917777",
+      "categoryNormalizedName": "veg tandoori items",
+      "missingRestaurant": false,
+      "missingCategory": true
+    }
+  ]
+}

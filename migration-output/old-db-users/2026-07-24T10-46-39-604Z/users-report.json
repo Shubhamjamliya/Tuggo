@@ -1,0 +1,64 @@
+{
+  "source": "E:\\Tuggo\\old db\\users (1).csv",
+  "applyMode": false,
+  "processedUsers": 5327,
+  "rawRows": 5328,
+  "walletsToCreate": 123,
+  "referredUsers": 42,
+  "inactiveUsers": 14,
+  "verifiedUsers": 5321,
+  "mergedDuplicatePhones": 1,
+  "fieldMapping": {
+    "id": "report only as legacyId",
+    "f_name": "FoodUser.name (combined)",
+    "l_name": "FoodUser.name (combined)",
+    "phone": "FoodUser.phone + FoodUser.countryCode",
+    "email": "FoodUser.email",
+    "image": "FoodUser.profileImage",
+    "is_phone_verified": "FoodUser.isVerified",
+    "email_verified_at": "FoodUser.isVerified support signal only",
+    "cm_firebase_token": "FoodUser.fcmTokens[] and FoodUser.fcmTokenMobile[]",
+    "status": "FoodUser.isActive (combined with blacklisted)",
+    "blacklisted": "FoodUser.isActive inversion rule only",
+    "ref_code": "FoodUser.referralCode",
+    "ref_by": "FoodUser.referredBy via legacy id lookup",
+    "wallet_balance": "FoodUserWallet.balance + opening transaction",
+    "created_at": "FoodUser.createdAt",
+    "updated_at": "FoodUser.updatedAt"
+  },
+  "unmappedLegacyFields": [
+    "password",
+    "remember_token",
+    "interest",
+    "zone_id",
+    "order_count",
+    "loyalty_point",
+    "login_medium",
+    "social_id",
+    "temp_token",
+    "current_language_key",
+    "customer_behaviour"
+  ],
+  "notes": [
+    "No legacy address dataset was found for users in old db/. Users will migrate with empty addresses.",
+    "Loyalty points currently have no destination in FoodUser or FoodUserWallet.",
+    "Legacy password hashes are intentionally not migrated because current auth is OTP-based.",
+    "Legacy ref_by values are resolved only within this CSV import set.",
+    "When duplicate legacy rows share the same phone, the importer merges richer profile fields with the latest verified/referral data."
+  ],
+  "mergeLog": [
+    {
+      "phone": "+918847290340",
+      "mergedIds": [
+        "7202",
+        "9854"
+      ],
+      "keptPrimaryLegacyId": "7202",
+      "chosenName": "prince guraya",
+      "chosenEmail": "princeguraya01@gmail.com",
+      "chosenRefCode": "NW7EH370VN",
+      "verified": true
+    }
+  ],
+  "issues": []
+}

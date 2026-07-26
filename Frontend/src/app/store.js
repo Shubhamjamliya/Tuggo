@@ -19,4 +19,3 @@ export const store = configureStore({
 
 export const getStoreState = () => store.getState()
 
-export { useAuthStore } from '../core/auth/auth.store'
