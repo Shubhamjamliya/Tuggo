@@ -2808,7 +2808,7 @@ export async function createCategory(body) {
     if (!name) throw new ValidationError('Category name is required');
     const doc = new FoodCategory({
         name,
-        image: typeof body.image === 'string' ? body.image.trim() : '',
+        image: normalizeStoredUploadPath(body.image),
         type: typeof body.type === 'string' ? body.type.trim() : '',
         foodTypeScope: normalizeCategoryFoodTypeScope(body.foodTypeScope, 'Both'),
         zoneId:
@@ -2915,7 +2915,7 @@ export async function updateCategory(id, body) {
     }
 
     if (body.name !== undefined) doc.name = String(body.name || '').trim();
-    if (body.image !== undefined) doc.image = String(body.image || '').trim();
+    if (body.image !== undefined) doc.image = normalizeStoredUploadPath(body.image);
     if (body.type !== undefined) doc.type = String(body.type || '').trim();
     if (body.foodTypeScope !== undefined) doc.foodTypeScope = nextFoodTypeScope;
     if (!doc.restaurantId && doc.createdByRestaurantId) {
@@ -3353,7 +3353,7 @@ export async function createFood(body) {
             ? Number(body.otherPlatformGst)
             : null,
         variants,
-        image: typeof body.image === 'string' ? body.image.trim() : '',
+        image: normalizeStoredUploadPath(body.image),
         foodType,
         isAvailable: body.isAvailable !== false,
         preparationTime: typeof body.preparationTime === 'string' ? body.preparationTime.trim() : '',
@@ -3388,7 +3388,7 @@ export async function updateFood(id, body) {
             ? Number(body.otherPlatformGst)
             : null;
     }
-    if (body.image !== undefined) doc.image = String(body.image || '').trim();
+    if (body.image !== undefined) doc.image = normalizeStoredUploadPath(body.image);
     if (body.foodType !== undefined) doc.foodType = targetFoodType;
     if (body.isAvailable !== undefined) doc.isAvailable = body.isAvailable !== false;
     if (body.preparationTime !== undefined) doc.preparationTime = String(body.preparationTime || '').trim();
@@ -5457,4 +5457,5 @@ export async function deleteSubAdmin(id) {
     const deleted = await FoodAdmin.findOneAndDelete({ _id: id, role: 'SUB_ADMIN' });
     return deleted !== null;
 }
+
 

@@ -1,0 +1,1236 @@
+{
+  "generatedAt": "2026-07-26T09:21:57.499Z",
+  "applyChanges": false,
+  "uploadDir": "E:\\Tuggo\\Backend\\uploads",
+  "uploadFileCount": 2243,
+  "categoriesScanned": 77,
+  "categoriesEligible": 77,
+  "categoriesMatched": 25,
+  "categoriesUpdated": 0,
+  "unmatched": [
+    {
+      "categoryId": "6a659bfaa686f8e63f922f51",
+      "name": "Amritsari Naan",
+      "currentImage": "/uploads/2025-07-09-686e52a0a2685.png",
+      "candidateMatches": [
+        {
+          "file": "amritsari_naan_with_chana.jpg",
+          "score": 87
+        },
+        {
+          "file": "amritsari_naan_with_channa.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f61",
+      "name": "Atta , Rice & Dal",
+      "currentImage": "/uploads/2026-03-25-69c3c1b9b1536.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f55",
+      "name": "Bakery",
+      "currentImage": "/uploads/2025-07-29-688863ea29972.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f67",
+      "name": "Bath & Body",
+      "currentImage": "/uploads/2026-03-26-69c5346926f3f.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f32",
+      "name": "Beverages",
+      "currentImage": "/uploads/2025-07-09-686e5088d3a36.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff83",
+      "name": "Biryani",
+      "currentImage": "/uploads/2025-07-09-686e52fd2f3e6.png",
+      "candidateMatches": [
+        {
+          "file": "cheese_biryani.jpeg",
+          "score": 87
+        },
+        {
+          "file": "chicken_biryani.jpg",
+          "score": 87
+        },
+        {
+          "file": "veg_biryani.jpg",
+          "score": 87
+        },
+        {
+          "file": "_Hyderabadi_Dum_Biryani_.jpg",
+          "score": 84
+        },
+        {
+          "file": "dum_biryani_chicken.jpg",
+          "score": 84
+        }
+      ]
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff7d",
+      "name": "Burger",
+      "currentImage": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80",
+      "candidateMatches": [
+        {
+          "file": "cheese_burger.jpg",
+          "score": 87
+        },
+        {
+          "file": "pizza_burger.jpg",
+          "score": 87
+        },
+        {
+          "file": "burger_mocktail_combo.jpg",
+          "score": 84
+        },
+        {
+          "file": "burger-bite-samana-.jpg",
+          "score": 84
+        },
+        {
+          "file": "chicken_burger_combo.jpg",
+          "score": 84
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f3c",
+      "name": "Burgers",
+      "currentImage": "/uploads/2025-07-09-686e50c4bd315.png",
+      "candidateMatches": [
+        {
+          "file": "cheese_burger.jpg",
+          "score": 81
+        },
+        {
+          "file": "pizza_burger.jpg",
+          "score": 81
+        },
+        {
+          "file": "burger_mocktail_combo.jpg",
+          "score": 78
+        },
+        {
+          "file": "burger-bite-samana-.jpg",
+          "score": 78
+        },
+        {
+          "file": "chicken_burger_combo.jpg",
+          "score": 78
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f5b",
+      "name": "Buy 1 get 1 Free",
+      "currentImage": "/uploads/2025-10-25-68fc759a8858e.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f3e",
+      "name": "Chaaps",
+      "currentImage": "/uploads/2025-07-09-686e51c10807f.png",
+      "candidateMatches": [
+        {
+          "file": "achari_chaap.jpg",
+          "score": 81
+        },
+        {
+          "file": "Achari-chaap.jpg",
+          "score": 81
+        },
+        {
+          "file": "afgani_chaap.jpg",
+          "score": 81
+        },
+        {
+          "file": "afghani_chaap.jpg",
+          "score": 81
+        },
+        {
+          "file": "ajwain_chaap.jpg",
+          "score": 81
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f27",
+      "name": "Chaat",
+      "currentImage": "/uploads/2025-07-09-686e4fd11af75.png",
+      "candidateMatches": [
+        {
+          "file": "basket_chaat.jpg",
+          "score": 87
+        },
+        {
+          "file": "chana_chaat.jpg",
+          "score": 87
+        },
+        {
+          "file": "corn_chaat.jpg",
+          "score": 87
+        },
+        {
+          "file": "KURKURE_CHAAT_.jpg",
+          "score": 87
+        },
+        {
+          "file": "kurkure_chaat.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f54",
+      "name": "Chef's Special",
+      "currentImage": "/uploads/2025-07-29-688863d70162f.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f4f",
+      "name": "Chicken",
+      "currentImage": "/uploads/2025-07-09-686e51d0bf48c.png",
+      "candidateMatches": [
+        {
+          "file": "butter_chicken.jpg",
+          "score": 87
+        },
+        {
+          "file": "chicken_afghani.jpg",
+          "score": 87
+        },
+        {
+          "file": "chicken_biryani.jpg",
+          "score": 87
+        },
+        {
+          "file": "chicken_curry.jpg",
+          "score": 87
+        },
+        {
+          "file": "chicken_finger.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f69",
+      "name": "Chinese Non veg",
+      "currentImage": "/uploads/2026-06-07-6a24fee80e372.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f62",
+      "name": "Chips & Namkeen",
+      "currentImage": "/uploads/2026-03-25-69c3c1ec3a261.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f65",
+      "name": "Cleaners & Repellents",
+      "currentImage": "/uploads/2026-03-26-69c52c52672a1.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f58",
+      "name": "Dinner",
+      "currentImage": "/uploads/2025-08-28-68aff4d48c5d6.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f64",
+      "name": "Drinks & Juice",
+      "currentImage": "/uploads/2026-03-25-69c3c2709aec5.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f59",
+      "name": "Festive Sweets",
+      "currentImage": "/uploads/2025-10-04-68e0eccfd9237.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f44",
+      "name": "Fish",
+      "currentImage": "/uploads/2025-07-09-686e5219881c3.png",
+      "candidateMatches": [
+        {
+          "file": "amritsari_fish.jpg",
+          "score": 87
+        },
+        {
+          "file": "chilli_fish.jpg",
+          "score": 87
+        },
+        {
+          "file": "fish_and_chips.jpg",
+          "score": 87
+        },
+        {
+          "file": "fish_curry.jpg",
+          "score": 87
+        },
+        {
+          "file": "fish_finger.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f5d",
+      "name": "Fruit Cream",
+      "currentImage": "/uploads/2025-11-04-6909903c0088e.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f48",
+      "name": "Garlic Bread",
+      "currentImage": "/uploads/2025-07-09-686e53575d823.png",
+      "candidateMatches": [
+        {
+          "file": "cheese_garlic_bread.jpg",
+          "score": 87
+        },
+        {
+          "file": "chicken_garlic_bread.jpg",
+          "score": 87
+        },
+        {
+          "file": "simple_garlic_bread.jpg",
+          "score": 87
+        },
+        {
+          "file": "veg+cheese_garlic_bread.jpg",
+          "score": 84
+        }
+      ]
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff8f",
+      "name": "Gourmet",
+      "currentImage": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400&q=80",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f30",
+      "name": "Ice Cream",
+      "currentImage": "/uploads/2025-07-09-686e505c65610.png",
+      "candidateMatches": [
+        {
+          "file": "chocolate_ice_cream.jpg",
+          "score": 87
+        },
+        {
+          "file": "ice_cream_shakes.jpg",
+          "score": 87
+        },
+        {
+          "file": "Mango-Ice-Cream.jpg",
+          "score": 87
+        },
+        {
+          "file": "strawberry_ice_cream.jpg",
+          "score": 87
+        },
+        {
+          "file": "vanilla_ice_cream.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f37",
+      "name": "Indian Course Veg",
+      "currentImage": "/uploads/2025-07-09-686e5130d9a21.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f43",
+      "name": "Indian Course [Non Veg]",
+      "currentImage": "/uploads/2025-07-09-686e53bd8832d.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f57",
+      "name": "Lunch",
+      "currentImage": "/uploads/2025-08-28-68aff4bf14513.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f46",
+      "name": "Maggie",
+      "currentImage": "/uploads/2025-07-09-686e52af01e87.png",
+      "candidateMatches": [
+        {
+          "file": "plain_maggie.jpg",
+          "score": 87
+        },
+        {
+          "file": "vegetable_maggie_.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f2a",
+      "name": "Mocktails / Smoothies",
+      "currentImage": "/uploads/2025-07-09-686e500065eca.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f36",
+      "name": "Nibbles Hurry Up",
+      "currentImage": "/uploads/2025-07-09-686e521fc5ade.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f3a",
+      "name": "Non Veg Tandoori",
+      "currentImage": "/uploads/2025-07-09-686e50f487126.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff85",
+      "name": "Noodles",
+      "currentImage": "/uploads/2025-07-09-686e510b5b40d.png",
+      "candidateMatches": [
+        {
+          "file": "cheese_noodles.jpg",
+          "score": 87
+        },
+        {
+          "file": "chicken_noodles.jpg",
+          "score": 87
+        },
+        {
+          "file": "garlic_noodles.jpg",
+          "score": 87
+        },
+        {
+          "file": "hakka_noodles.jpg",
+          "score": 87
+        },
+        {
+          "file": "mushroom_noodles.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f63",
+      "name": "Oil , Ghee & Masala",
+      "currentImage": "/uploads/2026-03-25-69c3c2382bb5d.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f49",
+      "name": "Oriental Starters",
+      "currentImage": "/uploads/2025-07-09-686e53e1697a6.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f40",
+      "name": "Papad",
+      "currentImage": "/uploads/2025-07-09-686e53836b178.png",
+      "candidateMatches": [
+        {
+          "file": "DRY-PAPAD.jpg",
+          "score": 87
+        },
+        {
+          "file": "masala_papad.jpg",
+          "score": 87
+        },
+        {
+          "file": "rosted_papad.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f5e",
+      "name": "Parantha",
+      "currentImage": "/uploads/2025-12-11-693aaabb28a1c.png",
+      "candidateMatches": [
+        {
+          "file": "ajwain_parantha.jpg",
+          "score": 87
+        },
+        {
+          "file": "gobhi_parantha.jpg",
+          "score": 87
+        },
+        {
+          "file": "gobi_parantha.jpg",
+          "score": 87
+        },
+        {
+          "file": "laccha parantha.jpg",
+          "score": 87
+        },
+        {
+          "file": "laccha_parantha.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff87",
+      "name": "Pasta",
+      "currentImage": "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=400&q=80",
+      "candidateMatches": [
+        {
+          "file": "alfredo_pasta.jpg",
+          "score": 87
+        },
+        {
+          "file": "arrabiate_pasta.jpg",
+          "score": 87
+        },
+        {
+          "file": "Chicken-pasta-.jpg",
+          "score": 87
+        },
+        {
+          "file": "Makhani-Pasta-.jpg",
+          "score": 87
+        },
+        {
+          "file": "mix_pasta.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f2e",
+      "name": "Rice",
+      "currentImage": "/uploads/2025-07-09-686e5032e895a.png",
+      "candidateMatches": [
+        {
+          "file": "steamed_rice.jpg",
+          "score": 87
+        },
+        {
+          "file": "zira_rice.jpg",
+          "score": 87
+        },
+        {
+          "file": "cheese_fried_rice).jpg",
+          "score": 84
+        },
+        {
+          "file": "egg_fried_rice.jpg",
+          "score": 84
+        },
+        {
+          "file": "mix_fried-rice-.jpg",
+          "score": 84
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f5f",
+      "name": "Roti",
+      "currentImage": "/uploads/2025-12-11-693aaadc0e22c.png",
+      "candidateMatches": [
+        {
+          "file": "butter roti.jpg",
+          "score": 87
+        },
+        {
+          "file": "butter_roti.jpg",
+          "score": 87
+        },
+        {
+          "file": "dal_+_roti.jpg",
+          "score": 87
+        },
+        {
+          "file": "JUNGALI_ROTI.jpg",
+          "score": 87
+        },
+        {
+          "file": "missi roti.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f45",
+      "name": "Sandwich",
+      "currentImage": "/uploads/2025-07-09-686e52c253561.png",
+      "candidateMatches": [
+        {
+          "file": "achaari_sandwich.jpg",
+          "score": 87
+        },
+        {
+          "file": "capsicum_sandwich.jpg",
+          "score": 87
+        },
+        {
+          "file": "cheese_sandwich.jpg",
+          "score": 87
+        },
+        {
+          "file": "chicken_sandwich.jpg",
+          "score": 87
+        },
+        {
+          "file": "club_sandwich.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f39",
+      "name": "Shaan - E - Basmati",
+      "currentImage": "/uploads/2025-07-09-686e517a34f9d.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f3f",
+      "name": "Sizzlers",
+      "currentImage": "/uploads/2025-07-09-686e524761941.png",
+      "candidateMatches": [
+        {
+          "file": "chinese_sizzler.jpg",
+          "score": 81
+        },
+        {
+          "file": "continental_sizzler.jpg",
+          "score": 81
+        },
+        {
+          "file": "veg_sizzler.jpg",
+          "score": 81
+        },
+        {
+          "file": "Vegetable_Sizzler_jpg.jpg",
+          "score": 78
+        },
+        {
+          "file": "cottage-cheese-and-capsicum_sizzler.jpg",
+          "score": 75
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f68",
+      "name": "Soup Non-Veg",
+      "currentImage": "/uploads/2026-06-07-6a24e8388ae11.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff8b",
+      "name": "South Indian",
+      "currentImage": "https://images.unsplash.com/photo-1589301760014-d929f39ce9b1?w=400&q=80",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f4d",
+      "name": "Sub",
+      "currentImage": "/uploads/2025-07-09-686e5230a781a.png",
+      "candidateMatches": [
+        {
+          "file": "fish_sub_.jpg",
+          "score": 87
+        },
+        {
+          "file": "ALOO_TIKKI_SUB.jpg",
+          "score": 84
+        },
+        {
+          "file": "CHICKEN_TIKKA_SUB.jpg",
+          "score": 84
+        },
+        {
+          "file": "cottage_cheese_sub.jpg",
+          "score": 84
+        },
+        {
+          "file": "paneer_and_cheese_sub.jpg",
+          "score": 84
+        }
+      ]
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff8d",
+      "name": "Sweets",
+      "currentImage": "https://images.unsplash.com/photo-1587314168485-3236d6710814?w=400&q=80",
+      "candidateMatches": [
+        {
+          "file": "sweet_corn.jpg",
+          "score": 81
+        },
+        {
+          "file": "sweet_deserts.jpg",
+          "score": 81
+        },
+        {
+          "file": "sweet_lassi.jpg",
+          "score": 81
+        },
+        {
+          "file": "sweet_corn_cup.jpg",
+          "score": 78
+        },
+        {
+          "file": "sweet_corn_pizza.jpg",
+          "score": 78
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f31",
+      "name": "Sweets / Desserts",
+      "currentImage": "/uploads/2025-07-09-686e507a64007.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f66",
+      "name": "Tea & Coffee",
+      "currentImage": "/uploads/2026-03-26-69c532ee3d526.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f5a",
+      "name": "Tikki Junction",
+      "currentImage": "/uploads/2025-10-20-68f5dd719757a.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f35",
+      "name": "Veg Tandoori Items",
+      "currentImage": "/uploads/2025-07-09-686e51579b378.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f6a",
+      "name": "Waffles",
+      "currentImage": "/uploads/2026-06-20-6a35ff96133d0.png",
+      "candidateMatches": []
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f5c",
+      "name": "Week end Offers",
+      "currentImage": "/uploads/2025-10-25-68fc78b24ea92.png",
+      "candidateMatches": []
+    }
+  ],
+  "matched": [
+    {
+      "categoryId": "6a659bfaa686f8e63f922f53",
+      "name": "Appetizers Non Veg",
+      "from": "/uploads/2025-07-29-68886366bf7b1.png",
+      "to": "/uploads/appetizers_non_veg.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "appetizers_non_veg.jpg",
+          "score": 100
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f52",
+      "name": "Appetizers Veg",
+      "from": "/uploads/2025-07-29-6888635681635.png",
+      "to": "/uploads/appetizers_veg.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "appetizers_veg.jpg",
+          "score": 100
+        },
+        {
+          "file": "appetizers_non_veg.jpg",
+          "score": 81
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f38",
+      "name": "Bread Station",
+      "from": "/uploads/2025-07-09-686e511c55626.png",
+      "to": "/uploads/bread_station.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "bread_station.jpg",
+          "score": 100
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f33",
+      "name": "Breakfast",
+      "from": "/uploads/2025-07-09-686e51e7e475f.png",
+      "to": "/uploads/breakfast.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "breakfast.jpg",
+          "score": 100
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f6b",
+      "name": "Cake",
+      "from": "/uploads/2026-06-20-6a363c9ac389a.png",
+      "to": "/uploads/cake.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "cake.jpg",
+          "score": 100
+        },
+        {
+          "file": "blackforest_cake.jpg",
+          "score": 87
+        },
+        {
+          "file": "CHOCOLATE-CAKE-.jpg",
+          "score": 87
+        },
+        {
+          "file": "lava_cake_.jpg",
+          "score": 87
+        },
+        {
+          "file": "pineapple-cake.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff89",
+      "name": "Chinese",
+      "from": "/uploads/2025-07-09-686e5016cfb9d.png",
+      "to": "/uploads/chinese.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "chinese.jpg",
+          "score": 100
+        },
+        {
+          "file": "chinese_bhel.jpg",
+          "score": 87
+        },
+        {
+          "file": "chinese_chopusey.jpg",
+          "score": 87
+        },
+        {
+          "file": "chinese_cplatter.jpg",
+          "score": 87
+        },
+        {
+          "file": "chinese_crispy_.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f2c",
+      "name": "Continental",
+      "from": "/uploads/2025-07-09-686e5143f06c9.png",
+      "to": "/uploads/continental.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "continental.jpg",
+          "score": 100
+        },
+        {
+          "file": "continental_sizzler.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f56",
+      "name": "Gym Freak",
+      "from": "/uploads/2025-07-29-688863f5b46d1.png",
+      "to": "/uploads/Gym_Freak.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "Gym_Freak.jpg",
+          "score": 100
+        },
+        {
+          "file": "gym_freak_salad.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f50",
+      "name": "Ice Cream Shakes",
+      "from": "/uploads/2025-07-09-686e52d39b167.png",
+      "to": "/uploads/ice_cream_shakes.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "ice_cream_shakes.jpg",
+          "score": 100
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f26",
+      "name": "Indian Snacks",
+      "from": "/uploads/2025-07-09-686e4f9cb767f.png",
+      "to": "/uploads/indian_snacks.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "indian_snacks.jpg",
+          "score": 100
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f41",
+      "name": "Juice [Packed]",
+      "from": "/uploads/2025-07-09-686e51e26003e.png",
+      "to": "/uploads/juice__packed.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "juice__packed.jpg",
+          "score": 100
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f4a",
+      "name": "Momos",
+      "from": "/uploads/2025-07-09-686e53176d7dc.png",
+      "to": "/uploads/momos.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "momos.jpg",
+          "score": 100
+        },
+        {
+          "file": "afghan_momos.jpg",
+          "score": 87
+        },
+        {
+          "file": "fried_momos.jpg",
+          "score": 87
+        },
+        {
+          "file": "kurkure_momos.jpg",
+          "score": 87
+        },
+        {
+          "file": "ragi_momos.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f4c",
+      "name": "Non Veg Combo",
+      "from": "/uploads/2025-07-09-686e529424e59.png",
+      "to": "/uploads/non_veg_combo.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "non_veg_combo.jpg",
+          "score": 100
+        },
+        {
+          "file": "non_veg_pizza_wrap_combo.jpg",
+          "score": 78
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f3d",
+      "name": "Pastas",
+      "from": "/uploads/2025-07-09-686e50d126539.png",
+      "to": "/uploads/pasta_salad.jpg",
+      "score": 87,
+      "candidateMatches": [
+        {
+          "file": "pasta_salad.jpg",
+          "score": 87
+        },
+        {
+          "file": "alfredo_pasta.jpg",
+          "score": 81
+        },
+        {
+          "file": "arrabiate_pasta.jpg",
+          "score": 81
+        },
+        {
+          "file": "Chicken-pasta-.jpg",
+          "score": 81
+        },
+        {
+          "file": "Makhani-Pasta-.jpg",
+          "score": 81
+        }
+      ]
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff7b",
+      "name": "Pizza",
+      "from": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80",
+      "to": "/uploads/pizza.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "pizza.jpg",
+          "score": 100
+        },
+        {
+          "file": "achari_pizza.jpg",
+          "score": 87
+        },
+        {
+          "file": "capsicum_pizza.jpg",
+          "score": 87
+        },
+        {
+          "file": "cheese-pizza.jpg",
+          "score": 87
+        },
+        {
+          "file": "chilly_pizza.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f25",
+      "name": "Pizzas",
+      "from": "/uploads/2025-07-09-686e4f7d53aaf.png",
+      "to": "/uploads/pizza.jpg",
+      "score": 90,
+      "candidateMatches": [
+        {
+          "file": "pizza.jpg",
+          "score": 90
+        },
+        {
+          "file": "achari_pizza.jpg",
+          "score": 81
+        },
+        {
+          "file": "capsicum_pizza.jpg",
+          "score": 81
+        },
+        {
+          "file": "cheese-pizza.jpg",
+          "score": 81
+        },
+        {
+          "file": "chilly_pizza.jpg",
+          "score": 81
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f2f",
+      "name": "Raita / Salad",
+      "from": "/uploads/2025-07-09-686e5044e6299.png",
+      "to": "/uploads/raita_salad.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "raita_salad.jpg",
+          "score": 100
+        }
+      ]
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff7f",
+      "name": "Rolls",
+      "from": "/uploads/2025-07-09-686e50e4aec15.png",
+      "to": "/uploads/rolls.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "rolls.jpg",
+          "score": 100
+        },
+        {
+          "file": "mushroom_spring_rolls.jpg",
+          "score": 84
+        },
+        {
+          "file": "chaap_roll.jpg",
+          "score": 81
+        },
+        {
+          "file": "chicken_roll.jpg",
+          "score": 81
+        },
+        {
+          "file": "kathi_roll.jpg",
+          "score": 81
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f28",
+      "name": "Shakes/Crush",
+      "from": "/uploads/2025-07-09-686e4fdcd75a8.png",
+      "to": "/uploads/shakes_crushes.jpg",
+      "score": 90,
+      "candidateMatches": [
+        {
+          "file": "shakes_crushes.jpg",
+          "score": 90
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f60",
+      "name": "Snacks",
+      "from": "/uploads/2026-03-19-69bbde0076b7e.png",
+      "to": "/uploads/indian_snacks.jpg",
+      "score": 87,
+      "candidateMatches": [
+        {
+          "file": "indian_snacks.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f29",
+      "name": "Soups",
+      "from": "/uploads/2025-07-09-686e51649199a.png",
+      "to": "/uploads/soups.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "soups.jpg",
+          "score": 100
+        },
+        {
+          "file": "half_soup.jpg",
+          "score": 81
+        },
+        {
+          "file": "manchow_soup.jpg",
+          "score": 81
+        },
+        {
+          "file": "manchow-soup.jpg",
+          "score": 81
+        },
+        {
+          "file": "mushroom_soup.jpg",
+          "score": 81
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f4e",
+      "name": "Taccos",
+      "from": "/uploads/2025-07-09-686e532e0088b.png",
+      "to": "/uploads/paneer_tikka_taccos.jpg",
+      "score": 84,
+      "candidateMatches": [
+        {
+          "file": "paneer_tikka_taccos.jpg",
+          "score": 84
+        }
+      ]
+    },
+    {
+      "categoryId": "6a500a17336fe399b67eff81",
+      "name": "Thali",
+      "from": "/uploads/2025-07-09-686e50271c87f.png",
+      "to": "/uploads/thali.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "thali.jpg",
+          "score": 100
+        },
+        {
+          "file": "deluxe_thali.jpg",
+          "score": 87
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f4b",
+      "name": "Veg Combo",
+      "from": "/uploads/2025-07-09-686e532946dec.png",
+      "to": "/uploads/veg_combo.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "veg_combo.jpg",
+          "score": 100
+        },
+        {
+          "file": "non_veg_combo.jpg",
+          "score": 87
+        },
+        {
+          "file": "veg_combo_2.jpg",
+          "score": 87
+        },
+        {
+          "file": "combo_veg.jpeg",
+          "score": 84
+        },
+        {
+          "file": "veg_burger_combo.jpg",
+          "score": 81
+        }
+      ]
+    },
+    {
+      "categoryId": "6a659bfaa686f8e63f922f42",
+      "name": "Wraps",
+      "from": "/uploads/2025-07-09-686e527534366.png",
+      "to": "/uploads/wraps.jpg",
+      "score": 100,
+      "candidateMatches": [
+        {
+          "file": "wraps.jpg",
+          "score": 100
+        },
+        {
+          "file": "achari_wrap.jpg",
+          "score": 81
+        },
+        {
+          "file": "egg_wrap.jpg",
+          "score": 81
+        },
+        {
+          "file": "fries_wrap.jpg",
+          "score": 81
+        },
+        {
+          "file": "mexican_wrap_.jpg",
+          "score": 81
+        }
+      ]
+    }
+  ]
+}

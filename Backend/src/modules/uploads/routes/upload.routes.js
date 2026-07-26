@@ -14,11 +14,11 @@ router.post('/image', upload.single('file'), async (req, res, next) => {
             });
         }
 
-        const folder = typeof req.body?.folder === 'string' && req.body.folder.trim()
+        const folderLabel = typeof req.body?.folder === 'string' && req.body.folder.trim()
             ? req.body.folder.trim()
-            : 'uploads';
+            : 'upload';
 
-        const url = await uploadGenericImage(req.file.buffer, folder);
+        const url = await uploadGenericImage(req.file.buffer, folderLabel);
 
         return res.status(200).json({
             success: true,
@@ -53,11 +53,11 @@ router.post('/file', upload.single('file'), async (req, res, next) => {
             });
         }
 
-        const folder = typeof req.body?.folder === 'string' && req.body.folder.trim()
+        const folderLabel = typeof req.body?.folder === 'string' && req.body.folder.trim()
             ? req.body.folder.trim()
-            : 'uploads';
+            : 'upload';
 
-        const url = await uploadFileBuffer(req.file.buffer, folder, {
+        const url = await uploadFileBuffer(req.file.buffer, folderLabel, {
             fileName: req.file.originalname || 'menu.pdf',
             format: 'pdf'
         });
@@ -93,11 +93,11 @@ router.post('/video', upload.single('file'), async (req, res, next) => {
             });
         }
 
-        const folder = typeof req.body?.folder === 'string' && req.body.folder.trim()
+        const folderLabel = typeof req.body?.folder === 'string' && req.body.folder.trim()
             ? req.body.folder.trim()
-            : 'uploads/videos';
+            : 'upload';
 
-        const url = await uploadVideoBuffer(req.file.buffer, folder);
+        const url = await uploadVideoBuffer(req.file.buffer, folderLabel);
 
         return res.status(200).json({
             success: true,
@@ -113,4 +113,3 @@ router.post('/video', upload.single('file'), async (req, res, next) => {
 });
 
 export default router;
-

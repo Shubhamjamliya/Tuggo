@@ -29,7 +29,11 @@
     "migrate:old-db-categories:apply": "node scripts/migrate-old-db-categories.js --apply",
     "migrate:old-db-food": "node scripts/migrate-old-db-food.js",
     "migrate:old-db-food:apply": "node scripts/migrate-old-db-food.js --apply",
-    "audit:old-db-variations": "node scripts/audit-old-db-variations.js"
+    "audit:old-db-variations": "node scripts/audit-old-db-variations.js",
+    "normalize:upload-paths": "node scripts/normalize-upload-paths.js",
+    "normalize:upload-paths:apply": "node scripts/normalize-upload-paths.js --apply",
+    "match:category-images": "node scripts/match-category-images-by-name.js",
+    "match:category-images:apply": "node scripts/match-category-images-by-name.js --apply"
   },
   "keywords": [],
   "author": "",
@@ -68,3 +72,5 @@
     "nodemon": "^3.1.2"
   }
 }
+
+

@@ -4,6 +4,7 @@ import { Switch } from "@food/components/ui/switch"
 import { adminAPI, uploadAPI } from "@food/api"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
+import { PLACEHOLDER_URL, getPlaceholderImage } from "@/shared/utils/media.js"
 
 const debugError = (...args) => {}
 
@@ -29,7 +30,7 @@ const getAddonImage = (addon) =>
   addon?.draft?.images?.[0] ||
   addon?.published?.image ||
   addon?.published?.images?.[0] ||
-  "https://via.placeholder.com/40"
+  PLACEHOLDER_URL
 
 export default function AddonsList() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -271,7 +272,7 @@ export default function AddonsList() {
                           alt={getAddonTitle(addon)}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.target.src = "https://via.placeholder.com/40"
+                            e.target.src = PLACEHOLDER_URL
                           }}
                         />
                       </div>
@@ -341,7 +342,7 @@ export default function AddonsList() {
                   alt={getAddonTitle(selectedAddon)}
                   className="w-20 h-20 rounded-xl object-cover border border-slate-200"
                   onError={(e) => {
-                    e.target.src = "https://via.placeholder.com/64"
+                    e.target.src = getPlaceholderImage({ width: 64, height: 64, text: "Addon" })
                   }}
                 />
                 <div>
@@ -509,4 +510,6 @@ export default function AddonsList() {
     </div>
   )
 }
+
+
 

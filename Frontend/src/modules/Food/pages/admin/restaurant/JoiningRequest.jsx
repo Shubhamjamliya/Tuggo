@@ -4,6 +4,7 @@ import {
   FileText, Image as ImageIcon, ExternalLink, CreditCard, Calendar, Star, Building2, User, Phone, Mail, MapPin, Clock, Map
 } from "lucide-react"
 import { adminAPI, restaurantAPI } from "@food/api"
+import { getPlaceholderImage } from "@/shared/utils/media.js"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -484,12 +485,12 @@ export default function JoiningRequest() {
                                 (typeof request.profileImage === "string"
                                   ? request.profileImage
                                   : (request.profileImage?.url || request.profileImageUrl?.url || request.restaurantImage)) ||
-                                "https://via.placeholder.com/40?text=" + (request.restaurantName?.slice(0, 2) || "R").toUpperCase()
+                                getPlaceholderImage({ width: 40, height: 40, text: (request.restaurantName?.slice(0, 2) || "R").toUpperCase() })
                               }
                               alt={request.restaurantName || "Restaurant"}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                e.target.src = "https://via.placeholder.com/40?text=" + (request.restaurantName?.slice(0, 2) || "R").toUpperCase()
+                                e.target.src = getPlaceholderImage({ width: 40, height: 40, text: (request.restaurantName?.slice(0, 2) || "R").toUpperCase() })
                               }}
                             />
                           </div>
@@ -834,11 +835,11 @@ export default function JoiningRequest() {
                   <div className="flex items-start gap-6 pb-6 border-b border-slate-200">
                     <div className="w-24 h-24 rounded-lg overflow-hidden bg-slate-100 shrink-0">
                       <img
-                        src={profileImgUrl || "https://via.placeholder.com/96"}
+                        src={profileImgUrl || getPlaceholderImage({ width: 96, height: 96, text: "Rest" })}
                         alt={r?.restaurantName || r?.name || "Restaurant"}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/96"
+                          e.target.src = getPlaceholderImage({ width: 96, height: 96, text: "Rest" })
                         }}
                       />
                     </div>
@@ -1031,7 +1032,7 @@ export default function JoiningRequest() {
                                 alt={`Restaurant ${idx + 1}`}
                                 className="w-full h-32 object-cover"
                                 onError={(e) => {
-                                  e.target.src = "https://via.placeholder.com/200"
+                                  e.target.src = getPlaceholderImage({ width: 200, height: 200, text: "Image" })
                                 }}
                               />
                             </a>
@@ -1239,7 +1240,7 @@ export default function JoiningRequest() {
                                 alt={`Menu ${idx + 1}`}
                                 className="w-full h-32 object-cover"
                                 onError={(e) => {
-                                  e.target.src = "https://via.placeholder.com/200"
+                                  e.target.src = getPlaceholderImage({ width: 200, height: 200, text: "Image" })
                                 }}
                               />
                             </a>
@@ -1341,5 +1342,7 @@ export default function JoiningRequest() {
     </div>
   )
 }
+
+
 
 

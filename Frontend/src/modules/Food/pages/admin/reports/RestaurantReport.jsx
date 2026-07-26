@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { exportReportsToCSV, exportReportsToExcel, exportReportsToPDF, exportReportsToJSON } from "@food/components/admin/reports/reportsExportUtils"
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
+import { getPlaceholderImage } from "@/shared/utils/media.js"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -410,7 +411,7 @@ export default function RestaurantReport() {
                                 alt={restaurant.restaurantName}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  e.target.src = "https://via.placeholder.com/32"
+                                  e.target.src = getPlaceholderImage({ width: 32, height: 32, text: "Rest" })
                                 }}
                               />
                             ) : (
@@ -485,3 +486,5 @@ export default function RestaurantReport() {
     </div>
   )
 }
+
+

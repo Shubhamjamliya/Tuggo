@@ -1,6 +1,5 @@
 import { ValidationError } from '../core/auth/errors.js';
 import { sendSuccess } from '../utils/response.js';
-import path from 'path';
 
 export const uploadSingle = async (req, res, next) => {
     try {
@@ -8,8 +7,7 @@ export const uploadSingle = async (req, res, next) => {
             throw new ValidationError('No file provided or invalid file format.');
         }
 
-        // Return the formatted response exactly as requested
-        const fileUrl = `/uploads/${path.basename(path.dirname(req.file.path))}/${req.file.filename}`;
+        const fileUrl = `/uploads/${req.file.filename}`;
 
         const fileData = {
             filename: req.file.filename,
@@ -36,7 +34,7 @@ export const uploadMultiple = async (req, res, next) => {
         }
 
         const filesData = req.files.map(file => {
-            const fileUrl = `/uploads/${path.basename(path.dirname(file.path))}/${file.filename}`;
+            const fileUrl = `/uploads/${file.filename}`;
             return {
                 filename: file.filename,
                 originalName: file.originalname,

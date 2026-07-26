@@ -15,9 +15,12 @@ import {
 } from "lucide-react"
 import { adminAPI, uploadAPI } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
+import { getMediaUrl } from "@/shared/utils/media.js"
 import { toast } from "sonner"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
+
+const PAGE_SIZE = 20
 
 const defaultFormData = {
   name: "",
@@ -58,6 +61,7 @@ export default function Category() {
   const [showPendingOnly, setShowPendingOnly] = useState(false)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   const [zones, setZones] = useState([])
@@ -110,24 +114,12 @@ export default function Category() {
     return () => window.clearTimeout(timer)
   }, [searchQuery, showPendingOnly, page])
 
-  const filteredCategories = useMemo(() => {
-    const query = String(searchQuery || "").trim().toLowerCase()
-    if (!query) return categories
-    return categories.filter((category) => {
-      const creator = category?.createdByRestaurant?.name || category?.restaurant?.name || ""
-      return (
-        String(category?.name || "").toLowerCase().includes(query) ||
-        String(category?.foodTypeScope || "").toLowerCase().includes(query) ||
-        String(creator || "").toLowerCase().includes(query) ||
-        String(category?.id || "").toLowerCase().includes(query)
-      )
-    })
-  }, [categories, searchQuery])
+  const filteredCategories = useMemo(() => categories, [categories])
 
   const fetchCategories = async () => {
     try {
       setLoading(true)
-      const params = { limit: 100, page }
+      const params = { limit: PAGE_SIZE, page }
       if (searchQuery) params.search = searchQuery
       if (showPendingOnly) params.approvalStatus = "pending"
 
@@ -136,7 +128,8 @@ export default function Category() {
       const list = data.categories || []
       setCategories(Array.isArray(list) ? list : [])
       const totalCount = data.total || list.length
-      setTotalPages(Math.ceil(totalCount / 100) || 1)
+      setTotalCount(totalCount)
+      setTotalPages(Math.ceil(totalCount / PAGE_SIZE) || 1)
     } catch (error) {
       if (error?.response?.status === 401) {
         toast.error("Authentication required. Please login again.")
@@ -150,6 +143,7 @@ export default function Category() {
         toast.error(error?.response?.data?.message || "Failed to load categories")
       }
       setCategories([])
+      setTotalCount(0)
     } finally {
       setLoading(false)
     }
@@ -475,7 +469,7 @@ export default function Category() {
                         <div className="flex items-start gap-3">
                           <div className="h-11 w-11 overflow-hidden rounded-2xl bg-slate-100">
                             {category?.image ? (
-                              <img src={category.image} alt={category.name} className="h-full w-full object-cover" />
+                              <img src={getMediaUrl(category.image)} alt={category.name} className="h-full w-full object-cover" />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-500">
                                 {String(category?.name || "C").slice(0, 1).toUpperCase()}
@@ -616,7 +610,7 @@ export default function Category() {
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-slate-700">
-                  Showing page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span>
+                  Showing <span className="font-medium">{categories.length === 0 ? 0 : ((page - 1) * PAGE_SIZE) + 1}</span> to <span className="font-medium">{Math.min(page * PAGE_SIZE, totalCount)}</span> of <span className="font-medium">{totalCount}</span> categories
                 </p>
               </div>
               <div>
@@ -741,7 +735,7 @@ export default function Category() {
                             {(imagePreview || formData.image) && (
                               <div className="relative h-32 w-32 overflow-hidden rounded-2xl border border-slate-300">
                                 <img
-                                  src={imagePreview || formData.image}
+                                  src={getMediaUrl(imagePreview || formData.image)}
                                   alt="Category preview"
                                   className="h-full w-full object-cover"
                                 />
@@ -805,3 +799,6 @@ export default function Category() {
     </div>
   )
 }
+
+
+

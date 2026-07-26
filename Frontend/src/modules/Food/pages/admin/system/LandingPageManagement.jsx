@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import { Upload, Trash2, Image as ImageIcon, Loader2, AlertCircle, CheckCircle2, ArrowUp, ArrowDown, Layout, Tag, UtensilsCrossed, ChefHat, Megaphone, Search } from "lucide-react"
 import api from "@food/api"
 import { adminAPI } from "@food/api"
-import { getMediaUrl } from "@/shared/utils/media"
+import { getMediaUrl, getPlaceholderImage } from "@/shared/utils/media"
 import { getModuleToken } from "@food/utils/auth"
 import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
@@ -2173,7 +2173,7 @@ export default function LandingPageManagement() {
                             ? coverImages[0]
                             : (menuImages.length > 0
                               ? menuImages[0]
-                              : (item.restaurant?.profileImage?.url || "https://via.placeholder.com/400"))
+                              : (item.restaurant?.profileImage?.url || getPlaceholderImage({ width: 400, height: 400, text: "Restaurant" })))
 
                           return (
                             <div key={item._id} className="border border-slate-200 rounded-lg overflow-hidden">
@@ -2609,5 +2609,7 @@ export default function LandingPageManagement() {
     </div >
   )
 }
+
+
 
 
