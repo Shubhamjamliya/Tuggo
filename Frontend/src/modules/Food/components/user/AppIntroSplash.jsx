@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import api from "@food/api";
 import { Loader2 } from "lucide-react";
+import { getMediaUrl } from "@/shared/utils/media";
 
 const safeGetIntroSeen = () => {
   try { return sessionStorage.getItem("appIntroSeen"); } catch (e) { return null; }
@@ -83,7 +84,7 @@ export default function AppIntroSplash({ onComplete }) {
         <video 
           ref={videoRef}
           key={currentScreen._id}
-          src={currentScreen.mediaUrl} 
+          src={getMediaUrl(currentScreen.mediaUrl)} 
           className="w-full h-full object-contain" 
           autoPlay 
           muted 
@@ -93,7 +94,7 @@ export default function AppIntroSplash({ onComplete }) {
       ) : (
         <img 
           key={currentScreen._id}
-          src={currentScreen.mediaUrl} 
+          src={getMediaUrl(currentScreen.mediaUrl)} 
           alt={currentScreen.title || "Intro"} 
           className="w-full h-full object-contain"
         />
@@ -120,3 +121,5 @@ export default function AppIntroSplash({ onComplete }) {
     </div>
   );
 }
+
+

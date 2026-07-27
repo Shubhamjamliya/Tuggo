@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@food/components/ui/input";
 import { Label } from "@food/components/ui/label";
 import { Button } from "@food/components/ui/button";
+import { getMediaUrl } from "@/shared/utils/media";
 
 const getAuthConfig = (additionalConfig = {}) => {
   const adminToken = getModuleToken('admin');
@@ -70,7 +71,7 @@ export default function AppIntroAds() {
         type: ad.type || "intro",
         isActive: ad.isActive,
       });
-      setPreviewUrl(ad.mediaUrl || "");
+      setPreviewUrl(getMediaUrl(ad.mediaUrl || ""));
       setSelectedFile(null);
     } else {
       setIsEditing(false);
@@ -306,7 +307,7 @@ export default function AppIntroAds() {
                       <div className="w-24 h-16 bg-slate-100 rounded-md overflow-hidden relative flex items-center justify-center border border-slate-200">
                         {ad.mediaType === 'video' ? (
                           <>
-                            <video src={ad.mediaUrl} className="w-full h-full object-cover opacity-80" />
+                            <video src={getMediaUrl(ad.mediaUrl)} className="w-full h-full object-cover opacity-80" />
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center">
                                 <Play className="w-4 h-4 text-white ml-1" />
@@ -314,7 +315,7 @@ export default function AppIntroAds() {
                             </div>
                           </>
                         ) : (
-                          <img src={ad.mediaUrl} alt={ad.title} className="w-full h-full object-cover" />
+                          <img src={getMediaUrl(ad.mediaUrl)} alt={ad.title} className="w-full h-full object-cover" />
                         )}
                       </div>
                     </td>
@@ -470,3 +471,5 @@ export default function AppIntroAds() {
     </div>
   );
 }
+
+
