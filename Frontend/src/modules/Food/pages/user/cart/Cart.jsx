@@ -21,6 +21,7 @@ import { calculateDistance } from "@food/utils/common"
 import { useCompanyName } from "@food/hooks/useCompanyName"
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability"
 import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
+import { persistDeliveryAddressMode, readDeliveryAddressMode, readStoredUserLocation } from "@food/utils/locationPersistence"
 import zoopSound from "@food/assets/audio/zomato_sms.mp3"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -196,12 +197,8 @@ export default function Cart() {
   const [placedOrder, setPlacedOrder] = useState(null)
   const [selectedAddressId, setSelectedAddressId] = useState(null)
   const [deliveryAddressMode, setDeliveryAddressMode] = useState(() => {
-    try {
-      if (typeof window === "undefined") return "saved"
-      return localStorage.getItem("deliveryAddressMode") || "saved"
-    } catch {
-      return "saved"
-    }
+    if (typeof window === "undefined") return "saved"
+    return readDeliveryAddressMode()
   })
 
   useEffect(() => {
@@ -359,15 +356,9 @@ export default function Cart() {
   const selectedAddress = addresses.find((addr) => getAddressId(addr) && getAddressId(addr) === selectedAddressId)
 
   const currentLocationAddress = useMemo(() => {
-    // `LocationSelectorOverlay` updates backend + localStorage, but Cart's live hook might lag.
-    // So we fall back to `localStorage.userLocation` when `currentLocation` doesn't have a usable payload yet.
-    let locFromStorage = null
-    try {
-      const storedRaw = localStorage.getItem("userLocation")
-      locFromStorage = storedRaw ? JSON.parse(storedRaw) : null
-    } catch {
-      locFromStorage = null
-    }
+    // `LocationSelectorOverlay` updates persisted location, but Cart's live hook might lag.
+    // So we fall back to the shared persisted location when `currentLocation` doesn't have a usable payload yet.
+    const locFromStorage = readStoredUserLocation()
 
     const loc = currentLocation?.latitude && currentLocation?.longitude ? currentLocation : locFromStorage
     if (!loc?.latitude || !loc?.longitude) return null
@@ -425,7 +416,7 @@ export default function Cart() {
     // No dependency array: overlay open/close re-renders Cart via provider state update,
     // even when GPS coords don't move enough to update `currentLocation`.
     try {
-      const mode = localStorage.getItem("deliveryAddressMode") || "saved"
+      const mode = readDeliveryAddressMode()
       setDeliveryAddressMode((prev) => (prev === mode ? prev : mode))
     } catch {
       // ignore
@@ -3711,3 +3702,5 @@ export default function Cart() {
     </div>
   )
 }      
+
+

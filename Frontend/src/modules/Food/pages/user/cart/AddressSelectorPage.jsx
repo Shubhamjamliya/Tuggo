@@ -13,6 +13,7 @@ import { locationAPI, userAPI } from "@food/api"
 import { Loader } from '@googlemaps/js-api-loader'
 import AnimatedPage from "@food/components/user/AnimatedPage"
 import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
+import { clearStoredUserLocation, notifyLocationUpdated, persistDeliveryAddressMode, persistUserLocation } from "@food/utils/locationPersistence"
 
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -243,7 +244,7 @@ export default function AddressSelectorPage() {
   const handleUseCurrentLocation = async () => {
     try {
       toast.loading("Getting location...", { id: "geo" })
-      localStorage.removeItem("userLocation")
+      clearStoredUserLocation()
       const loc = await requestLocation(true) // Force fresh GPS
       if (loc?.latitude) {
         const newPos = [loc.latitude, loc.longitude]
@@ -259,11 +260,8 @@ export default function AddressSelectorPage() {
           googleMapRef.current.setZoom(17)
         }
 
-        try {
-          localStorage.setItem("deliveryAddressMode", "current")
-          // Also ensure userLocation is saved (hook does this, but being explicit doesn't hurt)
-          localStorage.setItem("userLocation", JSON.stringify(loc))
-        } catch { }
+        persistDeliveryAddressMode("current")
+        persistUserLocation(loc, { mode: "current" })
 
         toast.success("Location ready: " + (loc.area || loc.city || "Current Location"), { id: "geo" })
 
@@ -289,10 +287,8 @@ export default function AddressSelectorPage() {
 
     await setDefaultAddress(id)
     await setSavedLocation(locationData, { mode: "saved", persistDb: true })
-    try {
-      localStorage.setItem("deliveryAddressMode", "saved")
-      setDeliveryAddressMode("saved")
-    } catch { }
+    persistDeliveryAddressMode("saved")
+    setDeliveryAddressMode("saved")
     toast.success("Address selected")
     handleBack()
   }
@@ -496,11 +492,9 @@ export default function AddressSelectorPage() {
         label: addressFormData.label
       }
 
-      try {
-        localStorage.setItem("userLocation", JSON.stringify(locData))
-        localStorage.setItem("deliveryAddressMode", "saved")
-        window.dispatchEvent(new CustomEvent("userLocationUpdated", { detail: { location: locData } }))
-      } catch (e) { }
+      persistUserLocation(locData, { mode: "saved" })
+      persistDeliveryAddressMode("saved")
+      notifyLocationUpdated(locData)
 
       toast.success("Location set successfully")
       handleBack()
@@ -539,10 +533,8 @@ export default function AddressSelectorPage() {
 
         if (locationData) {
           await setSavedLocation(locationData, { mode: "saved", persistDb: true })
-          try {
-            localStorage.setItem("deliveryAddressMode", "saved")
-            setDeliveryAddressMode("saved")
-          } catch { }
+          persistDeliveryAddressMode("saved")
+          setDeliveryAddressMode("saved")
         }
 
         toast.success(addressFormData.id ? "Address updated" : "Address saved")
@@ -895,4 +887,7 @@ export default function AddressSelectorPage() {
     </AnimatedPage>
   )
 }
+
+
+
 

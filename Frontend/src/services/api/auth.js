@@ -4,6 +4,7 @@
  */
 
 import apiClient, { userClient, restaurantClient, deliveryClient, adminClient } from "./axios.js";
+import { getModuleToken } from "@food/utils/auth";
 import { EMAIL_REGEX } from "@/shared/utils/emailValidation";
 
 const AUTH = {
@@ -184,7 +185,7 @@ const meInFlight = new Map(); // module -> Promise
 
 function hasAccessToken(module) {
   try {
-    return Boolean(localStorage.getItem(`${module}_accessToken`));
+    return Boolean(getModuleToken(module));
   } catch {
     return false;
   }
@@ -293,3 +294,4 @@ export function verifyDeliveryOtp(phone, otp, fcmToken = null, platform = "web")
     ...(fcmToken ? { fcmToken, platform } : {}),
   });
 }
+

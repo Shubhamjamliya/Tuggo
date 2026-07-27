@@ -9,6 +9,7 @@ import { FaLocationDot } from "react-icons/fa6"
 import { getCachedSettings, loadBusinessSettings } from "@food/utils/businessSettings"
 import { useAppLogo } from "@food/hooks/useAppLogo"
 import { toast } from "sonner"
+import { readStoredUserLocation } from "@food/utils/locationPersistence"
 
 export default function PageNavbar({
   textColor = "white",
@@ -1116,6 +1117,7 @@ export default function PageNavbar({
     </nav>
   )
 }
+
 
 
 

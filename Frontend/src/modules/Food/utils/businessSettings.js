@@ -3,16 +3,22 @@
  * Handles loading and updating business settings (favicon, title, logo)
  */
 
-import apiClient from "@food/api/axios";
 import { API_ENDPOINTS, API_BASE_URL } from "@food/api/config";
 import { publicGetOnce } from "@food/api";
+import {
+  readScopedCachedValue,
+  removeScopedValue,
+  writeScopedCachedValue,
+} from "./appStorage";
 
-const SETTINGS_KEY = 'food_business_settings';
+const SETTINGS_SCOPE = 'settings';
+const SETTINGS_KEY = 'business';
+const SETTINGS_TTL_MS = 6 * 60 * 60 * 1000;
 
 const normalizeUrl = (url) => {
   if (!url || typeof url !== 'string') return url;
   if (url.startsWith('http')) return url;
-  
+
   let backendOrigin = '';
   if (API_BASE_URL && API_BASE_URL.startsWith('http')) {
     backendOrigin = API_BASE_URL.replace(/\/api(\/v\d+)?\/?$/i, '').replace(/\/+$/, '');
@@ -21,7 +27,7 @@ const normalizeUrl = (url) => {
   } else {
     backendOrigin = 'http://localhost:5000';
   }
-  
+
   return `${backendOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
@@ -40,17 +46,32 @@ export const normalizeSettingsUrls = (settings) => {
   return newSettings;
 };
 
-// Initialize from localStorage immediately so it's available for components on mount
-let cachedSettings = (() => {
+const readLegacySettings = () => {
   try {
-    const saved = localStorage.getItem(SETTINGS_KEY);
+    const saved = localStorage.getItem('food_business_settings');
     return saved ? JSON.parse(saved) : null;
-  } catch (e) {
+  } catch (_) {
     return null;
   }
-})();
+};
 
-// Apply cached settings immediately on module load if they exist
+const migrateLegacySettings = () => {
+  const cached = readScopedCachedValue(SETTINGS_SCOPE, SETTINGS_KEY);
+  if (cached) return cached;
+
+  const legacy = readLegacySettings();
+  if (!legacy) return null;
+
+  const normalized = normalizeSettingsUrls(legacy);
+  writeScopedCachedValue(SETTINGS_SCOPE, SETTINGS_KEY, normalized, { ttlMs: SETTINGS_TTL_MS });
+  try {
+    localStorage.removeItem('food_business_settings');
+  } catch (_) {}
+  return normalized;
+};
+
+let cachedSettings = migrateLegacySettings() || null;
+
 if (cachedSettings) {
   setTimeout(() => {
     updateFavicon(cachedSettings.favicon?.url);
@@ -60,15 +81,10 @@ if (cachedSettings) {
 
 let inFlightSettingsPromise = null;
 
-/**
- * Load business settings from backend (public endpoint - no auth required)
- */
 export const loadBusinessSettings = async () => {
   try {
-    // If we have no cached settings, we MUST fetch
-    // If we have cached settings, we still try to fetch in background to ensure they are fresh
     const endpoint = API_ENDPOINTS.ADMIN.BUSINESS_SETTINGS_PUBLIC;
-    if (!endpoint || (typeof endpoint === "string" && !endpoint.trim())) {
+    if (!endpoint || (typeof endpoint === 'string' && !endpoint.trim())) {
       return cachedSettings;
     }
 
@@ -77,17 +93,13 @@ export const loadBusinessSettings = async () => {
     }
 
     inFlightSettingsPromise = (async () => {
-      // Use public endpoint that doesn't require authentication
-      // Use noCache to ensure we get fresh data from server this time
       const response = await publicGetOnce(endpoint, { noCache: true });
       const rawSettings = response?.data?.data || response?.data;
 
       if (rawSettings) {
         const settings = normalizeSettingsUrls(rawSettings);
         cachedSettings = settings;
-        try {
-          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-        } catch (e) { }
+        writeScopedCachedValue(SETTINGS_SCOPE, SETTINGS_KEY, settings, { ttlMs: SETTINGS_TTL_MS });
 
         updateFavicon(settings.favicon?.url);
         updateTitle(settings.companyName);
@@ -97,94 +109,61 @@ export const loadBusinessSettings = async () => {
     })();
 
     return await inFlightSettingsPromise;
-  } catch (error) {
-    // Return cached if failed
+  } catch (_) {
     return cachedSettings;
   } finally {
     inFlightSettingsPromise = null;
   }
 };
 
-/**
- * Update favicon in document
- */
 export const updateFavicon = (url) => {
   if (!url || typeof document === 'undefined') return;
 
-  // Remove existing favicons
   const existingFavicons = document.querySelectorAll("link[rel*='icon']");
-  existingFavicons.forEach(el => el.remove());
+  existingFavicons.forEach((el) => el.remove());
 
-  // Add new favicon
-  const link = document.createElement("link");
-  link.rel = "icon";
-  link.type = "image/png";
+  const link = document.createElement('link');
+  link.rel = 'icon';
+  link.type = 'image/png';
   link.href = url;
-  // Prevent third-party cookie warning (Cloudinary)
-  link.crossOrigin = "anonymous";
+  link.crossOrigin = 'anonymous';
   document.head.appendChild(link);
 };
 
-/**
- * Update page title
- */
 export const updateTitle = (companyName) => {
   if (companyName && typeof document !== 'undefined') {
     document.title = companyName;
   }
 };
 
-/**
- * Set cached settings manually (useful after update)
- */
 export const setCachedSettings = (settings) => {
   if (settings) {
     const normalizedSettings = normalizeSettingsUrls(settings);
     cachedSettings = normalizedSettings;
-    try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(normalizedSettings));
-    } catch (e) { }
+    writeScopedCachedValue(SETTINGS_SCOPE, SETTINGS_KEY, normalizedSettings, { ttlMs: SETTINGS_TTL_MS });
 
     updateFavicon(normalizedSettings.favicon?.url);
     updateTitle(normalizedSettings.companyName);
   }
 };
 
-/**
- * Clear cached settings (call after updating settings)
- */
 export const clearCache = () => {
   cachedSettings = null;
-  try {
-    localStorage.removeItem(SETTINGS_KEY);
-  } catch (e) { }
+  removeScopedValue(SETTINGS_SCOPE, SETTINGS_KEY);
 };
 
-/**
- * Get cached settings
- */
-export const getCachedSettings = () => {
-  return cachedSettings;
-};
+export const getCachedSettings = () => cachedSettings;
 
-/**
- * Get company name from business settings with fallback
- * @returns {string} Company name or default "Tuggo Food Delivery Food"
- */
 export const getCompanyName = () => {
   const settings = getCachedSettings();
-  return settings?.companyName || "Tuggo Food Delivery";
+  return settings?.companyName || 'Tuggo Food Delivery';
 };
 
-/**
- * Get company name asynchronously (loads if not cached)
- * @returns {Promise<string>} Company name or default "Tuggo Food Delivery Food"
- */
 export const getCompanyNameAsync = async () => {
   try {
     const settings = await loadBusinessSettings();
-    return settings?.companyName || "Tuggo Food Delivery";
-  } catch (error) {
-    return "Tuggo Food Delivery";
+    return settings?.companyName || 'Tuggo Food Delivery';
+  } catch (_) {
+    return 'Tuggo Food Delivery';
   }
 };

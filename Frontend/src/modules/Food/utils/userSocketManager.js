@@ -1,5 +1,6 @@
 import io from 'socket.io-client';
-import { isValidSocketOrigin, resolveSocketOrigin } from '@food/utils/socketOrigin';
+import { isValidSocketOrigin, resolveSocketOrigin } from '@food/utils/socketOrigin';
+import { getModuleToken } from '@food/utils/auth';
 
 let socket = null;
 let connectionUserId = null;
@@ -12,7 +13,7 @@ const joinedTrackingRooms = new Set();
 let isConnected = false;
 
 function getAuthToken() {
-  return localStorage.getItem('user_accessToken') || localStorage.getItem('accessToken') || '';
+  return getModuleToken('user') || localStorage.getItem('accessToken') || '';
 }
 
 function notifyLocationListeners(data) {

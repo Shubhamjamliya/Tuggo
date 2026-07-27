@@ -1,64 +1,4 @@
-/**
- * JWT Token Utilities
- * Decode and extract information from JWT tokens
- */
-
-/**
- * Decode JWT token without verification (client-side only)
- * @param {string} token - JWT token
- * @returns {Object|null} - Decoded token payload or null if invalid
- */
-export function decodeToken(token) {
-  if (!token) return null;
-
-  try {
-    // JWT format: header.payload.signature
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-
-    // Decode base64url encoded payload
-    const payload = parts[1];
-    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
-    
-    return decoded;
-  } catch (error) {
-    console.error('Error decoding token:', error);
-    return null;
-  }
-}
-
-/**
- * Get user role from token
- * @param {string} token - JWT token
- * @returns {string|null} - User role or null if not found
- */
-export function getRoleFromToken(token) {
-  const decoded = decodeToken(token);
-  return decoded?.role || null;
-}
-
-/**
- * Check if token is expired
- * @param {string} token - JWT token
- * @returns {boolean} - True if expired or invalid
- */
-export function isTokenExpired(token) {
-  const decoded = decodeToken(token);
-  if (!decoded || !decoded.exp) return true;
-  
-  // exp is in seconds, Date.now() is in milliseconds
-  return decoded.exp * 1000 < Date.now();
-}
-
-/**
- * Get user ID from token
- * @param {string} token - JWT token
- * @returns {string|null} - User ID or null if not found
- */
-export function getUserIdFromToken(token) {
-  const decoded = decodeToken(token);
-  return decoded?.userId || decoded?.id || null;
-}
+import { readScopedValue, removeScopedValue, writeScopedValue } from "@food/utils/appStorage";
 
 /**
  * Check if user has access to a module based on role
@@ -83,7 +23,13 @@ export function hasModuleAccess(role, module) {
  * @returns {string|null} - Access token or null
  */
 export function getModuleToken(module) {
-  return localStorage.getItem(`${module}_accessToken`);
+  const scoped = readScopedValue("auth", `${module}:accessToken`, { fallback: null });
+  if (scoped !== null && scoped !== undefined && scoped !== "") return scoped;
+  try {
+    return localStorage.getItem(`${module}_accessToken`);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -92,7 +38,41 @@ export function getModuleToken(module) {
  * @returns {string|null} - Refresh token or null
  */
 export function getModuleRefreshToken(module) {
-  return localStorage.getItem(`${module}_refreshToken`);
+  const scoped = readScopedValue("auth", `${module}:refreshToken`, { fallback: null });
+  if (scoped !== null && scoped !== undefined && scoped !== "") return scoped;
+  try {
+    return localStorage.getItem(`${module}_refreshToken`);
+  } catch {
+    return null;
+  }
+}
+
+export function setModuleAccessToken(module, token) {
+  writeScopedValue("auth", `${module}:accessToken`, token || "");
+  try {
+    if (token) {
+      localStorage.setItem(`${module}_accessToken`, token);
+    } else {
+      localStorage.removeItem(`${module}_accessToken`);
+    }
+  } catch {}
+}
+
+export function getModuleFcmToken(module) {
+  const scoped = readScopedValue("auth-meta", `fcm:${module}`, { fallback: null });
+  if (scoped !== null && scoped !== undefined && scoped !== "") return scoped;
+  try {
+    return localStorage.getItem(`fcm_web_registered_token_${module}`) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearModuleFcmToken(module) {
+  removeScopedValue("auth-meta", `fcm:${module}`);
+  try {
+    localStorage.removeItem(`fcm_web_registered_token_${module}`);
+  } catch {}
 }
 
 /**
@@ -102,14 +82,9 @@ export function getModuleRefreshToken(module) {
  */
 export function getCurrentUserRole(module = null) {
   if (module) {
-    const userStr = localStorage.getItem(`${module}_user`);
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        return user.role || module;
-      } catch (e) {
-        return module;
-      }
+    const user = getCurrentUser(module);
+    if (user) {
+      return user.role || module;
     }
   }
   return module || 'user';
@@ -122,7 +97,14 @@ export function getCurrentUserRole(module = null) {
  */
 export function getCurrentUser(module) {
   if (!module) return null;
-  const userStr = localStorage.getItem(`${module}_user`);
+  const scoped = readScopedValue("auth", `${module}:user`, { fallback: null });
+  if (scoped && typeof scoped === "object") return scoped;
+  let userStr = null;
+  try {
+    userStr = localStorage.getItem(`${module}_user`);
+  } catch {
+    userStr = null;
+  }
   if (!userStr) return null;
   try {
     return JSON.parse(userStr);
@@ -146,12 +128,18 @@ export function isModuleAuthenticated(module) {
  * @param {string} module - Module name (admin, restaurant, delivery, user)
  */
 export function clearModuleAuth(module) {
-  localStorage.removeItem(`${module}_accessToken`);
-  localStorage.removeItem(`${module}_refreshToken`);
-  localStorage.removeItem(`${module}_authenticated`);
-  localStorage.removeItem(`${module}_user`);
+  removeScopedValue("auth", `${module}:accessToken`);
+  removeScopedValue("auth", `${module}:refreshToken`);
+  removeScopedValue("auth", `${module}:authenticated`);
+  removeScopedValue("auth", `${module}:user`);
+  try {
+    localStorage.removeItem(`${module}_accessToken`);
+    localStorage.removeItem(`${module}_refreshToken`);
+    localStorage.removeItem(`${module}_authenticated`);
+    localStorage.removeItem(`${module}_user`);
+  } catch {}
   // Clear cached FCM web token for this module
-  localStorage.removeItem(`fcm_web_registered_token_${module}`);
+  clearModuleFcmToken(module);
   
   if (module === "user") {
     clearUserSession();
@@ -161,6 +149,7 @@ export function clearModuleAuth(module) {
     clearRestaurantSessionCache();
   }
   // Also clear any sessionStorage data
+  removeScopedValue("auth-meta", `${module}:sessionData`);
   sessionStorage.removeItem(`${module}AuthData`);
 }
 
@@ -196,19 +185,24 @@ export function clearRestaurantSessionCache() {
 export function setRestaurantPendingPhone(phone) {
   if (typeof localStorage === "undefined") return;
   if (!phone) {
+    removeScopedValue("auth-meta", "restaurant:pendingPhone");
     localStorage.removeItem("restaurant_pendingPhone");
     return;
   }
+  writeScopedValue("auth-meta", "restaurant:pendingPhone", phone);
   localStorage.setItem("restaurant_pendingPhone", phone);
 }
 
 export function getRestaurantPendingPhone() {
   if (typeof localStorage === "undefined") return null;
+  const scoped = readScopedValue("auth-meta", "restaurant:pendingPhone", { fallback: null });
+  if (scoped !== null && scoped !== undefined && scoped !== "") return scoped;
   return localStorage.getItem("restaurant_pendingPhone");
 }
 
 export function clearRestaurantPendingPhone() {
   if (typeof localStorage === "undefined") return;
+  removeScopedValue("auth-meta", "restaurant:pendingPhone");
   localStorage.removeItem("restaurant_pendingPhone");
 }
 
@@ -235,12 +229,10 @@ export function clearAuthData() {
  */
 export function setAuthData(module, token, user, refreshToken = null) {
   try {
-    // Check if localStorage is available
     if (typeof Storage === 'undefined' || !localStorage) {
       throw new Error('localStorage is not available');
     }
 
-    // Validate inputs
     if (!module || !token) {
       throw new Error(`Invalid parameters: module=${module}, token=${!!token}`);
     }
@@ -251,38 +243,32 @@ export function setAuthData(module, token, user, refreshToken = null) {
       hasUser: !!user
     });
 
-    // Store module-specific token (don't clear other modules)
-    const tokenKey = `${module}_accessToken`;
-    const refreshTokenKey = `${module}_refreshToken`;
-    const authKey = `${module}_authenticated`;
-    const userKey = `${module}_user`;
-
-    // Prevent stale profile data from previous accounts after re-login.
     if (module === "user") {
       clearUserSession();
     } else if (module === "restaurant") {
       clearRestaurantSessionCache();
     }
 
-    localStorage.setItem(tokenKey, token);
+    setModuleAccessToken(module, token);
     if (refreshToken && typeof refreshToken === "string") {
-      localStorage.setItem(refreshTokenKey, refreshToken);
+      writeScopedValue("auth", `${module}:refreshToken`, refreshToken);
+      localStorage.setItem(`${module}_refreshToken`, refreshToken);
     }
-    localStorage.setItem(authKey, 'true');
-    
+    writeScopedValue("auth", `${module}:authenticated`, 'true');
+    localStorage.setItem(`${module}_authenticated`, 'true');
+
     if (user) {
       try {
-        localStorage.setItem(userKey, JSON.stringify(user));
+        writeScopedValue("auth", `${module}:user`, user);
+        localStorage.setItem(`${module}_user`, JSON.stringify(user));
       } catch (userError) {
         console.warn('Failed to store user data, but token was stored:', userError);
-        // Don't throw - token storage is more important
       }
     }
 
-    // Verify the token was stored correctly
-    const storedToken = localStorage.getItem(tokenKey);
-    const storedAuth = localStorage.getItem(authKey);
-    
+    const storedToken = getModuleToken(module);
+    const storedAuth = readScopedValue("auth", `${module}:authenticated`, { fallback: localStorage.getItem(`${module}_authenticated`) });
+
     if (storedToken !== token) {
       console.error(`[setAuthData] Token mismatch:`, {
         expected: token?.substring(0, 20) + '...',
@@ -301,25 +287,24 @@ export function setAuthData(module, token, user, refreshToken = null) {
 
     console.log(`[setAuthData] Successfully stored auth data for ${module}`);
   } catch (error) {
-    // If quota exceeded, try to clear some space
     if (error.name === 'QuotaExceededError' || error.code === 22) {
       console.warn('localStorage quota exceeded. Attempting to clear old data...');
-      // Clear legacy tokens
       try {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
-        // Retry storing
-        localStorage.setItem(`${module}_accessToken`, token);
+        setModuleAccessToken(module, token);
         if (refreshToken && typeof refreshToken === "string") {
+          writeScopedValue("auth", `${module}:refreshToken`, refreshToken);
           localStorage.setItem(`${module}_refreshToken`, refreshToken);
         }
+        writeScopedValue("auth", `${module}:authenticated`, 'true');
         localStorage.setItem(`${module}_authenticated`, 'true');
         if (user) {
+          writeScopedValue("auth", `${module}:user`, user);
           localStorage.setItem(`${module}_user`, JSON.stringify(user));
         }
-        
-        // Verify again after retry
-        const storedToken = localStorage.getItem(`${module}_accessToken`);
+
+        const storedToken = getModuleToken(module);
         if (storedToken !== token) {
           throw new Error('Token storage failed even after clearing space');
         }
@@ -333,3 +318,9 @@ export function setAuthData(module, token, user, refreshToken = null) {
     }
   }
 }
+
+
+
+
+
+

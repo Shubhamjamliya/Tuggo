@@ -2,6 +2,15 @@ import { useState, useEffect, useRef } from "react"
 import { useLocationFromContext } from '../context/locationContext';
 import { locationAPI, userAPI } from "@food/api"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
+import {
+  clearStoredUserLocation,
+  notifyDeliveryModeUpdated,
+  persistDeliveryAddressMode,
+  persistUserLocation,
+  readDeliveryAddressMode,
+  readStoredUserLocation,
+} from "@food/utils/locationPersistence"
+import { readScopedValue, writeScopedValue } from "@food/utils/appStorage"
 
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -190,17 +199,10 @@ const reverseGeocodeDirect = async (latitude, longitude) => {
 
 export function useLocationEngine() {
   const [location, setLocation] = useState(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("userLocation")
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          if (parsed && typeof parsed === "object" && typeof parsed.latitude === "number" && typeof parsed.longitude === "number") {
-            return parsed
-          }
-        }
-      }
-    } catch (e) { }
+    const stored = readStoredUserLocation()
+    if (stored && typeof stored === "object" && typeof stored.latitude === "number" && typeof stored.longitude === "number") {
+      return stored
+    }
     return null
   })
   const [loading, setLoading] = useState(true)
@@ -1008,7 +1010,7 @@ export function useLocationEngine() {
               }
 
               debugLog("?? Saving location:", finalLoc)
-              localStorage.setItem("userLocation", JSON.stringify(finalLoc))
+              persistUserLocation(finalLoc)
               setLocation(finalLoc)
               setPermissionGranted(true)
               if (showLoading) setLoading(false)
@@ -1042,7 +1044,7 @@ export function useLocationEngine() {
                     accuracy: pos.coords.accuracy || null
                   }
                   debugLog("? Last resort geocoding succeeded:", lastResortLoc)
-                  localStorage.setItem("userLocation", JSON.stringify(lastResortLoc))
+                  persistUserLocation(lastResortLoc)
                   setLocation(lastResortLoc)
                   setPermissionGranted(true)
                   if (showLoading) setLoading(false)
@@ -1106,7 +1108,7 @@ export function useLocationEngine() {
 
               // Strategy 2: Use cached location from localStorage
               if (!fallback) {
-                const stored = localStorage.getItem("userLocation")
+                const storedLocation = readStoredUserLocation()
                 if (stored) {
                   try {
                     fallback = JSON.parse(stored)
@@ -1337,8 +1339,7 @@ export function useLocationEngine() {
               Math.abs(prevLocationCoordsRef.current.longitude - loc.longitude) > coordThreshold
             let persistedLocation = loc
             try {
-              const storedRaw = localStorage.getItem("userLocation")
-              const storedLocation = storedRaw ? JSON.parse(storedRaw) : null
+              const storedLocation = readStoredUserLocation()
               const savedLabel = loc?.label || storedLocation?.label
               if (savedLabel && String(savedLabel).trim()) {
                 persistedLocation = { ...loc, label: String(savedLabel).trim() }
@@ -1351,14 +1352,14 @@ export function useLocationEngine() {
             if (coordsChanged) {
               prevLocationCoordsRef.current = { latitude: loc.latitude, longitude: loc.longitude }
               debugLog("?? Updating live location:", loc)
-              localStorage.setItem("userLocation", JSON.stringify(persistedLocation))
+              persistUserLocation(persistedLocation)
               setLocation(persistedLocation)
               setPermissionGranted(true)
               setError(null)
             } else {
               // Coordinates haven't changed significantly, skip state update to prevent re-renders
               // Still update localStorage silently for persistence
-              localStorage.setItem("userLocation", JSON.stringify(persistedLocation))
+              persistUserLocation(persistedLocation)
             }
 
             // Debounce DB updates - only update every 5 seconds
@@ -1461,13 +1462,13 @@ export function useLocationEngine() {
   /* ===================== INIT ===================== */
   useEffect(() => {
     // Load stored location first for IMMEDIATE display (no loading state)
-    const stored = localStorage.getItem("userLocation")
+    const storedLocation = readStoredUserLocation()
     let shouldForceRefresh = false
     let hasInitialLocation = false
 
-    if (stored) {
+    if (storedLocation) {
       try {
-        const parsedLocation = JSON.parse(stored)
+        const parsedLocation = storedLocation
 
         // Show cached location immediately.
         // Requirement: only geocode again on explicit manual change.
@@ -1571,23 +1572,20 @@ export function useLocationEngine() {
         let intentionallySaved = false;
         try {
           // Check if user explicitly selected a saved location
-          const mode = localStorage.getItem("deliveryAddressMode");
+          const mode = readDeliveryAddressMode();
           if (mode === "saved") {
             intentionallySaved = true;
           } else if (mode === null) {
-            // If mode is not set, fallback to checking if there's a valid non-current location in localStorage
-            const stored = localStorage.getItem("userLocation");
-            if (stored) {
-              const loc = JSON.parse(stored);
-              if (loc && loc.formattedAddress && loc.formattedAddress !== "Select location" && loc.city !== "Current Location") {
-                intentionallySaved = true;
-              }
+            // If mode is not set, fallback to checking if there's a valid non-current location in persisted storage
+            const loc = readStoredUserLocation();
+            if (loc && loc.formattedAddress && loc.formattedAddress !== "Select location" && loc.city !== "Current Location") {
+              intentionallySaved = true;
             }
           }
         } catch (e) { }
 
         let shouldAutoFetch = false;
-        const hasFetchedThisSession = sessionStorage.getItem("appSession_locationFetched");
+        const hasFetchedThisSession = readScopedValue("session", "locationFetched", { storage: "session", fallback: null });
 
         if (!intentionallySaved && !hasFetchedThisSession) {
           shouldAutoFetch = true; // No saved location and first time this session -> Auto fetch
@@ -1613,7 +1611,7 @@ export function useLocationEngine() {
           const isForceFresh = shouldForceRefresh || shouldAutoFetch;
           debugLog("?? Fetching location - shouldForceRefresh:", shouldForceRefresh, "hasInitialLocation:", hasInitialLocation, "shouldAutoFetch:", shouldAutoFetch)
 
-          sessionStorage.setItem("appSession_locationFetched", "true");
+          writeScopedValue("session", "locationFetched", true, { storage: "session" });
 
           getLocation(true, isForceFresh) // forceFresh = true if cached location is incomplete or if auto-fetch is required
             .then((location) => {
@@ -1687,14 +1685,12 @@ export function useLocationEngine() {
     setError(null)
 
     try {
-      try {
-        localStorage.setItem("deliveryAddressMode", "current")
-        window.dispatchEvent(new CustomEvent("deliveryAddressModeUpdated"))
-      } catch { }
+      persistDeliveryAddressMode("current")
+      notifyDeliveryModeUpdated("current")
 
       if (forceFresh) {
         // Clear cached location to force fresh fetch
-        localStorage.removeItem("userLocation")
+        clearStoredUserLocation()
         debugLog("??? Cleared cached location from localStorage")
       }
 
@@ -1760,3 +1756,11 @@ export function useLocationEngine() {
 export function useLocation() {
   return useLocationFromContext();
 }
+
+
+
+
+
+
+
+

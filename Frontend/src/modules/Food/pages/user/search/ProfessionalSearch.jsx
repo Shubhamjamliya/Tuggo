@@ -16,6 +16,7 @@ import OptimizedImage from "@food/components/OptimizedImage"
 import { useVoiceSearch } from "@food/hooks/useVoiceSearch"
 import PremiumLoader from "./PremiumLoader"
 import { calculateDistance } from "@food/utils/common"
+import { readScopedValue, writeScopedValue } from "@food/utils/appStorage"
 
 // Simple in-memory session cache to provide instant loads on re-visits
 const sessionSearchCache = new Map();
@@ -44,6 +45,31 @@ function useDebounce(value, delay) {
 }
 
 const SEARCH_HISTORY_KEY = "professional_search_history_v1"
+const SEARCH_HISTORY_SCOPE = "search"
+const SEARCH_HISTORY_NAME = "professional-history"
+
+const readSearchHistory = () => {
+  const scoped = readScopedValue(SEARCH_HISTORY_SCOPE, SEARCH_HISTORY_NAME, { fallback: null })
+  if (Array.isArray(scoped)) return scoped.filter((item) => typeof item === "string").slice(0, 5)
+
+  try {
+    const legacy = localStorage.getItem(SEARCH_HISTORY_KEY)
+    if (!legacy) return []
+    const parsed = JSON.parse(legacy)
+    const normalized = Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string").slice(0, 5) : []
+    writeScopedValue(SEARCH_HISTORY_SCOPE, SEARCH_HISTORY_NAME, normalized)
+    localStorage.removeItem(SEARCH_HISTORY_KEY)
+    return normalized
+  } catch {
+    return []
+  }
+}
+
+const persistSearchHistory = (history) => {
+  const normalized = Array.isArray(history) ? history.filter((item) => typeof item === "string").slice(0, 5) : []
+  writeScopedValue(SEARCH_HISTORY_SCOPE, SEARCH_HISTORY_NAME, normalized)
+}
+
 
 export default function ProfessionalSearch() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -82,8 +108,7 @@ export default function ProfessionalSearch() {
 
   // Load search history
   useEffect(() => {
-    const savedHistory = localStorage.getItem(SEARCH_HISTORY_KEY)
-    if (savedHistory) setHistory(JSON.parse(savedHistory))
+    setHistory(readSearchHistory())
     fetchCategories()
   }, [zoneId])
 
@@ -109,7 +134,7 @@ export default function ProfessionalSearch() {
   const addToHistory = (term) => {
     const newHistory = [term, ...history.filter(h => h !== term)].slice(0, 5)
     setHistory(newHistory)
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory))
+    persistSearchHistory(newHistory)
   }
 
   const performSearch = useCallback(async (searchTerm, catId) => {

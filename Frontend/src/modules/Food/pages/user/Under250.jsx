@@ -19,44 +19,63 @@ import { isModuleAuthenticated } from "@food/utils/auth"
 import { flattenMenuItems, getMenuFromResponse } from "@food/utils/menuItems"
 import { calculateDistance, formatDistance } from "@food/utils/common"
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability"
+import { readScopedValue, removeScopedValue, writeScopedValue } from "@food/utils/appStorage"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 const RUPEE_SYMBOL = "\u20B9"
 const UNDER_250_FILTERS_STORAGE_KEY = "food-under-250-filters"
+const UNDER_250_FILTERS_SCOPE = "ui"
+const UNDER_250_FILTERS_NAME = "under250-filters"
 
-const readUnder250Filters = () => {
+const readLegacyUnder250Filters = () => {
   if (typeof window === "undefined") {
-    return {
-      selectedSort: null,
-      activeCategory: null,
-      under30MinsFilter: false,
-    }
+    return null
   }
 
   try {
     const raw = window.localStorage.getItem(UNDER_250_FILTERS_STORAGE_KEY)
-    if (!raw) {
-      return {
-        selectedSort: null,
-        activeCategory: null,
-        under30MinsFilter: false,
-      }
-    }
-
-    const parsed = JSON.parse(raw)
-    return {
-      selectedSort: typeof parsed?.selectedSort === "string" ? parsed.selectedSort : null,
-      activeCategory: typeof parsed?.activeCategory === "string" ? parsed.activeCategory : null,
-      under30MinsFilter: parsed?.under30MinsFilter === true,
-    }
+    if (!raw) return null
+    return JSON.parse(raw)
   } catch {
-    return {
-      selectedSort: null,
-      activeCategory: null,
-      under30MinsFilter: false,
-    }
+    return null
   }
+}
+
+const normalizeUnder250Filters = (parsed) => ({
+  selectedSort: typeof parsed?.selectedSort === "string" ? parsed.selectedSort : null,
+  activeCategory: typeof parsed?.activeCategory === "string" ? parsed.activeCategory : null,
+  under30MinsFilter: parsed?.under30MinsFilter === true,
+})
+
+const readUnder250Filters = () => {
+  const fallback = {
+    selectedSort: null,
+    activeCategory: null,
+    under30MinsFilter: false,
+  }
+
+  if (typeof window === "undefined") {
+    return fallback
+  }
+
+  const scoped = readScopedValue(UNDER_250_FILTERS_SCOPE, UNDER_250_FILTERS_NAME, {
+    storage: "session",
+    fallback: null,
+  })
+  if (scoped) {
+    return normalizeUnder250Filters(scoped)
+  }
+
+  const legacy = readLegacyUnder250Filters()
+  if (legacy) {
+    const normalized = normalizeUnder250Filters(legacy)
+    writeScopedValue(UNDER_250_FILTERS_SCOPE, UNDER_250_FILTERS_NAME, normalized, { storage: "session" })
+    window.localStorage.removeItem(UNDER_250_FILTERS_STORAGE_KEY)
+    return normalized
+  }
+
+  return fallback
 }
 
 const ScrollAwareAddToCartAnimation = () => {

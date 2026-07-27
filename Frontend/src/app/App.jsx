@@ -4,6 +4,7 @@ import SplashScreen from '@/shared/components/SplashScreen.jsx'
 import PageLoader from '@/shared/components/PageLoader.jsx'
 
 import { ThemeProvider } from '@food/context/ThemeContext'
+import { cleanupExpiredScopedEntries, readScopedValue, writeScopedValue } from '@food/utils/appStorage'
 
 function App() {
   const [showSplash, setShowSplash] = useState(() => {
@@ -19,8 +20,7 @@ function App() {
       ) {
         return false
       }
-      // Check if splash screen was already shown in this session
-      if (sessionStorage.getItem('splashShown')) {
+      if (readScopedValue('ui', 'splashShown', { storage: 'session', fallback: false })) {
         return false
       }
     }
@@ -29,14 +29,18 @@ function App() {
 
   const [isLoading, setIsLoading] = useState(false)
 
+  useEffect(() => {
+    cleanupExpiredScopedEntries({ storage: 'local' })
+    cleanupExpiredScopedEntries({ storage: 'session' })
+  }, [])
+
   const handleSplashFinish = () => {
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('splashShown', 'true')
+      writeScopedValue('ui', 'splashShown', true, { storage: 'session' })
     }
     setShowSplash(false)
   }
 
-  // Normal Loading Spinner (if needed in future)
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-white dark:bg-[#0a0a0a]">

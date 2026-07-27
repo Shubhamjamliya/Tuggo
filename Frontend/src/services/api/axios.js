@@ -5,6 +5,8 @@
  */
 
 import axios from "axios";
+import { readStoredZoneContext } from "@food/utils/locationPersistence";
+import { clearModuleAuth, getModuleRefreshToken, getModuleToken, setModuleAccessToken } from "@food/utils/auth";
 
 // Prefer explicit env. If not set, default to /api/v1 so the Vite proxy can forward to backend.
 const baseURL =
@@ -18,8 +20,7 @@ const baseURL =
 
 function getAccessToken(module) {
   try {
-    const key = `${module}_accessToken`;
-    const moduleToken = localStorage.getItem(key);
+    const moduleToken = getModuleToken(module);
     if (moduleToken) return moduleToken;
 
     if (module === "user") {
@@ -33,7 +34,7 @@ function getAccessToken(module) {
 
 function getRefreshToken(module) {
   try {
-    const moduleRefreshToken = localStorage.getItem(`${module}_refreshToken`);
+    const moduleRefreshToken = getModuleRefreshToken(module);
     if (moduleRefreshToken) return moduleRefreshToken;
 
     if (module === "user") {
@@ -45,12 +46,9 @@ function getRefreshToken(module) {
   }
 }
 
-function clearModuleAuth(module) {
+function clearStoredModuleAuth(module) {
   try {
-    localStorage.removeItem(`${module}_accessToken`);
-    localStorage.removeItem(`${module}_refreshToken`);
-    localStorage.removeItem(`${module}_authenticated`);
-    localStorage.removeItem(`${module}_user`);
+    clearModuleAuth(module);
   } catch (_) {}
 }
 
@@ -127,7 +125,7 @@ function createModuleClient(moduleName) {
   };
 
   const onRefreshFailed = () => {
-    clearModuleAuth(moduleName);
+    clearStoredModuleAuth(moduleName);
     subscribers.forEach((cb) => cb(null));
     subscribers = [];
     if (typeof window !== "undefined") {
@@ -154,9 +152,9 @@ function createModuleClient(moduleName) {
 
       // Automatically inject Zone ID and Coordinates for user/public endpoints
       if (moduleName === "user" || moduleName === "public") {
-        const zoneId = localStorage.getItem("userZoneId");
-        const lat = localStorage.getItem("userLat");
-        const lng = localStorage.getItem("userLng");
+        const { zoneId, latitude, longitude } = readStoredZoneContext();
+        const lat = latitude != null ? String(latitude) : null;
+        const lng = longitude != null ? String(longitude) : null;
         if (zoneId) {
           config.headers["X-Zone-Id"] = zoneId;
         }
@@ -221,7 +219,7 @@ function createModuleClient(moduleName) {
         const newAccessToken = data?.data?.accessToken || data?.accessToken;
 
         if (newAccessToken) {
-          localStorage.setItem(`${moduleName}_accessToken`, newAccessToken);
+          setModuleAccessToken(moduleName, newAccessToken);
           window.dispatchEvent(new CustomEvent("authRefreshed", { 
             detail: { module: moduleName, token: newAccessToken } 
           }));
@@ -289,9 +287,9 @@ apiClient.interceptors.request.use(
 
     // Automatically inject Zone ID and Coordinates for user/public endpoints
     if (module === "user" || module === "public" || module === "delivery") {
-      const zoneId = localStorage.getItem("userZoneId");
-      const lat = localStorage.getItem("userLat");
-      const lng = localStorage.getItem("userLng");
+      const { zoneId, latitude, longitude } = readStoredZoneContext();
+        const lat = latitude != null ? String(latitude) : null;
+        const lng = longitude != null ? String(longitude) : null;
       if (zoneId) {
         config.headers["X-Zone-Id"] = zoneId;
       }
@@ -315,4 +313,6 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
+
+
 

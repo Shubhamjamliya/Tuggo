@@ -7,6 +7,7 @@ import apiClient, { userClient, restaurantClient, deliveryClient, adminClient } 
 import { API_ENDPOINTS } from "./config.js";
 import { getUploadApiBaseUrl, getUploadAuthHeaders, joinApiUrl } from "./uploadTarget.js";
 import * as authService from "./auth.js";
+import { getModuleFcmToken, getModuleRefreshToken } from "@food/utils/auth";
 
 const stub = () =>
   Promise.resolve({
@@ -183,11 +184,8 @@ export const authAPI = {
   refreshToken: (token) => authService.refreshToken(token),
   logout: (refreshToken, fcmToken = null, platform = "web") => {
     const token =
-      refreshToken ||
-      (typeof localStorage !== "undefined"
-        ? localStorage.getItem("user_refreshToken")
-        : null);
-    const resolvedFcmToken = fcmToken || (typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_user") : null);
+      refreshToken || getModuleRefreshToken("user");
+    const resolvedFcmToken = fcmToken || getModuleFcmToken("user");
     return authService.logout(token, resolvedFcmToken, platform);
   },
 };
@@ -280,11 +278,8 @@ export const adminAPI = {
     apiClient.get("/food/admin/fee-settings/public"),
   logout: (refreshToken, fcmToken = null, platform = "web") => {
     const token =
-      refreshToken ||
-      (typeof localStorage !== "undefined"
-        ? localStorage.getItem("admin_refreshToken")
-        : null);
-    const resolvedFcmToken = fcmToken || (typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_admin") : null);
+      refreshToken || getModuleRefreshToken("admin");
+    const resolvedFcmToken = fcmToken || getModuleFcmToken("admin");
     return authService.logout(token, resolvedFcmToken, platform);
   },
   // Restaurant approvals and join requests
@@ -1089,11 +1084,8 @@ export const restaurantAPI = {
     restaurantCurrentCached = null;
     restaurantCurrentCacheTime = 0;
     const token =
-      refreshToken ||
-      (typeof localStorage !== "undefined"
-        ? localStorage.getItem("restaurant_refreshToken")
-        : null);
-    const resolvedFcmToken = fcmToken || (typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_restaurant") : null);
+      refreshToken || getModuleRefreshToken("restaurant");
+    const resolvedFcmToken = fcmToken || getModuleFcmToken("restaurant");
     return authService.logout(token, resolvedFcmToken, platform);
   },
   /** Backend has no email/password login; use phone OTP only. */
@@ -1450,11 +1442,8 @@ export const deliveryAPI = {
       localStorage.removeItem("app:isOnline");
     } catch (_) {}
     const token =
-      refreshToken ||
-      (typeof localStorage !== "undefined"
-        ? localStorage.getItem("delivery_refreshToken")
-        : null);
-    const resolvedFcmToken = fcmToken || (typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_delivery") : null);
+      refreshToken || getModuleRefreshToken("delivery");
+    const resolvedFcmToken = fcmToken || getModuleFcmToken("delivery");
     return authService.logout(token, resolvedFcmToken, platform);
   },
   /** POST /food/delivery/register - multipart FormData (new partner, no token). */
@@ -2141,6 +2130,8 @@ export const publicAPI = {
   getTerms: (key = "terms") => userClient.get(`/food/pages/${key}`),
   getBusinessSettings: () => apiClient.get("/food/admin/business-settings/public"),
 };
+
+
 
 
 
