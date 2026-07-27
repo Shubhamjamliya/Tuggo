@@ -12,6 +12,7 @@ import {
 } from "./appStorage";
 
 const SETTINGS_SCOPE = 'settings';
+const DEFAULT_FAVICON_PATH = '/favicon.ico';
 const SETTINGS_KEY = 'business';
 const SETTINGS_TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -117,7 +118,10 @@ export const loadBusinessSettings = async () => {
 };
 
 export const updateFavicon = (url) => {
-  if (!url || typeof document === 'undefined') return;
+  if (typeof document === 'undefined') return;
+
+  const resolvedUrl = typeof url === 'string' && url.trim() ? url.trim() : DEFAULT_FAVICON_PATH;
+  const fallbackUrl = `${window.location.origin}${DEFAULT_FAVICON_PATH}`;
 
   const existingFavicons = document.querySelectorAll("link[rel*='icon']");
   existingFavicons.forEach((el) => el.remove());
@@ -125,8 +129,13 @@ export const updateFavicon = (url) => {
   const link = document.createElement('link');
   link.rel = 'icon';
   link.type = 'image/png';
-  link.href = url;
+  link.href = resolvedUrl;
   link.crossOrigin = 'anonymous';
+  link.addEventListener('error', () => {
+    if (link.href !== fallbackUrl) {
+      link.href = fallbackUrl;
+    }
+  }, { once: true });
   document.head.appendChild(link);
 };
 
@@ -167,3 +176,4 @@ export const getCompanyNameAsync = async () => {
     return 'Tuggo Food Delivery';
   }
 };
+

@@ -1,5 +1,31 @@
 import { readScopedValue, removeScopedValue, writeScopedValue } from "@food/utils/appStorage";
 
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== "string") return null;
+
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) return null;
+
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+export function isTokenExpired(token) {
+  const payload = decodeJwtPayload(token);
+
+  if (!payload) return true;
+
+  const exp = Number(payload.exp);
+  if (!Number.isFinite(exp) || exp <= 0) return false;
+
+  return exp * 1000 <= Date.now();
+}
+
 /**
  * Check if user has access to a module based on role
  * @param {string} role - User role
@@ -318,6 +344,8 @@ export function setAuthData(module, token, user, refreshToken = null) {
     }
   }
 }
+
+
 
 
 
