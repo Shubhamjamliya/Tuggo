@@ -30,6 +30,15 @@ const normalizeUploadToken = (value, fallback = 'upload') => {
     return normalized || fallback;
 };
 
+const buildFlatUploadFilename = ({ prefix = 'file', extension = '' }) => {
+    const normalizedPrefix = normalizeUploadToken(prefix, 'file');
+    const normalizedExtension = extension
+        ? `.${String(extension).replace(/^\.+/, '').toLowerCase()}`
+        : '';
+
+    return `${normalizedPrefix}_${uuidv4().replace(/-/g, '').substring(0, 10)}${normalizedExtension}`;
+};
+
 // Multer memory storage
 const storage = multer.memoryStorage();
 
@@ -54,10 +63,9 @@ export const upload = multer({
  * Processes and saves an image buffer to the single upload directory.
  * Returns the relative public path (e.g., '/uploads/food_123.webp')
  */
-const processAndSaveImage = async ({ buffer, folder, prefix, width, height, quality = 80 }) => {
+const processAndSaveImage = async ({ buffer, prefix, width, height, quality = 80 }) => {
     const dir = ensureUploadDirExists();
-    const folderToken = normalizeUploadToken(folder, 'upload');
-    const filename = `${folderToken}_${prefix}_${uuidv4().replace(/-/g, '').substring(0, 10)}.webp`;
+    const filename = buildFlatUploadFilename({ prefix, extension: 'webp' });
     const filepath = path.join(dir, filename);
 
     let sharpInstance = sharp(buffer);
@@ -137,32 +145,33 @@ export const uploadDeliveryImage = async (buffer) => {
     });
 };
 
-export const uploadGenericImage = async (buffer, folder = 'misc') => {
+export const uploadGenericImage = async (buffer, _folder = 'misc') => {
     return processAndSaveImage({
         buffer,
-        folder,
         prefix: 'img',
         quality: 85
     });
 };
 
-export const uploadFileBuffer = async (buffer, folder = 'misc', options = {}) => {
+export const uploadFileBuffer = async (buffer, _folder = 'misc', options = {}) => {
     const dir = ensureUploadDirExists();
-    const folderToken = normalizeUploadToken(folder, 'upload');
     const prefix = normalizeUploadToken(options.fileName ? options.fileName.split('.')[0] : 'file', 'file');
-    const ext = options.format ? `.${options.format}` : '.bin';
-    const filename = `${folderToken}_${prefix}_${uuidv4().replace(/-/g, '').substring(0, 10)}${ext}`;
+    const filename = buildFlatUploadFilename({
+        prefix,
+        extension: options.format || 'bin'
+    });
     const filepath = path.join(dir, filename);
 
     fs.writeFileSync(filepath, buffer);
     return `/uploads/${filename}`;
 };
 
-export const uploadVideoBuffer = async (buffer, folder = 'videos', options = {}) => {
+export const uploadVideoBuffer = async (buffer, _folder = 'videos', options = {}) => {
     const dir = ensureUploadDirExists();
-    const folderToken = normalizeUploadToken(folder, 'video');
-    const extension = options.format ? `.${normalizeUploadToken(options.format, 'mp4')}` : '.mp4';
-    const filename = `${folderToken}_video_${uuidv4().replace(/-/g, '').substring(0, 10)}${extension}`;
+    const filename = buildFlatUploadFilename({
+        prefix: 'video',
+        extension: options.format ? normalizeUploadToken(options.format, 'mp4') : 'mp4'
+    });
     const filepath = path.join(dir, filename);
     fs.writeFileSync(filepath, buffer);
     return `/uploads/${filename}`;
@@ -178,13 +187,11 @@ const genericStorage = multer.diskStorage({
     destination: (_req, _file, cb) => {
         cb(null, ensureUploadDirExists());
     },
-    filename: (req, file, cb) => {
-        const requestedFolder = typeof req.body?.folder === 'string' ? req.body.folder : '';
-        const uploadToken = normalizeUploadToken(requestedFolder || file.mimetype.split('/')[0], 'upload');
-        const uniqueSuffix = `${Date.now()}_${Math.round(Math.random() * 1e9)}`;
+    filename: (_req, file, cb) => {
         const ext = path.extname(file.originalname) || '';
-        const name = normalizeUploadToken(path.basename(file.originalname, ext), 'file');
-        cb(null, `${uploadToken}_${name}_${uniqueSuffix}${ext}`);
+        const name = normalizeUploadToken(path.basename(file.originalname, ext), file.mimetype.split('/')[0] || 'file');
+        const normalizedExt = ext ? ext.replace(/^\.+/, '').toLowerCase() : '';
+        cb(null, buildFlatUploadFilename({ prefix: name, extension: normalizedExt }));
     }
 });
 
@@ -206,3 +213,4 @@ export const genericUpload = multer({
     limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
     fileFilter: genericFileFilter
 });
+
