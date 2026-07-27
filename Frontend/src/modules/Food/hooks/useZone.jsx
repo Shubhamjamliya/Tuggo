@@ -10,6 +10,13 @@ const debugError = (...args) => {}
 const ZONE_CACHE_TTL_MS = 30 * 1000
 const zoneCache = new Map() // key -> { ts, payload }
 const zoneInFlight = new Map() // key -> Promise<payload>
+const OUT_OF_SERVICE_STATUSES = new Set(['OUT_OF_SERVICE', 'OUT_OF_RADIUS', 'OUT_OF_ZONE'])
+
+const getServiceUnavailableMessage = (status) => {
+  if (status === 'OUT_OF_RADIUS') return 'Service in this area is currently unavailable at the moment.'
+  if (status === 'OUT_OF_ZONE' || status === 'OUT_OF_SERVICE') return 'Service is not available in this zone yet.'
+  return ''
+}
 
 const roundCoord = (v, digits = 5) => {
   const n = Number(v)
@@ -34,12 +41,13 @@ const applyZonePayload = (data, { setZoneId, setZone, setZoneStatus }) => {
     localStorage.setItem('userZone', JSON.stringify(data.zone))
     localStorage.removeItem('outOfService')
   } else {
+    const status = data?.status || 'OUT_OF_SERVICE'
     setZoneId(null)
-    setZone(null)
-    setZoneStatus('OUT_OF_SERVICE')
+    setZone(data?.zone || null)
+    setZoneStatus(status)
     localStorage.removeItem('userZoneId')
     localStorage.removeItem('userZone')
-    localStorage.setItem('outOfService', 'true')
+    localStorage.setItem('outOfService', status)
   }
 }
 
@@ -52,7 +60,8 @@ export function useZone(location) {
   const [zoneId, setZoneId] = useState(() => localStorage.getItem("userZoneId") || null)
   const [zoneStatus, setZoneStatus] = useState(() => {
     if (localStorage.getItem("userZoneId")) return 'IN_SERVICE'
-    if (localStorage.getItem("outOfService")) return 'OUT_OF_SERVICE'
+    const storedOutOfService = localStorage.getItem("outOfService")
+    if (storedOutOfService) return storedOutOfService
     return 'loading'
   })
   const [zone, setZone] = useState(() => {
@@ -127,7 +136,7 @@ export function useZone(location) {
       // We also should clear the cache so it doesn't persist bad state
       localStorage.removeItem("userZoneId");
       localStorage.removeItem("userZone");
-      localStorage.setItem("outOfService", "true");
+      localStorage.setItem("outOfService", "OUT_OF_SERVICE");
     } finally {
       setLoading(false);
     }
@@ -207,7 +216,10 @@ export function useZone(location) {
     loading,
     error,
     isInService: zoneStatus === "IN_SERVICE",
-    isOutOfService: zoneStatus === "OUT_OF_SERVICE",
+    isOutOfService: OUT_OF_SERVICE_STATUSES.has(zoneStatus),
+    isOutOfRadius: zoneStatus === "OUT_OF_RADIUS",
+    isOutOfZone: zoneStatus === "OUT_OF_ZONE" || zoneStatus === "OUT_OF_SERVICE",
+    serviceUnavailableMessage: getServiceUnavailableMessage(zoneStatus),
     refreshZone,
   };
 }

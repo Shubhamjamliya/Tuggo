@@ -8,6 +8,35 @@ const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
+const getZoneCenter = (zone) => {
+  const lat = Number(zone?.centerPoint?.latitude)
+  const lng = Number(zone?.centerPoint?.longitude)
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng }
+  }
+
+  const coordinates = Array.isArray(zone?.coordinates) ? zone.coordinates : []
+  const normalized = coordinates
+    .map((coord) => ({
+      lat: Number(coord?.latitude ?? coord?.lat),
+      lng: Number(coord?.longitude ?? coord?.lng),
+    }))
+    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
+
+  if (!normalized.length) return null
+
+  return {
+    lat: normalized.reduce((sum, point) => sum + point.lat, 0) / normalized.length,
+    lng: normalized.reduce((sum, point) => sum + point.lng, 0) / normalized.length,
+  }
+}
+
+const getZoneRadiusMeters = (zone) => {
+  if (!zone?.isRadiusEnabled) return 0
+  const radius = Number(zone?.serviceRadius)
+  if (!Number.isFinite(radius) || radius <= 0) return 0
+  return zone.unit === "miles" ? radius * 1609.34 : radius * 1000
+}
 
 export default function ViewZone() {
   const navigate = useNavigate()
@@ -15,28 +44,31 @@ export default function ViewZone() {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const polygonRef = useRef(null)
-  
+  const radiusCircleRef = useRef(null)
+  const pointMarkersRef = useRef([])
+
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState("")
   const [mapLoading, setMapLoading] = useState(true)
   const [zone, setZone] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Memoize zone dependencies to keep dependency array stable
-const zoneId = useMemo(() => zone?._id || null, [zone?._id])
-const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.coordinates?.length])
+  const zoneId = useMemo(() => zone?._id || null, [zone?._id])
+  const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.coordinates?.length])
+  const radiusSignature = useMemo(
+    () => `${zone?.centerPoint?.latitude || ""}:${zone?.centerPoint?.longitude || ""}:${zone?.serviceRadius || ""}:${zone?.isRadiusEnabled || false}:${zone?.unit || ""}`,
+    [zone?.centerPoint?.latitude, zone?.centerPoint?.longitude, zone?.serviceRadius, zone?.isRadiusEnabled, zone?.unit],
+  )
 
   useEffect(() => {
     fetchZone()
-    // Load Google Maps immediately
     loadGoogleMaps()
   }, [id])
 
-  // Trigger map resize when component is fully mounted
   useEffect(() => {
     if (mapInstanceRef.current && !mapLoading) {
       const timer = setTimeout(() => {
         if (window.google && window.google.maps && mapInstanceRef.current) {
-          window.google.maps.event.trigger(mapInstanceRef.current, 'resize')
+          window.google.maps.event.trigger(mapInstanceRef.current, "resize")
         }
       }, 500)
       return () => clearTimeout(timer)
@@ -61,22 +93,18 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
 
   const loadGoogleMaps = async () => {
     try {
-      debugLog("Loading Google Maps...")
       const apiKey = await getGoogleMapsApiKey()
       setGoogleMapsApiKey(apiKey || "loaded")
-      
-      // Wait for Google Maps to be loaded from main.jsx if it's loading
+
       let retries = 0
       const maxRetries = 50
-      
+
       while (!window.google && retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
         retries++
       }
 
       if (window.google && window.google.maps) {
-        debugLog("Google Maps already loaded, initializing map...")
-        // Wait a bit for DOM to be ready
         setTimeout(() => {
           initializeMap(window.google)
         }, 100)
@@ -84,21 +112,17 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
       }
 
       if (apiKey) {
-        debugLog("Loading Google Maps with Loader...")
         const loader = new Loader({
-          apiKey: apiKey,
+          apiKey,
           version: "weekly",
           libraries: ["geometry"],
         })
 
         const google = await loader.load()
-        debugLog("Google Maps loaded, initializing map...")
-        // Wait a bit for DOM to be ready
         setTimeout(() => {
           initializeMap(google)
         }, 100)
       } else {
-        debugLog("No API key found")
         setMapLoading(false)
       }
     } catch (error) {
@@ -108,31 +132,19 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
   }
 
   const initializeMap = (google) => {
-    debugLog("initializeMap called, mapRef.current:", mapRef.current)
-    
     if (!mapRef.current) {
-      debugLog("Map ref not available, retrying...")
       setTimeout(() => initializeMap(google), 300)
       return
     }
 
-    // Check if container has dimensions, retry if not
     const container = mapRef.current
-    debugLog("Container dimensions:", container.offsetWidth, "x", container.offsetHeight)
-    
     if (container.offsetWidth === 0 || container.offsetHeight === 0) {
-      debugLog("Map container has no dimensions, retrying...")
       setTimeout(() => initializeMap(google), 300)
       return
     }
 
     try {
-      // Initial location (India center)
       const initialLocation = { lat: 20.5937, lng: 78.9629 }
-
-      debugLog("Creating Google Map with container:", container)
-      
-      // Create map
       const map = new google.maps.Map(container, {
         center: initialLocation,
         zoom: 5,
@@ -140,84 +152,70 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
         mapTypeControlOptions: {
           style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
           position: google.maps.ControlPosition.TOP_RIGHT,
-          mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE]
+          mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE],
         },
         zoomControl: true,
         streetViewControl: false,
         fullscreenControl: true,
         scrollwheel: true,
-        gestureHandling: 'greedy',
+        gestureHandling: "greedy",
         disableDoubleClickZoom: false,
       })
 
       mapInstanceRef.current = map
-      debugLog("Map instance created successfully, map:", map)
-      
-      // Wait for map to be ready before hiding loading
-      google.maps.event.addListenerOnce(map, 'idle', () => {
-        debugLog("Map is idle, hiding loading overlay")
+
+      google.maps.event.addListenerOnce(map, "idle", () => {
         setMapLoading(false)
-        
-        // Trigger resize to ensure map renders properly
         setTimeout(() => {
           if (mapInstanceRef.current) {
-            google.maps.event.trigger(mapInstanceRef.current, 'resize')
-            debugLog("Map resize triggered after idle")
-            
-            // Draw zone polygon if zone data is available
+            google.maps.event.trigger(mapInstanceRef.current, "resize")
             if (zone && zone.coordinates && zone.coordinates.length >= 3) {
-              debugLog("Drawing zone polygon from initializeMap")
-              drawZonePolygon(google, mapInstanceRef.current, zone.coordinates)
+              drawZoneGeometry(google, mapInstanceRef.current, zone)
             }
           }
         }, 200)
       })
-      
-      // Fallback: hide loading after timeout
+
       setTimeout(() => {
-        if (mapLoading) {
-          debugLog("Fallback: hiding loading overlay after timeout")
-          setMapLoading(false)
-        }
+        setMapLoading(false)
       }, 2000)
-      
     } catch (error) {
       debugError("Error initializing map:", error)
       setMapLoading(false)
     }
   }
 
-  const drawZonePolygon = (google, map, coordinates) => {
-    if (!coordinates || coordinates.length < 3) {
-      debugLog("Not enough coordinates to draw polygon:", coordinates?.length)
-      return
+  const clearRenderedGeometry = () => {
+    if (polygonRef.current) {
+      polygonRef.current.setMap(null)
+      polygonRef.current = null
     }
+    if (radiusCircleRef.current) {
+      radiusCircleRef.current.setMap(null)
+      radiusCircleRef.current = null
+    }
+    pointMarkersRef.current.forEach((marker) => marker?.setMap(null))
+    pointMarkersRef.current = []
+  }
 
-    debugLog("Drawing zone polygon with", coordinates.length, "coordinates")
+  const drawZoneGeometry = (google, map, zoneDoc) => {
+    const coordinates = Array.isArray(zoneDoc?.coordinates) ? zoneDoc.coordinates : []
+    if (coordinates.length < 3) return
 
     try {
-      // Convert coordinates to LatLng array
-      const path = coordinates.map(coord => {
-        const lat = typeof coord === 'object' ? (coord.latitude || coord.lat) : null
-        const lng = typeof coord === 'object' ? (coord.longitude || coord.lng) : null
-        if (lat === null || lng === null) {
-          debugError("Invalid coordinate:", coord)
-          return null
-        }
-        return new google.maps.LatLng(lat, lng)
-      }).filter(Boolean)
+      const path = coordinates
+        .map((coord) => {
+          const lat = typeof coord === "object" ? coord.latitude || coord.lat : null
+          const lng = typeof coord === "object" ? coord.longitude || coord.lng : null
+          if (lat === null || lng === null) return null
+          return new google.maps.LatLng(lat, lng)
+        })
+        .filter(Boolean)
 
-      if (path.length < 3) {
-        debugError("Not enough valid coordinates after conversion")
-        return
-      }
+      if (path.length < 3) return
 
-      // Clear existing polygon
-      if (polygonRef.current) {
-        polygonRef.current.setMap(null)
-      }
+      clearRenderedGeometry()
 
-      // Create polygon
       const polygon = new google.maps.Polygon({
         paths: path,
         strokeColor: "#9333ea",
@@ -227,90 +225,73 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
         fillOpacity: 0.35,
         editable: false,
         draggable: false,
-        clickable: false
+        clickable: false,
       })
-
       polygon.setMap(map)
       polygonRef.current = polygon
-      debugLog("Polygon created and added to map")
 
-      // Fit map to polygon bounds
       const bounds = new google.maps.LatLngBounds()
-      path.forEach(latLng => bounds.extend(latLng))
-      map.fitBounds(bounds)
-      debugLog("Map fitted to polygon bounds")
+      path.forEach((latLng) => bounds.extend(latLng))
 
-      // Add markers for each point
-      coordinates.forEach((coord, index) => {
-        const lat = typeof coord === 'object' ? (coord.latitude || coord.lat) : null
-        const lng = typeof coord === 'object' ? (coord.longitude || coord.lng) : null
-        if (lat !== null && lng !== null) {
-          new google.maps.Marker({
+      const center = getZoneCenter(zoneDoc)
+      const radiusMeters = getZoneRadiusMeters(zoneDoc)
+      if (center && radiusMeters > 0) {
+        const circle = new google.maps.Circle({
+          map,
+          center,
+          radius: radiusMeters,
+          strokeColor: "#16a34a",
+          strokeOpacity: 0.9,
+          strokeWeight: 2,
+          fillColor: "#22c55e",
+          fillOpacity: 0.1,
+          clickable: false,
+          zIndex: 0,
+        })
+        radiusCircleRef.current = circle
+        const circleBounds = circle.getBounds()
+        if (circleBounds) {
+          bounds.union(circleBounds)
+        }
+      }
+
+      map.fitBounds(bounds)
+
+      pointMarkersRef.current = coordinates
+        .map((coord, index) => {
+          const lat = typeof coord === "object" ? coord.latitude || coord.lat : null
+          const lng = typeof coord === "object" ? coord.longitude || coord.lng : null
+          if (lat === null || lng === null) return null
+          return new google.maps.Marker({
             position: { lat, lng },
-            map: map,
+            map,
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
               scale: 8,
               fillColor: "#9333ea",
               fillOpacity: 1,
               strokeColor: "#ffffff",
-              strokeWeight: 2
+              strokeWeight: 2,
             },
             zIndex: 1000,
-            title: `Point ${index + 1}`
+            title: `Point ${index + 1}`,
           })
-        }
-      })
-      debugLog("Markers added to map")
+        })
+        .filter(Boolean)
     } catch (error) {
-      debugError("Error drawing zone polygon:", error)
+      debugError("Error drawing zone geometry:", error)
     }
   }
 
-  // Redraw polygon when zone data loads and map is ready
   useEffect(() => {
-    debugLog("Polygon drawing useEffect triggered", {
-      hasZone: !!zone,
-      hasCoordinates: !!(zone?.coordinates),
-      coordinatesLength: zone?.coordinates?.length,
-      hasMap: !!mapInstanceRef.current,
-      hasGoogle: !!window.google,
-      mapLoading
-    })
-    
-    // Only draw if map is not loading
     if (zone && zone.coordinates && zone.coordinates.length >= 3 && mapInstanceRef.current && window.google && !mapLoading) {
-      debugLog("All conditions met, drawing polygon...")
-      // Small delay to ensure map is fully rendered
       setTimeout(() => {
         if (mapInstanceRef.current) {
-          debugLog("Drawing polygon now")
-          // Clear existing polygon
-          if (polygonRef.current) {
-            polygonRef.current.setMap(null)
-          }
-          drawZonePolygon(window.google, mapInstanceRef.current, zone.coordinates)
-        }
-      }, 800)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoneId, coordinatesLength])
-
-  // Draw polygon when map finishes loading
-  useEffect(() => {
-    if (!mapLoading && zone && zone.coordinates && zone.coordinates.length >= 3 && mapInstanceRef.current && window.google) {
-      debugLog("Map finished loading, drawing polygon...")
-      setTimeout(() => {
-        if (mapInstanceRef.current) {
-          if (polygonRef.current) {
-            polygonRef.current.setMap(null)
-          }
-          drawZonePolygon(window.google, mapInstanceRef.current, zone.coordinates)
+          drawZoneGeometry(window.google, mapInstanceRef.current, zone)
         }
       }, 500)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapLoading])
+  }, [zoneId, coordinatesLength, radiusSignature, mapLoading])
 
   if (loading) {
     return (
@@ -339,10 +320,14 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
     )
   }
 
+  const center = getZoneCenter(zone)
+  const radiusLabel = zone.isRadiusEnabled && zone.serviceRadius
+    ? `${zone.serviceRadius} ${zone.unit === "miles" ? "mi" : "km"}`
+    : "Disabled"
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="p-4 lg:p-6 max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate("/admin/food/zone-setup")}
@@ -362,11 +347,10 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Zone Details */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">Zone Details</h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Name</label>
@@ -382,6 +366,19 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Unit</label>
                   <p className="text-sm text-slate-900">{zone.unit || "kilometer"}</p>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Radius</label>
+                  <p className="text-sm text-slate-900">{radiusLabel}</p>
+                </div>
+
+                {center && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Center Point</label>
+                    <p className="text-sm text-slate-900">Lat: {center.lat.toFixed(6)}</p>
+                    <p className="text-sm text-slate-900">Lng: {center.lng.toFixed(6)}</p>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
@@ -402,24 +399,23 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
             </div>
           </div>
 
-          {/* Map */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">Zone Map</h2>
-              
+
               <div className="relative" style={{ height: "600px", minHeight: "600px" }}>
-                <div 
-                  ref={mapRef} 
+                <div
+                  ref={mapRef}
                   className="w-full h-full rounded-lg"
-                  style={{ 
-                    width: "100%", 
-                    height: "600px", 
+                  style={{
+                    width: "100%",
+                    height: "600px",
                     minHeight: "600px",
                     backgroundColor: "#e5e7eb",
-                    position: "relative"
+                    position: "relative",
                   }}
                 />
-                
+
                 {mapLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-100 rounded-lg" style={{ zIndex: 10, pointerEvents: "none" }}>
                     <div className="text-center">
@@ -445,5 +441,3 @@ const coordinatesLength = useMemo(() => zone?.coordinates?.length || 0, [zone?.c
     </div>
   )
 }
-
-

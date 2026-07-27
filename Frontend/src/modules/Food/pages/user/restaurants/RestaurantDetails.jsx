@@ -117,7 +117,7 @@ function RestaurantDetailsContent() {
   const BACKEND_ORIGIN = useMemo(() => API_BASE_URL.replace(/\/api(\/v\d+)?\/?$/, ""), [])
   const { addToCart, updateQuantity, removeFromCart, getCartItem, cart } = useCart()
   const { vegMode, vegModeOption, addDishFavorite, removeDishFavorite, isDishFavorite, getDishFavorites, getFavorites, addFavorite, removeFavorite, isFavorite } = useProfile()
-  const { location: userLocation, zoneId, zone, loading: loadingZone, isOutOfService } = useAppLocation()
+  const { location: userLocation, zoneId, zone, loading: loadingZone, isOutOfService, serviceUnavailableMessage } = useAppLocation()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [highlightIndex, setHighlightIndex] = useState(0)
   const [quantities, setQuantities] = useState({})
@@ -1206,7 +1206,7 @@ function RestaurantDetailsContent() {
 
     // CRITICAL: Check if user is in service zone or restaurant is available
     if (isOutOfService) {
-      toast.error('You are outside the service zone. Please select a location within the service area.');
+      toast.error(serviceUnavailableMessage || 'Service is currently unavailable.');
       return;
     }
 
@@ -4254,3 +4254,4 @@ export default function RestaurantDetails() {
     </RestaurantDetailsErrorBoundary>
   )
 }
+

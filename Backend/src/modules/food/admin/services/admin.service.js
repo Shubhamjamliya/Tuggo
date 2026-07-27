@@ -4883,6 +4883,39 @@ export async function deleteDeliveryPartner(id) {
 }
 
 // ----- Zones CRUD -----
+const normalizeZoneCoordinates = (coordinates = []) => coordinates.map((c) => ({
+    latitude: Number(c.latitude) || 0,
+    longitude: Number(c.longitude) || 0
+}));
+
+const deriveZoneCenterPoint = (coordinates = []) => {
+    const valid = coordinates.filter((c) => Number.isFinite(Number(c.latitude)) && Number.isFinite(Number(c.longitude)));
+    if (!valid.length) return null;
+
+    return {
+        latitude: Number((valid.reduce((sum, point) => sum + Number(point.latitude), 0) / valid.length).toFixed(6)),
+        longitude: Number((valid.reduce((sum, point) => sum + Number(point.longitude), 0) / valid.length).toFixed(6))
+    };
+};
+
+const normalizeZoneCenterPoint = (centerPoint, coordinates = []) => {
+    const lat = toFiniteNumber(centerPoint?.latitude);
+    const lng = toFiniteNumber(centerPoint?.longitude);
+    if (lat !== null && lng !== null) {
+        return {
+            latitude: Number(lat.toFixed(6)),
+            longitude: Number(lng.toFixed(6))
+        };
+    }
+    return deriveZoneCenterPoint(coordinates);
+};
+
+const normalizeZoneRadius = (value) => {
+    const radius = toFiniteNumber(value);
+    if (radius === null) return null;
+    return radius >= 0 ? Number(radius.toFixed(2)) : null;
+};
+
 export async function getZones(query) {
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 100, 1), 1000);
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
@@ -4920,10 +4953,10 @@ export async function createZone(body) {
     const coordinates = Array.isArray(body.coordinates) ? body.coordinates : [];
     if (coordinates.length < 3) return { error: 'At least 3 coordinates (polygon points) are required' };
 
-    const normalized = coordinates.map((c) => ({
-        latitude: Number(c.latitude) || 0,
-        longitude: Number(c.longitude) || 0
-    }));
+    const normalizedCoordinates = normalizeZoneCoordinates(coordinates);
+    const centerPoint = normalizeZoneCenterPoint(body.centerPoint, normalizedCoordinates);
+    const serviceRadius = normalizeZoneRadius(body.serviceRadius);
+    const isRadiusEnabled = body.isRadiusEnabled === true || body.isRadiusEnabled === 'true' || body.isRadiusEnabled === 1 || body.isRadiusEnabled === '1';
 
     const zone = new FoodZone({
         name,
@@ -4931,7 +4964,10 @@ export async function createZone(body) {
         country: (body.country && body.country.trim()) || 'India',
         serviceLocation: (body.serviceLocation && body.serviceLocation.trim()) || name,
         unit: body.unit === 'miles' ? 'miles' : 'kilometer',
-        coordinates: normalized,
+        coordinates: normalizedCoordinates,
+        centerPoint,
+        serviceRadius,
+        isRadiusEnabled,
         isActive: body.isActive !== false
     });
     await zone.save();
@@ -4948,11 +4984,17 @@ export async function updateZone(id, body) {
     if (body.serviceLocation !== undefined) zone.serviceLocation = String(body.serviceLocation).trim();
     if (body.unit !== undefined) zone.unit = body.unit === 'miles' ? 'miles' : 'kilometer';
     if (body.isActive !== undefined) zone.isActive = body.isActive !== false;
+    if (body.isRadiusEnabled !== undefined) {
+        zone.isRadiusEnabled = body.isRadiusEnabled === true || body.isRadiusEnabled === 'true' || body.isRadiusEnabled === 1 || body.isRadiusEnabled === '1';
+    }
+    if (body.serviceRadius !== undefined) {
+        zone.serviceRadius = normalizeZoneRadius(body.serviceRadius);
+    }
     if (Array.isArray(body.coordinates) && body.coordinates.length >= 3) {
-        zone.coordinates = body.coordinates.map((c) => ({
-            latitude: Number(c.latitude) || 0,
-            longitude: Number(c.longitude) || 0
-        }));
+        zone.coordinates = normalizeZoneCoordinates(body.coordinates);
+    }
+    if (body.centerPoint !== undefined || (Array.isArray(body.coordinates) && body.coordinates.length >= 3)) {
+        zone.centerPoint = normalizeZoneCenterPoint(body.centerPoint, zone.coordinates);
     }
     if (zone.name) zone.serviceLocation = zone.serviceLocation || zone.name;
 
@@ -5457,5 +5499,7 @@ export async function deleteSubAdmin(id) {
     const deleted = await FoodAdmin.findOneAndDelete({ _id: id, role: 'SUB_ADMIN' });
     return deleted !== null;
 }
+
+
 
 

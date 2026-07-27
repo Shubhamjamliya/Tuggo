@@ -648,7 +648,7 @@ export default function Home() {
     getDefaultAddress,
   } = profileContext;
   const { addToCart, cart } = useCart();
-  const { location, loading: effectiveZoneLoading, requestLocation, zoneId: effectiveZoneId, zoneStatus: effectiveZoneStatus, isOutOfService: isEffectiveLocationOutOfService } = useAppLocation();
+  const { location, loading: effectiveZoneLoading, requestLocation, zoneId: effectiveZoneId, zoneStatus: effectiveZoneStatus, isOutOfService: isEffectiveLocationOutOfService, isOutOfZone: isEffectiveLocationOutOfZone, isOutOfRadius: isEffectiveLocationOutOfRadius, serviceUnavailableMessage: effectiveServiceUnavailableMessage } = useAppLocation();
   const [showToast, setShowToast] = useState(false);
   const [showManageCollections, setShowManageCollections] = useState(false);
   const [selectedRestaurantSlug, setSelectedRestaurantSlug] = useState(null);
@@ -951,7 +951,8 @@ export default function Home() {
 
   const shouldShowOutOfZoneHome =
     !effectiveZoneLoading &&
-    isEffectiveLocationOutOfService;
+    isEffectiveLocationOutOfZone;
+
 
   // Mock points value - replace with actual points from context/store
   const userPoints = 99;
@@ -1791,6 +1792,12 @@ export default function Home() {
     return (restaurantsData || []).filter(matchesVegMode).filter(matchesCategory);
   }, [restaurantsData, matchesVegMode, matchesCategory]);
 
+  const shouldShowOutOfRadiusHome =
+    !effectiveZoneLoading &&
+    isEffectiveLocationOutOfRadius &&
+    !showRestaurantSkeleton &&
+    filteredRestaurants.length === 0;
+
   const recommendedForYouRestaurants = useMemo(() => {
     const idsInOrder = (recommendedRestaurantIds || []).map((id) => String(id));
     const hasIds = idsInOrder.length > 0;
@@ -2449,7 +2456,7 @@ export default function Home() {
               </div>
             </>
           )}
-          {shouldShowOutOfZoneHome ? (
+          {shouldShowOutOfZoneHome || shouldShowOutOfRadiusHome ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center min-h-[480px] overflow-visible">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -2533,10 +2540,10 @@ export default function Home() {
                 </div>
 
                 <h3 className="text-3xl sm:text-4xl font-black mb-4 tracking-tight leading-tight bg-gradient-to-r from-primary via-rose-500 to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-shift">
-                  Coming Soon!
+                  {shouldShowOutOfZoneHome ? "Coming Soon!" : "Service Unavailable"}
                 </h3>
                 <p className="text-base sm:text-lg font-medium text-gray-500 dark:text-gray-400 leading-relaxed px-4 max-w-xs">
-                  Currently we are not operating on this area. We are coming soon to your location!
+                  {effectiveServiceUnavailableMessage || "Service is currently unavailable."} Please try another delivery location.
                 </p>
 
                 <div className="mt-12 flex items-center gap-3">
@@ -3570,5 +3577,6 @@ export default function Home() {
     </div>
   );
 }
+
 
 

@@ -8,15 +8,45 @@ const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
+const getZoneRadiusMeters = (zone) => {
+  if (!zone?.isRadiusEnabled) return 0
+  const radius = Number(zone?.serviceRadius)
+  if (!Number.isFinite(radius) || radius <= 0) return 0
+  return zone.unit === "miles" ? radius * 1609.34 : radius * 1000
+}
+
+const getZoneCenter = (zone) => {
+  const lat = Number(zone?.centerPoint?.latitude)
+  const lng = Number(zone?.centerPoint?.longitude)
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng }
+  }
+
+  const coordinates = Array.isArray(zone?.coordinates) ? zone.coordinates : []
+  const normalized = coordinates
+    .map((coord) => ({
+      lat: Number(coord?.latitude ?? coord?.lat),
+      lng: Number(coord?.longitude ?? coord?.lng),
+    }))
+    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
+
+  if (!normalized.length) return null
+
+  return {
+    lat: normalized.reduce((sum, point) => sum + point.lat, 0) / normalized.length,
+    lng: normalized.reduce((sum, point) => sum + point.lng, 0) / normalized.length,
+  }
+}
 
 export default function AllZonesMap() {
   const navigate = useNavigate()
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const zonesPolygonsRef = useRef([])
+  const zonesCirclesRef = useRef([])
   const infoWindowsRef = useRef([])
   const restaurantMarkersRef = useRef([])
-  
+
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState("")
   const [mapLoading, setMapLoading] = useState(true)
   const [zones, setZones] = useState([])
@@ -32,33 +62,29 @@ export default function AllZonesMap() {
     loadGoogleMaps()
   }, [])
 
-  // Initialize Places Autocomplete when map is loaded
   useEffect(() => {
     if (!mapLoading && mapInstanceRef.current && autocompleteInputRef.current && window.google?.maps?.places && !autocompleteRef.current) {
       const autocomplete = new window.google.maps.places.Autocomplete(autocompleteInputRef.current, {
-        componentRestrictions: { country: 'in' } // Restrict to India
+        componentRestrictions: { country: "in" },
       })
-      
-      autocomplete.addListener('place_changed', () => {
+
+      autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace()
-        if (place.geometry && place.geometry.location && mapInstanceRef.current) {
+        if (place.geometry?.location && mapInstanceRef.current) {
           const location = place.geometry.location
           mapInstanceRef.current.setCenter(location)
-          mapInstanceRef.current.setZoom(12) // Zoom in when location is selected
-          
-          // Set the search input value
+          mapInstanceRef.current.setZoom(12)
           setLocationSearch(place.formatted_address || place.name || "")
         }
       })
-      
+
       autocompleteRef.current = autocomplete
     }
   }, [mapLoading])
 
-  // Draw zones and restaurant markers when map and data are ready
   useEffect(() => {
     if (!mapLoading && mapInstanceRef.current && window.google) {
-      if (zones.length > 0 && restaurants.length > 0) {
+      if (zones.length > 0) {
         drawAllZonesOnMap(window.google, mapInstanceRef.current)
       }
       if (restaurants.length > 0) {
@@ -97,28 +123,25 @@ export default function AllZonesMap() {
     try {
       const apiKey = await getGoogleMapsApiKey()
       setGoogleMapsApiKey(apiKey || "loaded")
-      
-      // Wait for Google Maps to be loaded from main.jsx if it's loading
+
       let retries = 0
-      const maxRetries = 50 // Wait up to 5 seconds (50 * 100ms)
-      
+      const maxRetries = 50
+
       while (!window.google && retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
         retries++
       }
 
-      // If Google Maps is already loaded (from main.jsx), use it directly
       if (window.google && window.google.maps) {
         initializeMap(window.google)
         return
       }
 
-      // If Google Maps is not loaded yet and we have an API key, use Loader as fallback
       if (apiKey) {
         const loader = new Loader({
-          apiKey: apiKey,
+          apiKey,
           version: "weekly",
-          libraries: ["places", "drawing", "geometry"]
+          libraries: ["places", "drawing", "geometry"],
         })
 
         const google = await loader.load()
@@ -135,10 +158,7 @@ export default function AllZonesMap() {
   const initializeMap = (google) => {
     if (!mapRef.current) return
 
-    // Initial location (India center)
     const initialLocation = { lat: 20.5937, lng: 78.9629 }
-
-    // Create map
     const map = new google.maps.Map(mapRef.current, {
       center: initialLocation,
       zoom: 5,
@@ -146,13 +166,13 @@ export default function AllZonesMap() {
       mapTypeControlOptions: {
         style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
         position: google.maps.ControlPosition.TOP_RIGHT,
-        mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE]
+        mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE],
       },
       zoomControl: true,
       streetViewControl: false,
       fullscreenControl: true,
       scrollwheel: true,
-      gestureHandling: 'greedy',
+      gestureHandling: "greedy",
       disableDoubleClickZoom: false,
     })
 
@@ -160,61 +180,43 @@ export default function AllZonesMap() {
     setMapLoading(false)
   }
 
-  // Draw all zones on the map
   const drawAllZonesOnMap = (google, map) => {
     if (!zones || zones.length === 0) {
-      // Clear zones if no zones exist
-      zonesPolygonsRef.current.forEach(polygon => {
-        if (polygon) polygon.setMap(null)
-      })
+      zonesPolygonsRef.current.forEach((polygon) => polygon?.setMap(null))
+      zonesCirclesRef.current.forEach((circle) => circle?.setMap(null))
       zonesPolygonsRef.current = []
+      zonesCirclesRef.current = []
       return
     }
 
-    // Clear previous polygons and info windows
-    zonesPolygonsRef.current.forEach(polygon => {
-      if (polygon) polygon.setMap(null)
-    })
+    zonesPolygonsRef.current.forEach((polygon) => polygon?.setMap(null))
+    zonesCirclesRef.current.forEach((circle) => circle?.setMap(null))
     zonesPolygonsRef.current = []
+    zonesCirclesRef.current = []
 
-    infoWindowsRef.current.forEach(infoWindow => {
-      if (infoWindow) infoWindow.close()
-    })
+    infoWindowsRef.current.forEach((infoWindow) => infoWindow?.close())
     infoWindowsRef.current = []
 
-    // Colors for different zones
-    const colors = [
-      "#3b82f6", // Blue
-      "#10b981", // Green
-      "#f59e0b", // Orange
-      "#ef4444", // Red
-      "#8b5cf6", // Purple
-      "#ec4899", // Pink
-      "#06b6d4", // Cyan
-      "#84cc16", // Lime
-    ]
-
+    const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"]
     const bounds = new google.maps.LatLngBounds()
 
     zones.forEach((zone, index) => {
       if (!zone.coordinates || zone.coordinates.length < 3) return
 
-      // Convert coordinates to LatLng array
-      const path = zone.coordinates.map(coord => {
-        const lat = typeof coord === 'object' ? (coord.latitude || coord.lat) : null
-        const lng = typeof coord === 'object' ? (coord.longitude || coord.lng) : null
-        if (lat === null || lng === null) return null
-        const latLng = new google.maps.LatLng(lat, lng)
-        bounds.extend(latLng)
-        return latLng
-      }).filter(Boolean)
+      const path = zone.coordinates
+        .map((coord) => {
+          const lat = typeof coord === "object" ? coord.latitude || coord.lat : null
+          const lng = typeof coord === "object" ? coord.longitude || coord.lng : null
+          if (lat === null || lng === null) return null
+          const latLng = new google.maps.LatLng(lat, lng)
+          bounds.extend(latLng)
+          return latLng
+        })
+        .filter(Boolean)
 
       if (path.length < 3) return
 
-      // Select color based on index
       const color = colors[index % colors.length]
-
-      // Create polygon for zone
       const polygon = new google.maps.Polygon({
         paths: path,
         strokeColor: color,
@@ -225,75 +227,88 @@ export default function AllZonesMap() {
         editable: false,
         draggable: false,
         clickable: true,
-        zIndex: 1
+        zIndex: 1,
       })
 
       polygon.setMap(map)
       zonesPolygonsRef.current.push(polygon)
 
-      // Add info window on click
+      const center = getZoneCenter(zone)
+      const radiusMeters = getZoneRadiusMeters(zone)
+      if (center && radiusMeters > 0) {
+        const circle = new google.maps.Circle({
+          map,
+          center,
+          radius: radiusMeters,
+          strokeColor: color,
+          strokeOpacity: 0.9,
+          strokeWeight: 2,
+          fillColor: color,
+          fillOpacity: 0.08,
+          clickable: false,
+          zIndex: 0,
+        })
+        zonesCirclesRef.current.push(circle)
+
+        const circleBounds = circle.getBounds()
+        if (circleBounds) {
+          bounds.union(circleBounds)
+        }
+      }
+
+      const radiusText = zone.isRadiusEnabled && zone.serviceRadius
+        ? `${zone.serviceRadius} ${zone.unit === "miles" ? "mi" : "km"}`
+        : "Disabled"
+
       const infoWindow = new google.maps.InfoWindow({
         content: `
-          <div style="padding: 12px; min-width: 200px;">
+          <div style="padding: 12px; min-width: 220px;">
             <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1e293b;">
-              ${zone.name || zone.zoneName || 'Unnamed Zone'}
+              ${zone.name || zone.zoneName || "Unnamed Zone"}
             </h3>
             <div style="font-size: 13px; color: #64748b; line-height: 1.6;">
-              <div style="margin-bottom: 4px;">
-                <strong>Country:</strong> ${zone.country || 'N/A'}
-              </div>
-              <div style="margin-bottom: 4px;">
-                <strong>Unit:</strong> ${zone.unit || 'km'}
-              </div>
-              <div style="margin-bottom: 4px;">
-                <strong>Points:</strong> ${zone.coordinates.length}
-              </div>
+              <div style="margin-bottom: 4px;"><strong>Country:</strong> ${zone.country || "N/A"}</div>
+              <div style="margin-bottom: 4px;"><strong>Unit:</strong> ${zone.unit || "km"}</div>
+              <div style="margin-bottom: 4px;"><strong>Points:</strong> ${zone.coordinates.length}</div>
+              <div style="margin-bottom: 4px;"><strong>Radius:</strong> ${radiusText}</div>
               <div>
-                <strong>Status:</strong> 
-                <span style="color: ${zone.isActive ? '#10b981' : '#ef4444'}; font-weight: 600;">
-                  ${zone.isActive ? 'Active' : 'Inactive'}
+                <strong>Status:</strong>
+                <span style="color: ${zone.isActive ? "#10b981" : "#ef4444"}; font-weight: 600;">
+                  ${zone.isActive ? "Active" : "Inactive"}
                 </span>
               </div>
             </div>
           </div>
-        `
+        `,
       })
 
-      polygon.addListener('click', () => {
-        // Close all other info windows
-        infoWindowsRef.current.forEach(iw => {
+      polygon.addListener("click", () => {
+        infoWindowsRef.current.forEach((iw) => {
           if (iw && iw !== infoWindow) iw.close()
         })
-        
         infoWindow.setPosition(path[0])
         infoWindow.open(map)
-        infoWindowsRef.current.push(infoWindow)
+        if (!infoWindowsRef.current.includes(infoWindow)) {
+          infoWindowsRef.current.push(infoWindow)
+        }
       })
     })
 
-    // Fit map to show all zones
-    if (zones.length > 0) {
+    if (!bounds.isEmpty()) {
       map.fitBounds(bounds)
-      // Add some padding
-      const padding = { top: 50, right: 50, bottom: 50, left: 50 }
-      map.fitBounds(bounds, padding)
+      map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 })
     }
   }
 
-  // Draw restaurant markers on the map
   const drawRestaurantMarkers = (google, map) => {
     if (!restaurants || restaurants.length === 0) return
 
-    // Clear previous markers
-    restaurantMarkersRef.current.forEach(marker => {
-      if (marker) marker.setMap(null)
-    })
+    restaurantMarkersRef.current.forEach((marker) => marker?.setMap(null))
     restaurantMarkersRef.current = []
 
-    restaurants.forEach(restaurant => {
+    restaurants.forEach((restaurant) => {
       if (!restaurant.location) return
 
-      // Get coordinates from restaurant location
       let lat = null
       let lng = null
 
@@ -305,63 +320,52 @@ export default function AllZonesMap() {
         lng = parseFloat(restaurant.location.longitude)
       }
 
-      // Skip if no valid coordinates
-      if (!lat || !lng || isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
-        return
-      }
+      if (!lat || !lng || Number.isNaN(lat) || Number.isNaN(lng) || lat === 0 || lng === 0) return
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return
 
-      // Validate coordinates are in valid range
-      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        return
-      }
-
-      // Create custom icon for restaurant
       const restaurantIcon = {
         path: google.maps.SymbolPath.CIRCLE,
         scale: 8,
-        fillColor: "#ef4444", // Red color
+        fillColor: "#ef4444",
         fillOpacity: 1,
         strokeColor: "#ffffff",
         strokeWeight: 2,
       }
 
-      // Create marker
       const marker = new google.maps.Marker({
         position: { lat, lng },
-        map: map,
+        map,
         icon: restaurantIcon,
         title: restaurant.restaurantName || "Restaurant",
-        zIndex: 1000, // Show above zones
+        zIndex: 1000,
       })
 
-      // Create info window
       const infoWindow = new google.maps.InfoWindow({
         content: `
           <div style="padding: 12px; min-width: 200px;">
             <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1e293b;">
-              ${restaurant.restaurantName || 'Unnamed Restaurant'}
+              ${restaurant.restaurantName || "Unnamed Restaurant"}
             </h3>
             <div style="font-size: 13px; color: #64748b; line-height: 1.6;">
-              ${restaurant.location?.formattedAddress || restaurant.location?.address || restaurant.location?.area || 'Location not specified'}
+              ${restaurant.location?.formattedAddress || restaurant.location?.address || restaurant.location?.area || "Location not specified"}
             </div>
             ${restaurant.ownerName ? `
               <div style="margin-top: 8px; font-size: 12px; color: #94a3b8;">
                 <strong>Owner:</strong> ${restaurant.ownerName}
               </div>
-            ` : ''}
+            ` : ""}
           </div>
-        `
+        `,
       })
 
-      // Add click listener to show info window
-      marker.addListener('click', () => {
-        // Close all other info windows
-        infoWindowsRef.current.forEach(iw => {
+      marker.addListener("click", () => {
+        infoWindowsRef.current.forEach((iw) => {
           if (iw && iw !== infoWindow) iw.close()
         })
-        
         infoWindow.open(map, marker)
-        infoWindowsRef.current.push(infoWindow)
+        if (!infoWindowsRef.current.includes(infoWindow)) {
+          infoWindowsRef.current.push(infoWindow)
+        }
       })
 
       restaurantMarkersRef.current.push(marker)
@@ -371,7 +375,6 @@ export default function AllZonesMap() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="p-4 lg:p-6">
-        {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate("/admin/food/zone-setup")}
@@ -390,7 +393,6 @@ export default function AllZonesMap() {
           </div>
         </div>
 
-        {/* Search Bar */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -405,11 +407,10 @@ export default function AllZonesMap() {
           </div>
         </div>
 
-        {/* Map Container */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
           <div className="relative" style={{ height: "calc(100vh - 250px)", minHeight: "600px" }}>
             <div ref={mapRef} className="w-full h-full rounded-lg" />
-            
+
             {mapLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-100 rounded-lg">
                 <div className="text-center">
@@ -447,14 +448,13 @@ export default function AllZonesMap() {
             )}
           </div>
 
-          {/* Legend */}
           {!mapLoading && (
             <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
               <h3 className="text-sm font-semibold text-slate-900 mb-2">Map Information</h3>
               <div className="text-xs text-slate-600 space-y-1">
                 {zones.length > 0 && (
                   <p>
-                    Click on any <span className="font-semibold text-blue-600">zone</span> on the map to view details. Total zones: <strong>{zones.length}</strong>
+                    Click on any <span className="font-semibold text-blue-600">zone polygon</span> to view details. Radius-enabled zones also show a lighter service circle. Total zones: <strong>{zones.length}</strong>
                   </p>
                 )}
                 {restaurants.length > 0 && (
@@ -470,5 +470,3 @@ export default function AllZonesMap() {
     </div>
   )
 }
-
-

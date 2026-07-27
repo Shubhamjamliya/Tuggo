@@ -7,6 +7,7 @@ import { Label } from "@food/components/ui/label"
 import { Textarea } from "@food/components/ui/textarea"
 import { useLocation as useGeoLocation } from "@food/hooks/useLocation"
 import { useProfile } from "@food/context/ProfileContext"
+import { useAppLocation } from "@food/hooks/useAppLocation"
 import { toast } from "sonner"
 import { locationAPI, userAPI } from "@food/api"
 import { Loader } from '@googlemaps/js-api-loader'
@@ -50,6 +51,7 @@ export default function AddressSelectorPage() {
   const goBack = useAppBackNavigation()
   const { location, loading, requestLocation } = useGeoLocation()
   const { addresses = [], addAddress, updateAddress, deleteAddress, setDefaultAddress, userProfile, isAuthenticated } = useProfile()
+  const { setSavedLocation, setDeliveryAddressMode } = useAppLocation()
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [mapPosition, setMapPosition] = useState([22.7196, 75.8577]) // Default Indore coordinates [lat, lng]
   const [addressFormData, setAddressFormData] = useState({
@@ -83,6 +85,35 @@ export default function AddressSelectorPage() {
   const ENABLE_LOCATION_REVERSE_GEOCODE = import.meta.env.VITE_ENABLE_LOCATION_REVERSE_GEOCODE !== "false"
   const ENABLE_NOMINATIM_SEARCH = import.meta.env.VITE_ENABLE_NOMINATIM_SEARCH !== "false"
   const getAddressId = (address) => address?.id || address?._id || null
+
+  const buildLocationDataFromAddress = (address) => {
+    const coordinates = address?.location?.coordinates || []
+    const longitude = Number(coordinates[0] ?? address?.longitude)
+    const latitude = Number(coordinates[1] ?? address?.latitude)
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+
+    const street = String(address?.street || "").trim()
+    const city = String(address?.city || "").trim()
+    const state = String(address?.state || "").trim()
+    const area = String(address?.additionalDetails || "").trim()
+    const zipCode = String(address?.zipCode || "").trim()
+    const stateAndZip = [state, zipCode].filter(Boolean).join(" ")
+
+    return {
+      city,
+      state,
+      area,
+      zipCode,
+      latitude,
+      longitude,
+      address: [street, city].filter(Boolean).join(", "),
+      formattedAddress: area
+        ? [area, street, city, stateAndZip].filter(Boolean).join(", ")
+        : [street, city, stateAndZip].filter(Boolean).join(", "),
+      label: address?.label || "Home",
+    }
+  }
 
   const handleBack = () => {
     goBack()
@@ -248,12 +279,22 @@ export default function AddressSelectorPage() {
 
   const handleSelectSavedAddress = async (address) => {
     const id = getAddressId(address)
-    if (id) {
-      await setDefaultAddress(id)
-      try { localStorage.setItem("deliveryAddressMode", "saved") } catch { }
-      toast.success("Address selected")
-      handleBack()
+    if (!id) return
+
+    const locationData = buildLocationDataFromAddress(address)
+    if (!locationData) {
+      toast.error("Selected address does not have valid coordinates")
+      return
     }
+
+    await setDefaultAddress(id)
+    await setSavedLocation(locationData, { mode: "saved", persistDb: true })
+    try {
+      localStorage.setItem("deliveryAddressMode", "saved")
+      setDeliveryAddressMode("saved")
+    } catch { }
+    toast.success("Address selected")
+    handleBack()
   }
 
   const handleEditAddress = (e, addr) => {
@@ -458,7 +499,7 @@ export default function AddressSelectorPage() {
       try {
         localStorage.setItem("userLocation", JSON.stringify(locData))
         localStorage.setItem("deliveryAddressMode", "saved")
-        window.dispatchEvent(new CustomEvent("userLocationUpdated", { detail: locData }))
+        window.dispatchEvent(new CustomEvent("userLocationUpdated", { detail: { location: locData } }))
       } catch (e) { }
 
       toast.success("Location set successfully")
@@ -488,7 +529,22 @@ export default function AddressSelectorPage() {
       if (createdOrUpdated) {
         const id = getAddressId(createdOrUpdated)
         if (id) await setDefaultAddress(id)
-        try { localStorage.setItem("deliveryAddressMode", "saved") } catch { }
+
+        const locationData = buildLocationDataFromAddress({
+          ...createdOrUpdated,
+          ...payload,
+          id,
+          _id: createdOrUpdated?._id || id,
+        })
+
+        if (locationData) {
+          await setSavedLocation(locationData, { mode: "saved", persistDb: true })
+          try {
+            localStorage.setItem("deliveryAddressMode", "saved")
+            setDeliveryAddressMode("saved")
+          } catch { }
+        }
+
         toast.success(addressFormData.id ? "Address updated" : "Address saved")
         handleBack()
       }
@@ -839,3 +895,4 @@ export default function AddressSelectorPage() {
     </AnimatedPage>
   )
 }
+

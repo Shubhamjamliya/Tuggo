@@ -293,7 +293,7 @@ const pageCache = {
 
 export default function Under250() {
   const initialFiltersRef = useRef(readUnder250Filters())
-  const { location, zoneId, zoneStatus, isInService, isOutOfService } = useAppLocation()
+  const { location, zoneId, zoneStatus, isInService, isOutOfService, serviceUnavailableMessage } = useAppLocation()
   // Initialize state from cache if zoneId matches
   const isCacheValid = pageCache.zoneId === zoneId;
   // Always show scan animation on page load, even if cached, because user likes the animation
@@ -1015,7 +1015,7 @@ export default function Under250() {
 
     // CRITICAL: Check if user is in service zone
     if (isOutOfService) {
-      toast.error('You are outside the service zone. Please select a location within the service area.')
+      toast.error(serviceUnavailableMessage || 'Service is currently unavailable.')
       return
     }
 
@@ -1992,4 +1992,5 @@ export default function Under250() {
     </div>
   )
 }
+
 

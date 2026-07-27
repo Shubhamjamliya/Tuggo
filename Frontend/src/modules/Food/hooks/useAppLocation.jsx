@@ -16,6 +16,9 @@ export function useAppLocation() {
       zoneStatus: 'loading',
       loading: true,
       isOutOfService: false,
+      isOutOfRadius: false,
+      isOutOfZone: false,
+      serviceUnavailableMessage: '',
       deliveryAddressMode: 'saved',
     };
   }
@@ -29,6 +32,9 @@ export function useAppLocation() {
     zoneStatus: ctx.zoneStatus,
     loading: ctx.loading,
     isOutOfService: ctx.isOutOfService,
+    isOutOfRadius: ctx.isOutOfRadius,
+    isOutOfZone: ctx.isOutOfZone,
+    serviceUnavailableMessage: ctx.serviceUnavailableMessage,
     deliveryAddressMode: ctx.deliveryAddressMode,
     requestLocation: ctx.requestLocation,
     setSavedLocation: ctx.setSavedLocation,

@@ -6,7 +6,6 @@ const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
-
 export default function ZoneSetup() {
   const navigate = useNavigate()
   const [zones, setZones] = useState([])
@@ -32,7 +31,6 @@ export default function ZoneSetup() {
     }
   }
 
-
   const handleDeleteZone = async (zoneId) => {
     if (!window.confirm("Are you sure you want to delete this zone?")) {
       return
@@ -47,15 +45,15 @@ export default function ZoneSetup() {
     }
   }
 
-  const filteredZones = zones.filter(zone =>
-    zone.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    zone.serviceLocation?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredZones = zones.filter(
+    (zone) =>
+      zone.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      zone.serviceLocation?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   return (
     <div className="p-2 lg:p-3 bg-slate-50 min-h-screen">
       <div className="w-full mx-auto max-w-7xl">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div className="flex items-center gap-3 mb-4 md:mb-0">
             <div className="w-10 h-10 rounded-lg bg-red-500 flex items-center justify-center">
@@ -91,7 +89,6 @@ export default function ZoneSetup() {
           </div>
         </div>
 
-        {/* Search Bar */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -105,7 +102,6 @@ export default function ZoneSetup() {
           </div>
         </div>
 
-        {/* Zones List */}
         {loading ? (
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -171,9 +167,11 @@ export default function ZoneSetup() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-600">Status:</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      zone.isActive ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-800"
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        zone.isActive ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-800"
+                      }`}
+                    >
                       {zone.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
@@ -183,6 +181,14 @@ export default function ZoneSetup() {
                       <span className="font-medium text-slate-900">{zone.coordinates.length}</span>
                     </div>
                   )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Radius:</span>
+                    <span className="font-medium text-slate-900">
+                      {zone.isRadiusEnabled && zone.serviceRadius
+                        ? `${zone.serviceRadius} ${zone.unit === "miles" ? "mi" : "km"}`
+                        : "Disabled"}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -192,4 +198,3 @@ export default function ZoneSetup() {
     </div>
   )
 }
-

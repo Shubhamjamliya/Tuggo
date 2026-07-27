@@ -22,6 +22,48 @@ const isPointInPolygon = (lat, lng, polygon) => {
     return inside;
 };
 
+const toRadians = (value) => (value * Math.PI) / 180;
+
+const getDistanceKm = (lat1, lng1, lat2, lng2) => {
+    const earthRadiusKm = 6371;
+    const deltaLat = toRadians(lat2 - lat1);
+    const deltaLng = toRadians(lng2 - lng1);
+    const a =
+        Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+        Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+        Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadiusKm * c;
+};
+
+const getZoneRadiusKm = (zone) => {
+    if (!zone?.isRadiusEnabled) return null;
+    const radius = toFinite(zone?.serviceRadius);
+    if (radius === null || radius < 0) return null;
+    return zone.unit === 'miles' ? radius * 1.60934 : radius;
+};
+
+const isPointWithinZoneRadius = (lat, lng, zone) => {
+    const centerLat = toFinite(zone?.centerPoint?.latitude);
+    const centerLng = toFinite(zone?.centerPoint?.longitude);
+    const radiusKm = getZoneRadiusKm(zone);
+    if (centerLat === null || centerLng === null || radiusKm === null) return false;
+    return getDistanceKm(lat, lng, centerLat, centerLng) <= radiusKm;
+};
+
+const doesZoneServePoint = (lat, lng, zone) => {
+    if (zone?.isRadiusEnabled) {
+        return isPointWithinZoneRadius(lat, lng, zone);
+    }
+
+    const coords = Array.isArray(zone?.coordinates) ? zone.coordinates : [];
+    if (coords.length >= 3) {
+        return isPointInPolygon(lat, lng, coords);
+    }
+
+    return false;
+};
+
 /** GET /zones/detect?lat=..&lng=.. */
 export const detectZonePublicController = async (req, res, next) => {
     try {
@@ -32,22 +74,37 @@ export const detectZonePublicController = async (req, res, next) => {
         }
 
         const zones = await FoodZone.find({ isActive: true }).lean();
+        let radiusBlockedZone = null;
+
         for (const zone of zones) {
-            const coords = Array.isArray(zone.coordinates) ? zone.coordinates : [];
-            if (coords.length < 3) continue;
-            if (isPointInPolygon(lat, lng, coords)) {
+            if (doesZoneServePoint(lat, lng, zone)) {
                 return res.status(200).json({
                     success: true,
                     message: 'Zone detected',
                     data: { status: 'IN_SERVICE', zoneId: zone._id, zone }
                 });
             }
+
+            if (!radiusBlockedZone && zone?.isRadiusEnabled) {
+                const coords = Array.isArray(zone?.coordinates) ? zone.coordinates : [];
+                if (coords.length >= 3 && isPointInPolygon(lat, lng, coords) && !isPointWithinZoneRadius(lat, lng, zone)) {
+                    radiusBlockedZone = zone;
+                }
+            }
+        }
+
+        if (radiusBlockedZone) {
+            return res.status(200).json({
+                success: true,
+                message: 'Outside service radius',
+                data: { status: 'OUT_OF_RADIUS', zoneId: null, zone: radiusBlockedZone }
+            });
         }
 
         return res.status(200).json({
             success: true,
-            message: 'Out of service',
-            data: { status: 'OUT_OF_SERVICE', zoneId: null, zone: null }
+            message: 'Out of service zone',
+            data: { status: 'OUT_OF_ZONE', zoneId: null, zone: null }
         });
     } catch (error) {
         next(error);
@@ -58,7 +115,7 @@ export const detectZonePublicController = async (req, res, next) => {
 export const listZonesPublicController = async (_req, res, next) => {
     try {
         const zones = await FoodZone.find({ isActive: true })
-            .select('name zoneName serviceLocation country unit isActive coordinates createdAt')
+            .select('name zoneName serviceLocation country unit isActive coordinates centerPoint serviceRadius isRadiusEnabled createdAt')
             .sort({ createdAt: 1 })
             .lean();
 
@@ -76,7 +133,7 @@ export const listZonesPublicController = async (_req, res, next) => {
 export const listZonesNearbyPublicController = async (req, res, next) => {
     try {
         const zones = await FoodZone.find({ isActive: true })
-            .select('name zoneName serviceLocation country unit isActive coordinates createdAt')
+            .select('name zoneName serviceLocation country unit isActive coordinates centerPoint serviceRadius isRadiusEnabled createdAt')
             .sort({ createdAt: 1 })
             .lean();
 
@@ -89,4 +146,3 @@ export const listZonesNearbyPublicController = async (req, res, next) => {
         next(error);
     }
 };
-

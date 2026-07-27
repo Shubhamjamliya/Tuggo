@@ -8,6 +8,14 @@ const coordinateSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const centerPointSchema = new mongoose.Schema(
+    {
+        latitude: { type: Number, required: true },
+        longitude: { type: Number, required: true }
+    },
+    { _id: false }
+);
+
 const zoneSchema = new mongoose.Schema(
     {
         name: {
@@ -46,6 +54,19 @@ const zoneSchema = new mongoose.Schema(
                 },
                 message: 'Zone must have at least 3 coordinates (polygon).'
             }
+        },
+        centerPoint: {
+            type: centerPointSchema,
+            default: null
+        },
+        serviceRadius: {
+            type: Number,
+            default: null,
+            min: 0
+        },
+        isRadiusEnabled: {
+            type: Boolean,
+            default: false
         },
         isActive: {
             type: Boolean,
