@@ -99,14 +99,18 @@ const normalizeFileUrl = (file) => {
 }
 
 const getPrimaryRestaurantImage = (restaurant, fallback = "") => {
+  const profileImage = normalizeImageUrl(restaurant?.profileImage)
+  if (profileImage) return profileImage
+
   const coverImages = Array.isArray(restaurant?.coverImages) ? restaurant.coverImages : []
   const firstCoverImage = coverImages.map(normalizeImageUrl).find(Boolean)
   if (firstCoverImage) return firstCoverImage
+
   const menuImages = Array.isArray(restaurant?.menuImages) ? restaurant.menuImages : []
   const firstMenuImage = menuImages.map(normalizeImageUrl).find(Boolean)
   if (firstMenuImage) return firstMenuImage
+
   return (
-    normalizeImageUrl(restaurant?.profileImage) ||
     normalizeImageUrl(restaurant?.logo) ||
     normalizeImageUrl(restaurant?.restaurantImage) ||
     fallback
@@ -2693,6 +2697,7 @@ export default function RestaurantsList() {
     </div>
   )
 }
+
 
 
 
