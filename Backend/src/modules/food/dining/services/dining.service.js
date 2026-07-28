@@ -7,6 +7,7 @@ import { FoodDiningRequest } from '../models/diningRequest.model.js';
 import { FoodDiningBooking } from '../models/diningBooking.model.js';
 import { notifyOwnerSafely } from '../../../../core/notifications/firebase.service.js';
 import { createInboxNotifications } from '../../../../core/notifications/notification.service.js';
+import { normalizeStoredUploadPath } from '../../../../services/upload.service.js';
 
 const slugify = (value) =>
     String(value || '')
@@ -170,7 +171,7 @@ export async function createDiningCategory(body = {}) {
     const created = await FoodDiningCategory.create({
         name,
         slug,
-        imageUrl: String(body.imageUrl || '').trim(),
+        imageUrl: normalizeStoredUploadPath(body.imageUrl),
         isActive: body.isActive !== false,
         sortOrder: Number(body.sortOrder) || 0
     });
@@ -196,7 +197,7 @@ export async function updateDiningCategory(id, body = {}) {
         doc.slug = nextSlug;
     }
     if (body.imageUrl !== undefined) {
-        doc.imageUrl = String(body.imageUrl || '').trim();
+        doc.imageUrl = normalizeStoredUploadPath(body.imageUrl);
     }
     if (body.isActive !== undefined) {
         doc.isActive = body.isActive !== false;
@@ -725,3 +726,4 @@ export async function getRestaurantOccupiedSeats(restaurantId) {
 
     return bookings.reduce((sum, b) => sum + (Number(b.guests) || 0), 0);
 }
+

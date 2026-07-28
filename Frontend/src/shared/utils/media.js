@@ -2,6 +2,7 @@ import { API_BASE_URL } from '../../services/api/config.js';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const FILE_LIKE_REGEX = /\.(png|jpe?g|webp|gif|bmp|svg|pdf|mp4|webm|mov|avi|mkv|bin)(\?.*)?$/i;
+const UPLOADS_SEGMENT_REGEX = /(?:^|\/)(?:api\/v\d+\/)?uploads\//i;
 
 const escapeSvgText = (value) => String(value || '')
   .replace(/&/g, '&amp;')
@@ -42,21 +43,35 @@ const getBackendOrigin = () => {
   return '';
 };
 
-const buildUploadUrl = (rawPath) => {
-  const trimmed = String(rawPath || '').trim();
-  if (!trimmed) return PLACEHOLDER_URL;
+const isFileLikePath = (value) => {
+  const normalized = String(value || '').trim().split('#')[0];
+  if (!normalized) return false;
+  const pathname = normalized.split('?')[0];
+  const fileName = pathname.split('/').filter(Boolean).pop() || '';
+  return FILE_LIKE_REGEX.test(fileName);
+};
 
-  const withoutHash = trimmed.split('#')[0];
+const toUploadsPath = (rawPath) => {
+  const trimmed = String(rawPath || '').trim();
+  if (!trimmed) return '';
+
+  const [withoutHash] = trimmed.split('#');
   const [pathnamePart, query = ''] = withoutHash.split('?');
   const normalizedPath = pathnamePart.replace(/\\/g, '/');
-  const fileName = normalizedPath.split('/').filter(Boolean).pop();
+  const uploadsMatch = normalizedPath.match(UPLOADS_SEGMENT_REGEX);
 
-  if (!fileName || !FILE_LIKE_REGEX.test(fileName)) {
-    return trimmed;
+  if (uploadsMatch) {
+    const uploadIndex = uploadsMatch.index + uploadsMatch[0].lastIndexOf('uploads/');
+    const uploadPath = `/${normalizedPath.slice(uploadIndex).replace(/^\/+/, '')}`;
+    return `${uploadPath}${query ? `?${query}` : ''}`;
   }
 
-  const suffix = query ? `?${query}` : '';
-  return `/uploads/${fileName}${suffix}`;
+  const fileName = normalizedPath.split('/').filter(Boolean).pop();
+  if (!fileName || !FILE_LIKE_REGEX.test(fileName)) {
+    return '';
+  }
+
+  return `/uploads/${fileName}${query ? `?${query}` : ''}`;
 };
 
 export const getMediaUrl = (path) => {
@@ -64,35 +79,33 @@ export const getMediaUrl = (path) => {
 
   const trimmed = path.trim();
   if (!trimmed) return PLACEHOLDER_URL;
+  if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) return trimmed;
 
-  let normalizedPath = trimmed;
+  let normalizedUploadsPath = '';
 
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     try {
       const url = new URL(trimmed);
-      if (!LOCAL_HOSTS.has(url.hostname)) {
+      const isLocalHost = LOCAL_HOSTS.has(url.hostname);
+      const looksLikeUpload = UPLOADS_SEGMENT_REGEX.test(url.pathname);
+      if (!isLocalHost && !looksLikeUpload) {
         return trimmed;
       }
-      normalizedPath = buildUploadUrl(`${url.pathname}${url.search}`);
+      normalizedUploadsPath = toUploadsPath(`${url.pathname}${url.search}`);
+      if (!normalizedUploadsPath) {
+        return trimmed;
+      }
     } catch {
       return trimmed;
     }
-  } else if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) {
-    return trimmed;
-  } else if (trimmed.startsWith('/uploads/')) {
-    normalizedPath = trimmed;
-  } else if (trimmed.startsWith('uploads/')) {
-    normalizedPath = `/${trimmed}`;
-  } else if (FILE_LIKE_REGEX.test(trimmed) || trimmed.includes('/admin/food/')) {
-    normalizedPath = buildUploadUrl(trimmed);
   } else {
-    return trimmed;
-  }
-
-  if (!normalizedPath.startsWith('/uploads/')) {
-    return normalizedPath;
+    normalizedUploadsPath = toUploadsPath(trimmed);
+    if (!normalizedUploadsPath) {
+      return trimmed;
+    }
   }
 
   const backendOrigin = getBackendOrigin();
-  return backendOrigin ? `${backendOrigin}${normalizedPath}` : normalizedPath;
+  return backendOrigin ? `${backendOrigin}${normalizedUploadsPath}` : normalizedUploadsPath;
 };
+

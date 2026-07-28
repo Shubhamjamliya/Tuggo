@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodAddon } from '../models/foodAddon.model.js';
+import { normalizeStoredUploadPath } from '../../../../services/upload.service.js';
 
 const escapeRegex = (s) => String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -106,8 +107,8 @@ export async function createRestaurantAddon(restaurantId, body) {
             name,
             description: String(body.description || '').trim(),
             price: Number(body.price) || 0,
-            image: String(body.image || '').trim(),
-            images: Array.isArray(body.images) ? body.images.filter(Boolean).slice(0, 10) : []
+            image: normalizeStoredUploadPath(body.image),
+            images: Array.isArray(body.images) ? body.images.map((image) => normalizeStoredUploadPath(image)).filter(Boolean).slice(0, 10) : []
         },
         published: null,
         approvalStatus: 'pending',
@@ -176,15 +177,14 @@ export async function updateRestaurantAddon(restaurantId, addonId, updateDto) {
             set['draft.name'] = name;
         }
         if (d.description !== undefined) set['draft.description'] = String(d.description || '').trim();
+        if (d.image !== undefined) set['draft.image'] = normalizeStoredUploadPath(d.image);
+        if (d.images !== undefined && Array.isArray(d.images)) {
+            set['draft.images'] = d.images.map((image) => normalizeStoredUploadPath(image)).filter(Boolean).slice(0, 10);
+        }
         if (d.price !== undefined) {
             const price = Number(d.price);
             if (!Number.isFinite(price) || price < 0) throw new ValidationError('Price must be >= 0');
             set['draft.price'] = price;
-        }
-        if (d.image !== undefined) set['draft.image'] = String(d.image || '').trim();
-        if (d.images !== undefined) {
-            const imgs = Array.isArray(d.images) ? d.images.filter(Boolean).slice(0, 10) : [];
-            set['draft.images'] = imgs;
         }
 
         // Any draft content change must go through admin approval again.
@@ -224,4 +224,6 @@ export async function deleteRestaurantAddon(restaurantId, addonId) {
     ).lean();
     return updated ? { id: updated._id } : null;
 }
+
+
 

@@ -1,3 +1,5 @@
+import { getMediaUrl } from '@/shared/utils/media.js';
+
 /**
  * Common utility functions for the Food module
  */
@@ -10,40 +12,13 @@ export const normalizeImageUrl = (imageUrl, backendOrigin = "") => {
   const trimmed = imageUrl.trim();
   if (!trimmed || /^data:/i.test(trimmed) || /^blob:/i.test(trimmed)) return trimmed;
 
-  const appProtocol = typeof window !== "undefined" ? window.location?.protocol : "";
-  const appHost = typeof window !== "undefined" ? window.location?.hostname : "";
-
-  let normalized = trimmed
-    .replace(/\\/g, "/")
-    .replace(/^(https?):\/(?!\/)/i, "$1://")
-    .replace(/^(https?:\/\/)(https?:\/\/)/i, "$1");
-
-  if (/^\/\//.test(normalized)) normalized = `${appProtocol || "https:"}${normalized}`;
-
-  if (/^(https?:)?\/\//i.test(normalized)) {
-    try {
-      const parsed = new URL(normalized, window.location.origin);
-      if (appHost && !/^(localhost|127\.0\.0\.1)$/i.test(appHost) && /^(localhost|127\.0\.0\.1)$/i.test(parsed.hostname)) {
-        const backendUrl = new URL(backendOrigin || window.location.origin);
-        parsed.protocol = backendUrl.protocol;
-        parsed.hostname = backendUrl.hostname;
-        parsed.port = backendUrl.port;
-      }
-      if (appProtocol === "https:" && parsed.protocol === "http:") parsed.protocol = "https:";
-      const finalUrl = parsed.toString();
-      // Prevent double encoding of Firebase URLs which already contain %2F
-      if (finalUrl.includes('firebasestorage.googleapis.com')) return finalUrl;
-      const hasSigned = /[?&](X-Amz-|Signature=|Expires=|AWSAccessKeyId=|GoogleAccessId=|token=|sig=|se=|sp=|sv=|alt=)/i.test(finalUrl);
-      return hasSigned ? finalUrl : finalUrl.replace(/ /g, '%20');
-    } catch {
-      return normalized;
-    }
+  const resolvedUrl = getMediaUrl(trimmed);
+  if (!backendOrigin || !resolvedUrl.startsWith('/uploads/')) {
+    return resolvedUrl;
   }
 
-  const absolutePath = normalized.startsWith("/")
-    ? `${backendOrigin}${normalized}`
-    : `${backendOrigin}/${normalized.replace(/^\.?\/*/, "")}`;
-  return absolutePath;
+  const normalizedBackendOrigin = String(backendOrigin || '').replace(/\/$/, '');
+  return `${normalizedBackendOrigin}${resolvedUrl}`;
 };
 
 /**
@@ -84,7 +59,7 @@ export const calculateDistance = (lat1, lng1, lat2, lng2) => {
       Math.sin(dLng / 2) *
       Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  
+
   // Apply a routing multiplier (tortuosity factor) to approximate actual driving distance
   // from the straight-line Haversine distance. 1.35 is standard for urban grids.
   const ROUTING_MULTIPLIER = 1.35;

@@ -3044,9 +3044,9 @@ export async function updateRestaurantAddonAdmin(addonId, body) {
         if (!Number.isFinite(p) || p < 0) throw new ValidationError('Price must be a valid positive number');
         updatePayload.price = p;
     }
-    if (body.image !== undefined) updatePayload.image = String(body.image || '').trim();
+    if (body.image !== undefined) updatePayload.image = normalizeStoredUploadPath(body.image);
     if (body.images !== undefined && Array.isArray(body.images)) {
-        updatePayload.images = body.images.map(img => typeof img === 'string' ? img : img?.url).filter(Boolean);
+        updatePayload.images = body.images.map(img => normalizeStoredUploadPath(typeof img === 'string' ? img : img?.url)).filter(Boolean);
     } else if (updatePayload.image) {
         updatePayload.images = [updatePayload.image];
     }
@@ -5499,6 +5499,7 @@ export async function deleteSubAdmin(id) {
     const deleted = await FoodAdmin.findOneAndDelete({ _id: id, role: 'SUB_ADMIN' });
     return deleted !== null;
 }
+
 
 
 

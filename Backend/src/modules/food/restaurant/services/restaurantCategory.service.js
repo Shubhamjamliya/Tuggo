@@ -3,6 +3,7 @@ import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodRestaurant } from '../models/restaurant.model.js';
+import { normalizeStoredUploadPath } from '../../../../services/upload.service.js';
 import {
     backfillLegacyCategoryWorkflow,
     GLOBAL_CATEGORY_FILTER,
@@ -215,7 +216,7 @@ export async function createRestaurantCategory(restaurantId, body = {}) {
 
     const doc = new FoodCategory({
         name,
-        image: typeof body.image === 'string' ? body.image.trim() : '',
+        image: normalizeStoredUploadPath(body.image),
         type: typeof body.type === 'string' ? body.type.trim() : '',
         foodTypeScope,
         isActive: body.isActive !== false,
@@ -259,7 +260,7 @@ export async function updateRestaurantCategory(restaurantId, id, body = {}) {
         if (name.length > 200) throw new ValidationError('Category name is too long');
         doc.name = name;
     }
-    if (body.image !== undefined) doc.image = String(body.image || '').trim();
+    if (body.image !== undefined) doc.image = normalizeStoredUploadPath(body.image);
     if (body.type !== undefined) doc.type = String(body.type || '').trim();
     if (body.isActive !== undefined) doc.isActive = body.isActive !== false;
     if (body.sortOrder !== undefined) doc.sortOrder = Number(body.sortOrder) || 0;
@@ -305,3 +306,4 @@ export async function deleteRestaurantCategory(restaurantId, id) {
     const deleted = await FoodCategory.findOneAndDelete({ _id: id, restaurantId: context.restaurantId }).lean();
     return deleted ? { id } : null;
 }
+

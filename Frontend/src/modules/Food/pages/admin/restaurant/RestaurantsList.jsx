@@ -6,6 +6,7 @@ import { clearModuleAuth } from "@food/utils/auth"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { exportRestaurantsToPDF } from "@food/components/admin/restaurants/restaurantsExportUtils"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
+import { getMediaUrl } from "@/shared/utils/media.js"
 
 // Import icons from Dashboard-icons
 const debugLog = (...args) => {}
@@ -87,16 +88,14 @@ const formatTime12Hour = (value) => {
 
 const normalizeImageUrl = (image) => {
   if (!image) return ""
-  if (typeof image === "string") return image
-  if (typeof image === "object") return image.url || image.secure_url || ""
-  return ""
+  const rawValue = typeof image === "string" ? image : (image.url || image.secure_url || "")
+  return rawValue ? getMediaUrl(rawValue) : ""
 }
 
 const normalizeFileUrl = (file) => {
   if (!file) return ""
-  if (typeof file === "string") return file
-  if (typeof file === "object") return file.url || file.secure_url || ""
-  return ""
+  const rawValue = typeof file === "string" ? file : (file.url || file.secure_url || "")
+  return rawValue ? getMediaUrl(rawValue) : ""
 }
 
 const getPrimaryRestaurantImage = (restaurant, fallback = "") => {
@@ -2374,13 +2373,13 @@ export default function RestaurantsList() {
                           <div>
                             <p className="text-xs text-slate-500 mb-2">Profile Image (at registration)</p>
                             <a
-                              href={r.onboarding.step2.profileImageUrl.url}
+                              href={normalizeImageUrl(r.onboarding.step2.profileImageUrl.url)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-block"
                             >
                               <img
-                                src={r.onboarding.step2.profileImageUrl.url}
+                                src={normalizeImageUrl(r.onboarding.step2.profileImageUrl.url)}
                                 alt="Profile"
                                 className="w-32 h-32 rounded-lg object-cover border border-slate-200 hover:border-blue-500 transition-colors"
                                 onError={(e) => {
@@ -2694,5 +2693,7 @@ export default function RestaurantsList() {
     </div>
   )
 }
+
+
 
 
