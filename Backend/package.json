@@ -16,24 +16,7 @@
     "worker:menu-image": "node src/queues/workers/menuImage.worker.js",
     "migrate:fcm-tokens": "node scripts/migrate-fcm-tokens-to-profile-models.js",
     "migrate:order-payments": "node scripts/migrate-orders-to-transactions.js",
-    "migrate:legacy-core": "node scripts/migrate-legacy-core-data.js",
-    "migrate:legacy-core:apply": "node scripts/migrate-legacy-core-data.js --apply",
-    "cleanup:legacy-collections": "node scripts/cleanup-legacy-collections.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "migrate:atlas": "node scripts/migrateLocalToAtlas.js",
-    "migrate:old-db-users": "node scripts/migrate-old-db-users.js",
-    "migrate:old-db-users:apply": "node scripts/migrate-old-db-users.js --apply",
-    "migrate:old-db-restaurants": "node scripts/migrate-old-db-restaurants.js",
-    "migrate:old-db-restaurants:apply": "node scripts/migrate-old-db-restaurants.js --apply",
-    "migrate:old-db-categories": "node scripts/migrate-old-db-categories.js",
-    "migrate:old-db-categories:apply": "node scripts/migrate-old-db-categories.js --apply",
-    "migrate:old-db-food": "node scripts/migrate-old-db-food.js",
-    "migrate:old-db-food:apply": "node scripts/migrate-old-db-food.js --apply",
-    "audit:old-db-variations": "node scripts/audit-old-db-variations.js",
-    "normalize:upload-paths": "node scripts/normalize-upload-paths.js",
-    "normalize:upload-paths:apply": "node scripts/normalize-upload-paths.js --apply",
-    "match:category-images": "node scripts/match-category-images-by-name.js",
-    "match:category-images:apply": "node scripts/match-category-images-by-name.js --apply"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
@@ -72,5 +55,3 @@
     "nodemon": "^3.1.2"
   }
 }
-
-
