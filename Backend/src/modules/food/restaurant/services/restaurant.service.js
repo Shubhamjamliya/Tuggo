@@ -224,6 +224,46 @@ const zoneToPolygon = (zoneDoc) => {
     return { type: 'Polygon', coordinates: [ring] };
 };
 
+const getZoneRadiusKm = (zoneDoc) => {
+    if (!zoneDoc?.isRadiusEnabled) return null;
+    const radius = toFiniteNumber(zoneDoc?.serviceRadius);
+    if (radius === null || radius < 0) return null;
+    return zoneDoc.unit === 'miles' ? radius * 1.60934 : radius;
+};
+
+const buildZoneRestaurantMatch = (zoneDoc, zoneIdRaw) => {
+    if (!zoneIdRaw || !mongoose.Types.ObjectId.isValid(zoneIdRaw)) return null;
+
+    const zoneObjectId = new mongoose.Types.ObjectId(zoneIdRaw);
+    const zoneMatchers = [{ zoneId: zoneObjectId }];
+    const radiusKm = getZoneRadiusKm(zoneDoc);
+
+    if (
+        radiusKm !== null &&
+        Number.isFinite(toFiniteNumber(zoneDoc?.centerPoint?.latitude)) &&
+        Number.isFinite(toFiniteNumber(zoneDoc?.centerPoint?.longitude))
+    ) {
+        const centerLat = Number(zoneDoc.centerPoint.latitude);
+        const centerLng = Number(zoneDoc.centerPoint.longitude);
+        zoneMatchers.push({
+            location: {
+                $geoWithin: {
+                    $centerSphere: [[centerLng, centerLat], radiusKm / 6371]
+                }
+            }
+        });
+    } else {
+        const polygon = zoneToPolygon(zoneDoc);
+        if (polygon) {
+            zoneMatchers.push({
+                location: { $geoWithin: { $geometry: polygon } }
+            });
+        }
+    }
+
+    return zoneMatchers.length === 1 ? zoneMatchers[0] : { $or: zoneMatchers };
+};
+
 const notifyAdminsAboutRestaurantProfileReview = async (restaurantId, restaurantName) => {
     try {
         const { notifyAdminsSafely } = await import('../../../../core/notifications/firebase.service.js');
@@ -1348,21 +1388,11 @@ export const listApprovedRestaurants = async (query = {}) => {
     let zoneFilterMatch = null;
     if (zoneIdRaw && mongoose.Types.ObjectId.isValid(zoneIdRaw)) {
         const zoneDoc = await FoodZone.findOne({ _id: zoneIdRaw, isActive: true }).lean();
-        const polygon = zoneToPolygon(zoneDoc);
-        
-        if (polygon) {
-            // Match restaurants that are explicitly assigned to this zone OR fall within its polygon
-            zoneFilterMatch = {
-                $or: [
-                    { zoneId: new mongoose.Types.ObjectId(zoneIdRaw) },
-                    { location: { $geoWithin: { $geometry: polygon } } }
-                ]
-            };
-        } else {
-            // Fallback to strict zoneId matching if no polygon is defined
-            zoneFilterMatch = { zoneId: new mongoose.Types.ObjectId(zoneIdRaw) };
-        }
-        console.log(`[DEBUG] listApprovedRestaurants: Applied zone filter for zoneId=${zoneIdRaw}`);
+        zoneFilterMatch = buildZoneRestaurantMatch(zoneDoc, zoneIdRaw);
+        console.log(
+            `[DEBUG] listApprovedRestaurants: Applied zone filter for zoneId=${zoneIdRaw}, ` +
+            `radiusEnabled=${Boolean(zoneDoc?.isRadiusEnabled)}, hasPolygon=${Array.isArray(zoneDoc?.coordinates) && zoneDoc.coordinates.length >= 3}`
+        );
     } else {
         console.log(`[DEBUG] listApprovedRestaurants: NO zone filter applied. zoneIdRaw=${zoneIdRaw}`);
     }

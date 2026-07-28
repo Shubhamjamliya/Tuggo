@@ -20,6 +20,7 @@ const DEFAULT_FOOD_INPUT = path.join(REPO_ROOT, 'old db', 'food.csv');
 const DEFAULT_RESTAURANTS_INPUT = path.join(REPO_ROOT, 'old db', 'restaurants.csv');
 const DEFAULT_CATEGORIES_INPUT = path.join(REPO_ROOT, 'old db', 'categories.csv');
 const DEFAULT_VARIATIONS_INPUT = path.join(REPO_ROOT, 'old db', 'variations.csv');
+const DEFAULT_VARIATION_OPTIONS_INPUT = path.join(REPO_ROOT, 'old db', 'variation_options.csv');
 const OUTPUT_ROOT = path.join(REPO_ROOT, 'migration-output', 'old-db-food');
 
 function parseArgs(argv = []) {
@@ -29,6 +30,7 @@ function parseArgs(argv = []) {
         restaurantsInput: DEFAULT_RESTAURANTS_INPUT,
         categoriesInput: DEFAULT_CATEGORIES_INPUT,
         variationsInput: DEFAULT_VARIATIONS_INPUT,
+        variationOptionsInput: DEFAULT_VARIATION_OPTIONS_INPUT,
         outputDir: '',
         limit: 0
     };
@@ -44,27 +46,13 @@ function parseArgs(argv = []) {
             args.help = true;
             continue;
         }
-        if (arg.startsWith('--food-input=')) {
-            args.foodInput = arg.slice('--food-input='.length).trim();
-            continue;
-        }
-        if (arg.startsWith('--restaurants-input=')) {
-            args.restaurantsInput = arg.slice('--restaurants-input='.length).trim();
-            continue;
-        }
-        if (arg.startsWith('--categories-input=')) {
-            args.categoriesInput = arg.slice('--categories-input='.length).trim();
-            continue;
-        }
-        if (arg.startsWith('--variations-input=')) {
-            args.variationsInput = arg.slice('--variations-input='.length).trim();
-            continue;
-        }
-        if (arg.startsWith('--output-dir=')) {
-            args.outputDir = arg.slice('--output-dir='.length).trim();
-            continue;
-        }
-        if (arg.startsWith('--limit=')) {
+        if (arg.startsWith('--food-input=')) args.foodInput = arg.slice('--food-input='.length).trim();
+        else if (arg.startsWith('--restaurants-input=')) args.restaurantsInput = arg.slice('--restaurants-input='.length).trim();
+        else if (arg.startsWith('--categories-input=')) args.categoriesInput = arg.slice('--categories-input='.length).trim();
+        else if (arg.startsWith('--variations-input=')) args.variationsInput = arg.slice('--variations-input='.length).trim();
+        else if (arg.startsWith('--variation-options-input=')) args.variationOptionsInput = arg.slice('--variation-options-input='.length).trim();
+        else if (arg.startsWith('--output-dir=')) args.outputDir = arg.slice('--output-dir='.length).trim();
+        else if (arg.startsWith('--limit=')) {
             const parsed = Number(arg.slice('--limit='.length).trim());
             args.limit = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
         }
@@ -82,17 +70,15 @@ Usage:
   node scripts/migrate-old-db-food.js --apply
 
 Options:
-  --apply                     Write food items into MongoDB
-  --food-input=...            Custom legacy food CSV path
-  --restaurants-input=...     Custom legacy restaurant CSV path
-  --categories-input=...      Custom legacy category CSV path
-  --variations-input=...      Custom legacy variation CSV path
-  --output-dir=...            Custom report directory
-  --limit=...                 Process first N rows only
-  --help                      Show this help
-
-Default mode:
-  Dry run only. Reads old db/food.csv and writes compatibility reports.
+  --apply                        Write food items into MongoDB
+  --food-input=...               Custom legacy food CSV path
+  --restaurants-input=...        Custom legacy restaurant CSV path
+  --categories-input=...         Custom legacy category CSV path
+  --variations-input=...         Custom legacy variation CSV path
+  --variation-options-input=...  Custom legacy variation options CSV path
+  --output-dir=...               Custom report directory
+  --limit=...                    Process first N rows only
+  --help                         Show this help
 `);
 }
 
@@ -139,10 +125,6 @@ function parseDate(value) {
     if (!raw || raw === '0000-00-00 00:00:00') return null;
     const date = new Date(raw);
     return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function uniqueStrings(values = []) {
-    return Array.from(new Set(values.map((value) => toTrimmedString(value)).filter(Boolean)));
 }
 
 function readCsvRows(filePath) {
@@ -210,7 +192,7 @@ function buildCategoryLegacyMap(rows) {
     return map;
 }
 
-function buildVariationMap(rows) {
+function buildVariationGroupMap(rows) {
     const map = new Map();
     for (const row of rows) {
         const foodId = toTrimmedString(row.food_id);
@@ -228,23 +210,81 @@ function buildVariationMap(rows) {
     return map;
 }
 
-function determinePrice(row) {
+function buildVariationOptionsMap(rows) {
+    const byFoodId = new Map();
+    for (const row of rows) {
+        const foodId = toTrimmedString(row.food_id);
+        const optionName = toTrimmedString(row.option_name);
+        const optionPrice = parseNullablePositiveNumber(row.option_price);
+        if (!foodId || !optionName || optionPrice == null) continue;
+        if (!byFoodId.has(foodId)) byFoodId.set(foodId, []);
+        byFoodId.get(foodId).push({
+            id: toTrimmedString(row.id),
+            variationId: toTrimmedString(row.variation_id),
+            name: optionName,
+            price: optionPrice,
+            restaurantPrice: parseNullablePositiveNumber(row.restaurant_price),
+            stockType: toTrimmedString(row.stock_type),
+            totalStock: parseNumber(row.total_stock, 0),
+            sellCount: parseNumber(row.sell_count, 0),
+            createdAt: parseDate(row.created_at),
+            updatedAt: parseDate(row.updated_at)
+        });
+    }
+
+    for (const [foodId, list] of byFoodId.entries()) {
+        const deduped = [];
+        const seen = new Set();
+        for (const option of list) {
+            const key = `${toLowerCollapsed(option.name)}|${option.price}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            deduped.push(option);
+        }
+        byFoodId.set(foodId, deduped);
+    }
+
+    return byFoodId;
+}
+
+function buildVariantDocs(optionList = []) {
+    return optionList
+        .filter((option) => option?.name && Number.isFinite(Number(option?.price)) && Number(option.price) > 0)
+        .map((option) => ({
+            name: String(option.name).trim(),
+            price: Number(option.price)
+        }));
+}
+
+function determinePricing(row, variantDocs) {
     const basePrice = parseNumber(row.price, 0);
-    const restaurantPrice = parseNullablePositiveNumber(row.restaurant_price);
+    const rowRestaurantPrice = parseNullablePositiveNumber(row.restaurant_price);
+
+    if (variantDocs.length > 0) {
+        const minVariantPrice = Math.min(...variantDocs.map((entry) => Number(entry.price) || 0));
+        return {
+            importable: true,
+            price: minVariantPrice,
+            priceOnOtherPlatforms: rowRestaurantPrice && Math.abs(rowRestaurantPrice - minVariantPrice) > 0.01 ? rowRestaurantPrice : null,
+            usedVariants: true
+        };
+    }
 
     if (basePrice > 0) {
         return {
             importable: true,
             price: basePrice,
-            priceOnOtherPlatforms: restaurantPrice && Math.abs(restaurantPrice - basePrice) > 0.01 ? restaurantPrice : null
+            priceOnOtherPlatforms: rowRestaurantPrice && Math.abs(rowRestaurantPrice - basePrice) > 0.01 ? rowRestaurantPrice : null,
+            usedVariants: false
         };
     }
 
     return {
         importable: false,
         price: 0,
-        priceOnOtherPlatforms: restaurantPrice,
-        reason: restaurantPrice && restaurantPrice <= 1
+        priceOnOtherPlatforms: rowRestaurantPrice,
+        usedVariants: false,
+        reason: rowRestaurantPrice && rowRestaurantPrice <= 1
             ? 'legacy_variant_only_tiny_fallback_price'
             : 'legacy_variant_only_missing_priced_options'
     };
@@ -263,7 +303,9 @@ function buildPreparedFoods(foodRows, context) {
         const categoryLegacyId = toTrimmedString(row.category_id);
         const restaurantLegacy = context.restaurantsByLegacyId.get(restaurantLegacyId) || null;
         const categoryLegacy = context.categoriesByLegacyId.get(categoryLegacyId) || null;
-        const variationGroups = context.variationsByFoodId.get(legacyId) || [];
+        const variationGroups = context.variationGroupsByFoodId.get(legacyId) || [];
+        const variantOptions = context.variationOptionsByFoodId.get(legacyId) || [];
+        const variantDocs = buildVariantDocs(variantOptions);
 
         if (!legacyId) {
             issues.push({ type: 'missing_legacy_id', row });
@@ -282,7 +324,7 @@ function buildPreparedFoods(foodRows, context) {
             continue;
         }
 
-        const pricing = determinePrice(row);
+        const pricing = determinePricing(row, variantDocs);
         if (!pricing.importable) {
             skipped.push({
                 legacyId,
@@ -294,7 +336,8 @@ function buildPreparedFoods(foodRows, context) {
                 reason: pricing.reason,
                 basePrice: parseNumber(row.price, 0),
                 restaurantPrice: parseNullablePositiveNumber(row.restaurant_price),
-                variationGroups
+                variationGroups,
+                variantOptions: variantOptions.slice(0, 20)
             });
             continue;
         }
@@ -317,9 +360,6 @@ function buildPreparedFoods(foodRows, context) {
         const status = parseBooleanish(row.status, true);
         const foodType = parseBooleanish(row.veg, false) ? 'Veg' : 'Non-Veg';
         const tax = parseNullablePositiveNumber(row.tax);
-        const description = toTrimmedString(row.description);
-        const addonRaw = toTrimmedString(row.add_ons);
-        const addonIsMeaningful = addonRaw && addonRaw !== '[]' && addonRaw !== '[""]';
 
         prepared.push({
             legacyId,
@@ -334,11 +374,11 @@ function buildPreparedFoods(foodRows, context) {
                 categoryId: null,
                 categoryName: categoryLegacy.name,
                 name,
-                description,
+                description: toTrimmedString(row.description),
                 price: pricing.price,
                 priceOnOtherPlatforms: pricing.priceOnOtherPlatforms,
                 otherPlatformGst: tax,
-                variants: [],
+                variants: variantDocs,
                 image: toTrimmedString(row.image),
                 foodType,
                 isAvailable: status,
@@ -358,7 +398,8 @@ function buildPreparedFoods(foodRows, context) {
                 legacySlug: toTrimmedString(row.slug),
                 legacyRecommended: parseBooleanish(row.recommended, false),
                 variationGroups,
-                hadMeaningfulAddons: addonIsMeaningful,
+                variantOptionsCount: variantOptions.length,
+                variantsRecovered: variantDocs.length > 0,
                 stockType: toTrimmedString(row.stock_type),
                 maxCartQuantity: parseNumber(row.maximum_cart_quantity, 0)
             }
@@ -376,12 +417,15 @@ function buildReport(prepared, issues, skipped, args, rawRowsCount) {
 
     return {
         source: path.resolve(args.foodInput),
+        variationOptionsSource: path.resolve(args.variationOptionsInput),
         applyMode: args.apply,
         rawRows: rawRowsCount,
         processedFoods: prepared.length,
         skippedFoods: skipped.length,
         activeFoods: prepared.filter((item) => item.doc.isAvailable).length,
         vegFoods: prepared.filter((item) => item.doc.foodType === 'Veg').length,
+        foodsWithVariants: prepared.filter((item) => Array.isArray(item.doc.variants) && item.doc.variants.length > 0).length,
+        foodsRecoveredFromVariationOptions: prepared.filter((item) => item.meta.variantsRecovered).length,
         foodsWithOtherPlatformPrice: prepared.filter((item) => item.doc.priceOnOtherPlatforms != null).length,
         skippedByReason,
         fieldMapping: {
@@ -395,12 +439,13 @@ function buildReport(prepared, issues, skipped, args, rawRowsCount) {
             tax: 'FoodItem.otherPlatformGst',
             veg: 'FoodItem.foodType',
             status: 'FoodItem.isAvailable',
+            option_name: 'FoodItem.variants[].name',
+            option_price: 'FoodItem.variants[].price',
             created_at: 'FoodItem.createdAt',
             updated_at: 'FoodItem.updatedAt'
         },
         unmappedLegacyFields: [
             'category_ids',
-            'variations',
             'add_ons',
             'attributes',
             'choice_options',
@@ -419,12 +464,13 @@ function buildReport(prepared, issues, skipped, args, rawRowsCount) {
             'is_halal',
             'item_stock',
             'sell_count',
-            'stock_type'
+            'stock_type',
+            'total_stock'
         ],
         notes: [
-            'Foods are imported only when a real base price exists in legacy food.csv.',
-            'Legacy variation groups from variations.csv are reported but not imported because no priced option rows exist in the old dump.',
-            'The 285 variant-only legacy rows with zero price are skipped to avoid creating broken zero-price catalog items.',
+            'Foods now recover real variants from variation_options.csv when priced option rows exist.',
+            'When variants exist, FoodItem.price is set to the minimum variant price to match current app pricing behavior.',
+            'Foods are skipped only if they still have no real base price and no priced variation options.',
             'All imported foods are marked approvalStatus=approved because they are historical production menu items.'
         ],
         issues,
@@ -515,12 +561,14 @@ async function main() {
     const restaurantRows = readCsvRows(args.restaurantsInput);
     const categoryRows = readCsvRows(args.categoriesInput);
     const variationRows = readCsvRows(args.variationsInput);
+    const variationOptionRows = readCsvRows(args.variationOptionsInput);
     const foodRows = args.limit > 0 ? allFoodRows.slice(0, args.limit) : allFoodRows;
 
     const context = {
         restaurantsByLegacyId: buildRestaurantLegacyMap(restaurantRows),
         categoriesByLegacyId: buildCategoryLegacyMap(categoryRows),
-        variationsByFoodId: buildVariationMap(variationRows)
+        variationGroupsByFoodId: buildVariationGroupMap(variationRows),
+        variationOptionsByFoodId: buildVariationOptionsMap(variationOptionRows)
     };
 
     const { prepared, issues, skipped } = buildPreparedFoods(foodRows, context);
@@ -532,7 +580,7 @@ async function main() {
         categoryLegacyId: item.categoryLegacyId,
         categoryName: item.doc.categoryName,
         price: item.doc.price,
-        priceOnOtherPlatforms: item.doc.priceOnOtherPlatforms,
+        variants: item.doc.variants,
         foodType: item.doc.foodType,
         isAvailable: item.doc.isAvailable
     }));
@@ -569,4 +617,3 @@ main().catch((error) => {
     logger.error(error?.stack || error?.message || String(error));
     process.exit(1);
 });
-

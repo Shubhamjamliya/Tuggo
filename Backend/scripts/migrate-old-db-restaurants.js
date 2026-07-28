@@ -10,6 +10,7 @@ import { logger } from '../src/utils/logger.js';
 import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
 import { FoodRestaurantWallet } from '../src/modules/food/restaurant/models/restaurantWallet.model.js';
 import { FoodRestaurantOutletTimings } from '../src/modules/food/restaurant/models/outletTimings.model.js';
+import { FoodZone } from '../src/modules/food/admin/models/zone.model.js';
 
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
@@ -19,6 +20,7 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DEFAULT_INPUT = path.join(REPO_ROOT, 'old db', 'restaurants.csv');
 const OUTPUT_ROOT = path.join(REPO_ROOT, 'migration-output', 'old-db-restaurants');
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const LEGACY_DEFAULT_ZONE_NAME = 'Samana';
 
 function parseArgs(argv = []) {
     const args = {
@@ -184,10 +186,11 @@ function parseAddressParts(address) {
     }
 
     const segments = raw.split(',').map((entry) => entry.trim()).filter(Boolean);
-    const city = segments.length > 1 ? segments[segments.length - 1] : '';
+    const parsedCity = segments.length > 1 ? segments[segments.length - 1] : '';
+    const city = parsedCity || LEGACY_DEFAULT_ZONE_NAME;
     return {
         addressLine1: raw,
-        area: city || raw,
+        area: parsedCity || raw,
         city,
         state: ''
     };
@@ -576,7 +579,23 @@ function buildReport(prepared, issues, args, rawRowsCount) {
     };
 }
 
+async function resolveLegacyDefaultZone() {
+    return FoodZone.findOne({
+        isActive: true,
+        $or: [
+            { name: { $regex: `^${LEGACY_DEFAULT_ZONE_NAME}$`, $options: 'i' } },
+            { zoneName: { $regex: `^${LEGACY_DEFAULT_ZONE_NAME}$`, $options: 'i' } },
+            { serviceLocation: { $regex: `^${LEGACY_DEFAULT_ZONE_NAME}$`, $options: 'i' } }
+        ]
+    }).select('_id name zoneName serviceLocation').lean();
+}
+
 async function applyRestaurants(prepared) {
+    const defaultZone = await resolveLegacyDefaultZone();
+    if (!defaultZone?._id) {
+        throw new Error(`Legacy default zone "${LEGACY_DEFAULT_ZONE_NAME}" not found. Create the Samana zone first.`);
+    }
+
     const existingDocs = await FoodRestaurant.find({
         $or: prepared.map((item) => ({
             restaurantNameNormalized: item.doc.restaurantNameNormalized,
@@ -596,6 +615,14 @@ async function applyRestaurants(prepared) {
 
         const doc = {
             ...item.doc,
+            zoneId: defaultZone._id,
+            city: item.doc.city || LEGACY_DEFAULT_ZONE_NAME,
+            location: item.doc.location
+                ? {
+                    ...item.doc.location,
+                    city: item.doc.location.city || item.doc.city || LEGACY_DEFAULT_ZONE_NAME
+                }
+                : item.doc.location,
             _id: undefined
         };
         delete doc._id;
@@ -720,3 +747,4 @@ main().catch((error) => {
     logger.error(error?.stack || error?.message || String(error));
     process.exit(1);
 });
+

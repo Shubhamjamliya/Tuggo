@@ -11,6 +11,7 @@ import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant
 import { FoodDeliveryPartner } from '../src/modules/food/delivery/models/deliveryPartner.model.js';
 import { FoodCategory } from '../src/modules/food/admin/models/category.model.js';
 import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
+import { FoodZone } from '../src/modules/food/admin/models/zone.model.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +20,7 @@ const LEGACY_DIR = path.join(REPO_ROOT, 'Tuggo Food Delivery data');
 const OUTPUT_ROOT = path.join(REPO_ROOT, 'migration-output', 'legacy-core');
 
 const VALID_SCOPES = ['users', 'restaurants', 'drivers', 'categories', 'products'];
+const LEGACY_DEFAULT_ZONE_NAME = 'Samana';
 
 function parseArgs(argv = []) {
     const args = {
@@ -199,6 +201,17 @@ function sanitizeBankString(value) {
 
 function slugifyLikeKey(value) {
     return toLowerCollapsed(value).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+async function resolveLegacyDefaultZone() {
+    return FoodZone.findOne({
+        isActive: true,
+        $or: [
+            { name: { $regex: `^${LEGACY_DEFAULT_ZONE_NAME}$`, $options: 'i' } },
+            { zoneName: { $regex: `^${LEGACY_DEFAULT_ZONE_NAME}$`, $options: 'i' } },
+            { serviceLocation: { $regex: `^${LEGACY_DEFAULT_ZONE_NAME}$`, $options: 'i' } }
+        ]
+    }).select('_id name zoneName serviceLocation').lean();
 }
 
 function getOutputDir(customOutputDir = '') {
@@ -422,8 +435,8 @@ function buildRestaurantPayload(vendor, lookups) {
             pureVegRestaurant: /veg/i.test(toTrimmedString(vendor.vendorType)) && !/non/i.test(toTrimmedString(vendor.vendorType)),
             addressLine1: toTrimmedString(vendor['address.address']),
             addressLine2: toTrimmedString(vendor['address.addressLine2']),
-            area: toTrimmedString(vendor['address.locality']),
-            city: toTrimmedString(vendor['address.locality']),
+            area: toTrimmedString(vendor['address.locality']) || LEGACY_DEFAULT_ZONE_NAME,
+            city: toTrimmedString(vendor['address.locality']) || LEGACY_DEFAULT_ZONE_NAME,
             state: toTrimmedString(vendor['address.state']),
             pincode: toTrimmedString(vendor['address.pincode']),
             landmark: toTrimmedString(vendor['address.landmark']),
@@ -453,8 +466,8 @@ function buildRestaurantPayload(vendor, lookups) {
                     address: toTrimmedString(vendor['address.address']),
                     addressLine1: toTrimmedString(vendor['address.address']),
                     addressLine2: toTrimmedString(vendor['address.addressLine2']),
-                    area: toTrimmedString(vendor['address.locality']),
-                    city: toTrimmedString(vendor['address.locality']),
+                    area: toTrimmedString(vendor['address.locality']) || LEGACY_DEFAULT_ZONE_NAME,
+                    city: toTrimmedString(vendor['address.locality']) || LEGACY_DEFAULT_ZONE_NAME,
                     state: toTrimmedString(vendor['address.state']),
                     pincode: toTrimmedString(vendor['address.pincode']),
                     landmark: toTrimmedString(vendor['address.landmark'])
@@ -703,6 +716,10 @@ async function migrateUsers({ rows, apply, outputDir }) {
 
 async function migrateRestaurants({ rows, lookups, apply, outputDir }) {
     const stats = buildStats('restaurants');
+    const defaultZone = apply ? await resolveLegacyDefaultZone() : null;
+    if (apply && !defaultZone?._id) {
+        throw new Error(`Legacy default zone "${LEGACY_DEFAULT_ZONE_NAME}" not found. Create the Samana zone first.`);
+    }
     const idMap = {};
     const skipped = [];
     const errors = [];
@@ -742,7 +759,18 @@ async function migrateRestaurants({ rows, lookups, apply, outputDir }) {
 
             if (!apply) continue;
 
-            const { ownerPhoneDigitsSource, ownerVerificationNote, ...updateDoc } = payload.doc;
+            const { ownerPhoneDigitsSource, ownerVerificationNote, ...restDoc } = payload.doc;
+            const updateDoc = {
+                ...restDoc,
+                zoneId: defaultZone?._id || restDoc.zoneId,
+                city: restDoc.city || LEGACY_DEFAULT_ZONE_NAME,
+                location: restDoc.location
+                    ? {
+                        ...restDoc.location,
+                        city: restDoc.location.city || restDoc.city || LEGACY_DEFAULT_ZONE_NAME
+                    }
+                    : restDoc.location
+            };
             const existing = existingByKey.get(payload.uniqueKey) || null;
             let targetId = '';
             if (existing?._id) {
@@ -1156,3 +1184,4 @@ main().catch(async (error) => {
     }
     process.exitCode = 1;
 });
+
