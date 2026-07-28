@@ -181,6 +181,39 @@ export const buildRawDownloadUrlFromFileUrl = (fileUrl, options = {}) => {
     return fileUrl;
 };
 
+export const normalizeStoredUploadPath = (value) => {
+    if (value === null || value === undefined) return '';
+
+    const trimmed = String(value).trim();
+    if (!trimmed) return '';
+
+    const externalSchemes = ['http://', 'https://'];
+    const localHosts = new Set(['localhost', '127.0.0.1', '::1']);
+
+    if (externalSchemes.some((prefix) => trimmed.startsWith(prefix))) {
+        try {
+            const url = new URL(trimmed);
+            if (!localHosts.has(url.hostname)) {
+                return trimmed;
+            }
+            const localPath = url.pathname || '';
+            return normalizeStoredUploadPath(localPath);
+        } catch {
+            return trimmed;
+        }
+    }
+
+    const normalized = trimmed
+        .split('?')[0]
+        .split('#')[0]
+        .replace(/\\/g, '/');
+
+    const filename = path.posix.basename(normalized);
+    if (!filename || filename === '.' || filename === '/') return '';
+
+    return `/uploads/${filename}`;
+};
+
 // --- Generic Production-Ready File Upload System ---
 
 const genericStorage = multer.diskStorage({
