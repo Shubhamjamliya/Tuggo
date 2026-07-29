@@ -231,37 +231,9 @@ const getZoneRadiusKm = (zoneDoc) => {
     return zoneDoc.unit === 'miles' ? radius * 1.60934 : radius;
 };
 
-const buildZoneRestaurantMatch = (zoneDoc, zoneIdRaw) => {
+const buildZoneRestaurantMatch = (_zoneDoc, zoneIdRaw) => {
     if (!zoneIdRaw || !mongoose.Types.ObjectId.isValid(zoneIdRaw)) return null;
-
-    const zoneObjectId = new mongoose.Types.ObjectId(zoneIdRaw);
-    const zoneMatchers = [{ zoneId: zoneObjectId }];
-    const radiusKm = getZoneRadiusKm(zoneDoc);
-
-    if (
-        radiusKm !== null &&
-        Number.isFinite(toFiniteNumber(zoneDoc?.centerPoint?.latitude)) &&
-        Number.isFinite(toFiniteNumber(zoneDoc?.centerPoint?.longitude))
-    ) {
-        const centerLat = Number(zoneDoc.centerPoint.latitude);
-        const centerLng = Number(zoneDoc.centerPoint.longitude);
-        zoneMatchers.push({
-            location: {
-                $geoWithin: {
-                    $centerSphere: [[centerLng, centerLat], radiusKm / 6371]
-                }
-            }
-        });
-    } else {
-        const polygon = zoneToPolygon(zoneDoc);
-        if (polygon) {
-            zoneMatchers.push({
-                location: { $geoWithin: { $geometry: polygon } }
-            });
-        }
-    }
-
-    return zoneMatchers.length === 1 ? zoneMatchers[0] : { $or: zoneMatchers };
+    return { zoneId: new mongoose.Types.ObjectId(zoneIdRaw) };
 };
 
 const notifyAdminsAboutRestaurantProfileReview = async (restaurantId, restaurantName) => {

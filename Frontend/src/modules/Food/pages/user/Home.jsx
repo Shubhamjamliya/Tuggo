@@ -1169,16 +1169,6 @@ export default function Home() {
           params.zoneId = effectiveZoneId;
         }
 
-        const normalizedUserCity = String(effectiveLocation?.city || "")
-          .trim()
-          .toLowerCase();
-        
-        if (effectiveLocation?.city) {
-          params.city = effectiveLocation.city;
-        }
-        if (effectiveLocation?.state) {
-          params.state = effectiveLocation.state;
-        }
 
         debugLog("Fetching restaurants with params:", params);
         const response = await restaurantAPI.getRestaurants(params, { noCache: true });
@@ -3577,6 +3567,7 @@ export default function Home() {
     </div>
   );
 }
+
 
 
 

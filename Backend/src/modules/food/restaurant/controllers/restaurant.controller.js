@@ -52,7 +52,12 @@ export const registerRestaurantController = async (req, res, next) => {
 
 export const listApprovedRestaurantsController = async (req, res, next) => {
     try {
-        const data = await listApprovedRestaurants(req.query);
+        const mergedQuery = {
+            ...req.query,
+            lat: req.query?.lat ?? req.headers['x-user-lat'],
+            lng: req.query?.lng ?? req.headers['x-user-lng']
+        };
+        const data = await listApprovedRestaurants(mergedQuery);
         return sendResponse(res, 200, 'Restaurants fetched successfully', data);
     } catch (error) {
         next(error);
@@ -197,3 +202,4 @@ export const getPendingDiningRequestController = async (req, res, next) => {
         next(error);
     }
 };
+
