@@ -249,14 +249,19 @@ export const resolveStoredUploadPath = (value) => {
     if (!filename) return normalized;
 
     const uploadFiles = getUploadFilesIndex();
+    const parsed = path.posix.parse(filename);
+    const stem = parsed.name.toLowerCase();
+    if (!stem) return normalized;
+
+    const webpCandidate = uploadFiles.get(`${stem}.webp`);
+    if (webpCandidate) {
+        return `/uploads/${webpCandidate}`;
+    }
+
     const exact = uploadFiles.get(filename.toLowerCase());
     if (exact) {
         return `/uploads/${exact}`;
     }
-
-    const parsed = path.posix.parse(filename);
-    const stem = parsed.name.toLowerCase();
-    if (!stem) return normalized;
 
     for (const ext of supportedUploadExtensions) {
         const candidate = uploadFiles.get(`${stem}${ext}`);
