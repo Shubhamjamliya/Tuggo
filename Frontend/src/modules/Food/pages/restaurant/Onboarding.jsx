@@ -20,6 +20,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs"
 import dayjs from "dayjs"
 import { determineStepToShow } from "@food/utils/onboardingUtils"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import { useCompanyName } from "@food/hooks/useCompanyName"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
 import { clearModuleAuth, clearAuthData } from "@food/utils/auth"
@@ -1273,8 +1274,9 @@ export default function RestaurantOnboarding() {
 
   const handleUpload = async (file, folder) => {
     try {
-      if (!isUploadableFile(file)) {
-        throw new Error("Invalid image file")
+      const imageValidationError = getImageValidationError(file)
+      if (imageValidationError) {
+        throw new Error(imageValidationError)
       }
 
       const response = await uploadAPI.uploadMedia(file, { folder })
@@ -1287,7 +1289,7 @@ export default function RestaurantOnboarding() {
       return uploadedImage
     } catch (err) {
       // Provide more informative error message for upload failures
-      const errorMsg = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Failed to upload image"
+      const errorMsg = getUploadErrorMessage(err, { fallback: "Failed to upload image." })
       debugError("Upload error:", errorMsg, err)
       throw new Error(`Image upload failed: ${errorMsg}`)
     }
@@ -1308,11 +1310,7 @@ export default function RestaurantOnboarding() {
 
       return uploadedFile
     } catch (err) {
-      const errorMsg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        err?.message ||
-        "Failed to upload file"
+      const errorMsg = getUploadErrorMessage(err, { fallback: "Failed to upload file." })
       debugError("Upload error:", errorMsg, err)
       throw new Error(`File upload failed: ${errorMsg}`)
     }

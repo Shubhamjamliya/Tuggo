@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@food/components/ui/card";
 import { toast } from "sonner";
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js';
 import { User, Mail, Phone, Save, Loader2, Upload, X, Pencil, Eye, EyeOff } from "lucide-react";
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -109,17 +110,9 @@ export default function AdminProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Invalid file type. Please upload PNG, JPG, JPEG, or WEBP.");
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      toast.error("File size exceeds 5MB limit.");
+    const imageValidationError = getImageValidationError(file);
+    if (imageValidationError) {
+      toast.error(imageValidationError);
       return;
     }
 
@@ -195,9 +188,7 @@ export default function AdminProfile() {
           }
         } catch (uploadError) {
           debugError("Error uploading image:", uploadError);
-          toast.error(
-            uploadError?.response?.data?.message || "Failed to upload image"
-          );
+          toast.error(getUploadErrorMessage(uploadError, { fallback: "Failed to upload image." }));
           setUploading(false);
           setSaving(false);
           return;

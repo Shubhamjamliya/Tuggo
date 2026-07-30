@@ -3,6 +3,7 @@ import { Eye, Loader2, Search, Trash2, Pencil } from "lucide-react"
 import { Switch } from "@food/components/ui/switch"
 import { adminAPI, uploadAPI } from "@food/api"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
 import { PLACEHOLDER_URL, getPlaceholderImage } from "@/shared/utils/media.js"
 
@@ -124,6 +125,12 @@ export default function AddonsList() {
       let imageUrl = editImagePreview || ""
       // If a new file selected, upload it
       if (editImageFile) {
+        const imageValidationError = getImageValidationError(editImageFile)
+        if (imageValidationError) {
+          toast.error(imageValidationError)
+          setSubmittingAction(false)
+          return
+        }
         const uploadRes = await uploadAPI.uploadMedia(editImageFile, { folder: "tuggo/admin/addons" })
         imageUrl = uploadRes?.data?.data?.url || uploadRes?.data?.url || imageUrl
       }

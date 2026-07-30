@@ -23,6 +23,7 @@ import {
 import { useProfile } from "@food/context/ProfileContext"
 import { userAPI } from "@food/api"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
@@ -236,15 +237,9 @@ export default function EditProfile() {
   const processProfileImageFile = async (file) => {
     if (!file) return
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file')
-      return
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB')
+    const imageValidationError = getImageValidationError(file)
+    if (imageValidationError) {
+      toast.error(imageValidationError)
       return
     }
 
@@ -288,7 +283,7 @@ export default function EditProfile() {
       }
     } catch (error) {
       debugError('Error uploading image:', error)
-      toast.error(error?.response?.data?.message || 'Failed to upload image')
+      toast.error(getUploadErrorMessage(error))
       // Revert preview
       setImagePreview(profileImage)
     } finally {

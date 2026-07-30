@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom"
 import { Search, Trash2, Loader2, Eye, Pencil, Plus, Save, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { adminAPI, uploadAPI } from "@food/api"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@food/components/ui/popover"
 import { getFoodDisplayPrice, getFoodVariants } from "@food/utils/foodVariants"
@@ -391,6 +392,12 @@ export default function FoodsList() {
       let imageUrl = foodForm.image.trim()
 
       if (selectedImageFile) {
+        const imageValidationError = getImageValidationError(selectedImageFile)
+        if (imageValidationError) {
+          toast.error(imageValidationError)
+          setSubmittingFood(false)
+          return
+        }
         const uploadResponse = await uploadAPI.uploadMedia(selectedImageFile, {
           folder: "foods",
         })

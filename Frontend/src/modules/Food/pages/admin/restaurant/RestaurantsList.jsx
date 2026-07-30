@@ -7,6 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { exportRestaurantsToPDF } from "@food/components/admin/restaurants/restaurantsExportUtils"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
 import { getMediaUrl } from "@/shared/utils/media.js"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 
 // Import icons from Dashboard-icons
 const debugLog = (...args) => {}
@@ -835,6 +836,12 @@ export default function RestaurantsList() {
 
       let profileImage = undefined
       if (profileImageFile) {
+        const imageValidationError = getImageValidationError(profileImageFile)
+        if (imageValidationError) {
+          toast.error(imageValidationError)
+          setSavingDetails(false)
+          return
+        }
         const uploadRes = await uploadAPI.uploadMedia(profileImageFile, {
           folder: "tuggo/restaurant/profile",
         })

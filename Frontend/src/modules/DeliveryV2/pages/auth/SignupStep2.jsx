@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
 import { deliveryAPI } from "@food/api"
 import { toast } from "sonner"
+import { getImageValidationError } from '@/shared/utils/uploadErrors.js'
 import { isFlutterBridgeAvailable, openCamera } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 const debugLog = (...args) => {}
@@ -313,8 +314,9 @@ export default function SignupStep2() {
   const handleFileSelect = async (docType, file) => {
     if (!file) return
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file")
+    const imageValidationError = getImageValidationError(file)
+    if (imageValidationError) {
+      toast.error(imageValidationError)
       return
     }
 

@@ -8,6 +8,7 @@ import { Label } from "@food/components/ui/label"
 import { Button } from "@food/components/ui/button"
 import { adminAPI, uploadAPI, zoneAPI } from "@food/api"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import { EMAIL_REGEX } from "@/shared/utils/emailValidation"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => { console.warn(...args) }
@@ -400,11 +401,13 @@ export default function AddRestaurant() {
   // Upload handler for images
   const handleUpload = async (file, folder) => {
     try {
+      const imageValidationError = getImageValidationError(file)
+      if (imageValidationError) throw new Error(imageValidationError)
       const res = await uploadAPI.uploadMedia(file, { folder })
       const d = res?.data?.data || res?.data
       return { url: d.url, publicId: d.publicId }
     } catch (err) {
-      const errorMsg = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Failed to upload image"
+      const errorMsg = getUploadErrorMessage(err, { fallback: "Failed to upload image." })
       debugError("Upload error:", errorMsg, err)
       throw new Error(`Image upload failed: ${errorMsg}`)
     }

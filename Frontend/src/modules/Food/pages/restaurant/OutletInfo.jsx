@@ -4,6 +4,7 @@ import useRestaurantBackNavigation from "@food/hooks/useRestaurantBackNavigation
 import { ArrowLeft, Star, ChevronRight } from "lucide-react"
 import { restaurantAPI } from "@food/api"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import { Button } from "@food/components/ui/button"
 import {
   Dialog,
@@ -115,7 +116,7 @@ export default function OutletInfo() {
       }
     } catch (error) {
       debugError("Error uploading profile image:", error)
-      toast.error("Failed to upload image. Please try again.")
+      toast.error(getUploadErrorMessage(error, { fallback: "Failed to upload image." }))
     } finally {
       setUploadingImage(false)
       setImageType(null)
@@ -147,6 +148,7 @@ export default function OutletInfo() {
           }
         } catch (error) {
           debugError("Upload failed", error)
+          toast.error(getUploadErrorMessage(error, { fallback: `Failed to upload image ${i + 1}.` }))
         }
       }
 
@@ -166,7 +168,7 @@ export default function OutletInfo() {
         if (allImages.length > 0) setMainImage(allImages[0].url)
       }
     } catch (error) {
-      toast.error("Failed to upload images.")
+      toast.error(getUploadErrorMessage(error, { fallback: "Failed to upload images." }))
     } finally {
       setUploadingImage(false)
       setImageType(null)

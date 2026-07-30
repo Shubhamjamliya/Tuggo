@@ -6,6 +6,7 @@ import { restaurantAPI, uploadAPI } from "@food/api"
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/
 const UPI_REGEX = /^[a-zA-Z0-9._-]{2,256}@[a-zA-Z]{2,64}$/
@@ -119,8 +120,9 @@ export default function UpdateBankDetails() {
   const handleQrUpload = async (file) => {
     if (!file) return
     try {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image size too large. Max 5MB allowed.")
+      const imageValidationError = getImageValidationError(file)
+      if (imageValidationError) {
+        toast.error(imageValidationError)
         return
       }
       setUploadingQr(true)
@@ -133,7 +135,7 @@ export default function UpdateBankDetails() {
       setForm((prev) => ({ ...prev, upiQrImage: url }))
       toast.success("QR updated successfully")
     } catch (error) {
-      toast.error(error?.response?.data?.message || error?.message || "Failed to upload QR image")
+      toast.error(getUploadErrorMessage(error, { fallback: 'Failed to upload QR image.' }))
     } finally {
       setUploadingQr(false)
     }

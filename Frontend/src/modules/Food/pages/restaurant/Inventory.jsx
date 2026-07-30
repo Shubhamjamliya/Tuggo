@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom"
 import { restaurantAPI, uploadAPI } from "@food/api"
 import RestaurantBentoGrid from "@food/components/restaurant/RestaurantBentoGrid"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import { downloadFile } from "@/shared/utils/downloadUtils"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -1335,6 +1336,12 @@ export default function Inventory() {
     try {
       let imageUrl = addonImagePreview && !addonImagePreview.startsWith("blob:") ? addonImagePreview : ""
       if (addonImageFile) {
+        const imageValidationError = getImageValidationError(addonImageFile)
+        if (imageValidationError) {
+          toast.error(imageValidationError)
+          setSavingAddon(false)
+          return
+        }
         const uploadRes = await uploadAPI.uploadMedia(addonImageFile, { folder: "tuggo/restaurant/addons" })
         imageUrl = uploadRes?.data?.data?.url || uploadRes?.data?.url || ""
       }
@@ -1359,7 +1366,7 @@ export default function Inventory() {
       fetchAddons(true)
     } catch (error) {
       debugError("Error saving add-on:", error)
-      toast.error(error?.response?.data?.message || "Failed to save add-on")
+      toast.error(getUploadErrorMessage(error, { fallback: error?.response?.data?.message || "Failed to save add-on" }))
     } finally {
       setSavingAddon(false)
     }

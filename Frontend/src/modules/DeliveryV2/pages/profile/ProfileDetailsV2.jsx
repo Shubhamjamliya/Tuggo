@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import BottomPopup from "@delivery/components/BottomPopup"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import { openCamera, isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
 import { deliveryAPI } from "@food/api"
 import { motion, AnimatePresence } from "framer-motion"
@@ -299,7 +300,7 @@ export const ProfileDetailsV2 = () => {
         toast.error(response?.data?.message || "Update failed")
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Update failed")
+      toast.error(getUploadErrorMessage(error, { fallback: 'Failed to upload bank details image.' }))
     } finally {
       setIsUploadingImage(false)
       setUploadTarget(null)
@@ -358,13 +359,9 @@ export const ProfileDetailsV2 = () => {
   const uploadUpiQrFile = (file) => {
     if (!file) return
 
-    if (!String(file.type || "").startsWith("image/")) {
-      toast.error("Please select an image file")
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size should be less than 5MB")
+    const imageValidationError = getImageValidationError(file)
+    if (imageValidationError) {
+      toast.error(imageValidationError)
       return
     }
 

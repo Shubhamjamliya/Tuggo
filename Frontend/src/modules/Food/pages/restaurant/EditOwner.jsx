@@ -41,6 +41,7 @@ import {
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -395,8 +396,9 @@ export default function EditOwner() {
 
   const handlePhotoSelect = (file) => {
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image size too large. Max 5MB allowed.")
+      const imageValidationError = getImageValidationError(file)
+      if (imageValidationError) {
+        toast.error(imageValidationError)
         return
       }
       setProfileImageFile(file)
@@ -431,7 +433,7 @@ export default function EditOwner() {
           }
         } catch (error) {
           debugError("Error uploading profile image:", error)
-          alert("Failed to upload profile image. Please try again.")
+          toast.error(getUploadErrorMessage(error, { fallback: 'Failed to upload profile image.' }))
           setSaving(false)
           return
         }

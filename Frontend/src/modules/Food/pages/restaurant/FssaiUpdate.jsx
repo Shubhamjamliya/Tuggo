@@ -5,6 +5,7 @@ import { ArrowLeft, Upload } from "lucide-react"
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
 import { toast } from "sonner"
+import { getImageValidationError } from '@/shared/utils/uploadErrors.js'
 
 export default function FssaiUpdate() {
   const navigate = useNavigate()
@@ -15,8 +16,9 @@ export default function FssaiUpdate() {
 
   const handleFileSelect = (file) => {
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image size too large. Max 5MB allowed.")
+      const imageValidationError = getImageValidationError(file)
+      if (imageValidationError) {
+        toast.error(imageValidationError)
         return
       }
       setUploadedFile(file)

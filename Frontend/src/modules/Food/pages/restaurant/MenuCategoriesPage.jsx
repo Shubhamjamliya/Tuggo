@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { restaurantAPI, uploadAPI } from "@food/api"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
 
@@ -162,6 +163,12 @@ export default function MenuCategoriesPage() {
       let imageUrl = String(formData.image || "").trim()
 
       if (selectedImageFile) {
+        const imageValidationError = getImageValidationError(selectedImageFile)
+        if (imageValidationError) {
+          toast.error(imageValidationError)
+          setSaving(false)
+          return
+        }
         const res = await uploadAPI.uploadMedia(selectedImageFile, { folder: "food/categories" })
         const url = res?.data?.data?.url || res?.data?.url
         if (url) imageUrl = String(url)
@@ -187,7 +194,7 @@ export default function MenuCategoriesPage() {
       resetModal()
       fetchCategories()
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to save category")
+      toast.error(getUploadErrorMessage(error, { fallback: error?.response?.data?.message || "Failed to save category" }))
     } finally {
       setUploadingImage(false)
     }

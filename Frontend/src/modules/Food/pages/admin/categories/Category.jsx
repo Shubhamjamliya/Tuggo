@@ -17,6 +17,7 @@ import { adminAPI, uploadAPI } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
 import { getMediaUrl } from "@/shared/utils/media.js"
 import { toast } from "sonner"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
@@ -190,13 +191,9 @@ export default function Category() {
     const file = event.target.files?.[0]
     if (!file) return
 
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Invalid file type. Please upload PNG, JPG, JPEG, or WEBP.")
-      return
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File size exceeds 5MB limit.")
+    const imageValidationError = getImageValidationError(file)
+    if (imageValidationError) {
+      toast.error(imageValidationError)
       return
     }
 
@@ -356,6 +353,10 @@ export default function Category() {
       resetModal()
       fetchCategories()
     } catch (error) {
+      if (error?.response || error?.userMessage) {
+        toast.error(getUploadErrorMessage(error, { fallback: "Failed to upload image." }))
+        return
+      }
       if (error?.code === "ERR_NETWORK" || error?.message === "Network Error") {
         toast.error("Cannot connect to server. Please check if backend is running on " + API_BASE_URL.replace("/api", ""))
       } else {

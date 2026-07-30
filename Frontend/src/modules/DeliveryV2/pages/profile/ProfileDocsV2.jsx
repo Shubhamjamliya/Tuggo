@@ -3,6 +3,7 @@ import { ArrowLeft, Eye, Edit2, Loader2, Camera, X, Plus, FileText, Image as Ima
 import { motion, AnimatePresence } from 'framer-motion';
 import { deliveryAPI } from '@food/api';
 import { toast } from 'sonner';
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js';
 import { openCamera } from "@food/utils/imageUploadUtils";
 import useDeliveryBackNavigation from '../../hooks/useDeliveryBackNavigation';
 
@@ -31,6 +32,8 @@ export const ProfileDocsV2 = () => {
 
   const handleUpdate = async (field, file) => {
      if (!file) return;
+     const imageValidationError = getImageValidationError(file);
+     if (imageValidationError) { toast.error(imageValidationError); return; }
      setIsUpdating(true);
      const formData = new FormData();
      formData.append(field, file);
@@ -41,7 +44,7 @@ export const ProfileDocsV2 = () => {
            const updated = await deliveryAPI.getProfile();
            setProfile(updated.data.data.profile);
         }
-     } catch (e) { toast.error("Upload failed"); }
+     } catch (e) { toast.error(getUploadErrorMessage(e, { fallback: 'Upload failed.' })); }
      finally { setIsUpdating(false); }
   };
 

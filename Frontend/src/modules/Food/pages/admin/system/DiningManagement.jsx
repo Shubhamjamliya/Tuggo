@@ -5,6 +5,7 @@ import { getModuleToken } from "@food/utils/auth"
 import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
 import { Button } from "@food/components/ui/button"
+import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import { Switch } from "@food/components/ui/switch"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -135,6 +136,12 @@ export default function DiningManagement() {
             let imageUrl = editingCategoryImageUrl
 
             if (categoryFile) {
+                const imageValidationError = getImageValidationError(categoryFile)
+                if (imageValidationError) {
+                    setError(imageValidationError)
+                    setCategoriesUploading(false)
+                    return
+                }
                 const uploadResponse = await uploadAPI.uploadMedia(categoryFile, { folder: "tuggo/dining/categories" })
                 imageUrl = uploadResponse?.data?.data?.url || ""
             }

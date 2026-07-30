@@ -6,6 +6,7 @@ import axios from "axios";
 import apiClient, { userClient, restaurantClient, deliveryClient, adminClient } from "./axios.js";
 import { API_ENDPOINTS } from "./config.js";
 import { getUploadApiBaseUrl, getUploadAuthHeaders, joinApiUrl } from "./uploadTarget.js";
+import { getUploadErrorMessage } from '../../shared/utils/uploadErrors.js';
 import * as authService from "./auth.js";
 import { getModuleFcmToken, getModuleRefreshToken } from "@food/utils/auth";
 
@@ -1939,12 +1940,18 @@ const uploadRequestWithFallback = async (paths, formData) => {
     } catch (error) {
       lastError = error;
       if (error?.response?.status && error.response.status !== 404) {
+        error.userMessage = getUploadErrorMessage(error, { fallback: 'Failed to upload file.' });
         throw error;
       }
     }
   }
 
-  throw lastError || new Error("Upload failed");
+  if (lastError) {
+    lastError.userMessage = getUploadErrorMessage(lastError, { fallback: 'Failed to upload file.' });
+    throw lastError;
+  }
+
+  throw new Error('Upload failed');
 };
 
 export const uploadAPI = {
