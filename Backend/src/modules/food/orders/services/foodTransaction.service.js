@@ -67,7 +67,7 @@ export async function getRestaurantCommissionSnapshot(orderDoc) {
     }
 
     const rules = await getActiveRestaurantCommissionRules();
-    const rule =
+    let rule =
         rules.find((r) => String(r.restaurantId) === String(restaurantIdRaw)) ||
         // Fallback: accept legacy docs where restaurantId may be stored under `restaurant` / `restaurant_id`
         rules.find((r) => String(r.restaurant || r.restaurant_id || '') === String(restaurantIdRaw)) ||
