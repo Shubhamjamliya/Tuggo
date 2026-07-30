@@ -3,7 +3,7 @@ import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
 import { FoodRestaurant } from '../models/restaurant.model.js';
-import { uploadFoodImage } from '../../../../services/upload.service.js';
+import { resolveStoredUploadPath, uploadFoodImage } from '../../../../services/upload.service.js';
 import {
     extractRawFoodVariants,
     getFoodDisplayPrice,
@@ -544,7 +544,7 @@ export async function listPublicApprovedFoods(query = {}) {
         name: f.name,
         description: f.description || '',
         price: getFoodDisplayPrice(f),
-        image: f.image || '',
+        image: resolveStoredUploadPath(f.image || ''),
         foodType: f.foodType || 'Non-Veg',
         isAvailable: f.isAvailable !== false,
         approvalStatus: f.approvalStatus || 'approved'

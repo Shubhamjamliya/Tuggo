@@ -18,6 +18,32 @@ const ensureUploadDirExists = () => {
     return baseUploadDir;
 };
 
+const uploadIndexCache = {
+    expiresAt: 0,
+    files: new Map()
+};
+
+const UPLOAD_INDEX_TTL_MS = 30 * 1000;
+const supportedUploadExtensions = ['.webp', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.pdf', '.mp4', '.webm', '.mov', '.avi', '.mkv', '.bin'];
+
+const getUploadFilesIndex = () => {
+    const now = Date.now();
+    if (uploadIndexCache.expiresAt > now && uploadIndexCache.files.size > 0) {
+        return uploadIndexCache.files;
+    }
+
+    const dir = ensureUploadDirExists();
+    const nextFiles = new Map();
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isFile()) continue;
+        nextFiles.set(entry.name.toLowerCase(), entry.name);
+    }
+
+    uploadIndexCache.files = nextFiles;
+    uploadIndexCache.expiresAt = now + UPLOAD_INDEX_TTL_MS;
+    return uploadIndexCache.files;
+};
+
 const normalizeUploadToken = (value, fallback = 'upload') => {
     const normalized = String(value || fallback)
         .trim()
@@ -212,6 +238,53 @@ export const normalizeStoredUploadPath = (value) => {
     if (!filename || filename === '.' || filename === '/') return '';
 
     return `/uploads/${filename}`;
+};
+
+export const resolveStoredUploadPath = (value) => {
+    const normalized = normalizeStoredUploadPath(value);
+    if (!normalized) return '';
+    if (/^https?:\/\//i.test(String(value || '').trim())) return String(value).trim();
+
+    const filename = path.posix.basename(normalized);
+    if (!filename) return normalized;
+
+    const uploadFiles = getUploadFilesIndex();
+    const exact = uploadFiles.get(filename.toLowerCase());
+    if (exact) {
+        return `/uploads/${exact}`;
+    }
+
+    const parsed = path.posix.parse(filename);
+    const stem = parsed.name.toLowerCase();
+    if (!stem) return normalized;
+
+    for (const ext of supportedUploadExtensions) {
+        const candidate = uploadFiles.get(`${stem}${ext}`);
+        if (candidate) {
+            return `/uploads/${candidate}`;
+        }
+    }
+
+    const prefixMatches = Array.from(uploadFiles.entries())
+        .filter(([lowerName]) => {
+            const parsedName = path.posix.parse(lowerName);
+            return parsedName.name === stem || parsedName.name.startsWith(`${stem}_`);
+        })
+        .map(([, actualName]) => actualName)
+        .sort((a, b) => {
+            const aExt = path.posix.extname(a).toLowerCase();
+            const bExt = path.posix.extname(b).toLowerCase();
+            const aRank = supportedUploadExtensions.indexOf(aExt);
+            const bRank = supportedUploadExtensions.indexOf(bExt);
+            if (aRank !== bRank) return aRank - bRank;
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+        });
+
+    if (prefixMatches.length > 0) {
+        return `/uploads/${prefixMatches[0]}`;
+    }
+
+    return normalized;
 };
 
 // --- Generic Production-Ready File Upload System ---

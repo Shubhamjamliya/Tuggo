@@ -4,6 +4,7 @@ import { FoodRestaurant } from '../models/restaurant.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
 import { getFoodDisplayPrice, serializeFoodVariants } from '../../admin/services/foodVariant.service.js';
+import { resolveStoredUploadPath } from '../../../../services/upload.service.js';
 
 const buildMenuFromFoods = async (foods = []) => {
     const categoryIds = Array.from(
@@ -36,7 +37,7 @@ const buildMenuFromFoods = async (foods = []) => {
             byCategory.set(groupKey, {
                 id: categoryId || null,
                 name: sectionName,
-                image: categoryDoc?.image || '',
+                image: resolveStoredUploadPath(categoryDoc?.image || ''),
                 sortOrder: Number.isFinite(Number(categoryDoc?.sortOrder)) ? Number(categoryDoc.sortOrder) : Number.MAX_SAFE_INTEGER,
                 items: []
             });
@@ -55,7 +56,7 @@ const buildMenuFromFoods = async (foods = []) => {
             otherPlatformGst: food.otherPlatformGst ?? null,
             variants: serializeFoodVariants(food.variants),
             variations: serializeFoodVariants(food.variants),
-            image: food.image || '',
+            image: resolveStoredUploadPath(food.image || ''),
             foodType: food.foodType || 'Non-Veg',
             isAvailable: food.isAvailable !== false,
             approvalStatus: food.approvalStatus || 'approved',
@@ -78,7 +79,7 @@ const buildMenuFromFoods = async (foods = []) => {
         id: group.id || `section-${idx}`,
         categoryId: group.id || null,
         name: group.name,
-        image: group.image || '',
+        image: resolveStoredUploadPath(group.image || ''),
         sortOrder: Number.isFinite(Number(group.sortOrder)) ? Number(group.sortOrder) : 0,
         itemCount: group.items.length,
         items: group.items.sort((a, b) => {
@@ -93,7 +94,7 @@ const buildMenuFromFoods = async (foods = []) => {
         id: section.categoryId || section.id,
         categoryId: section.categoryId || null,
         name: section.name,
-        image: section.image || '',
+        image: resolveStoredUploadPath(section.image || ''),
         sortOrder: section.sortOrder || 0,
         itemCount: section.itemCount || 0
     }));
