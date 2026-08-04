@@ -9,6 +9,8 @@ import { createInboxNotifications } from '../../../../core/notifications/notific
 import { notifyOwnersSafely } from '../../../../core/notifications/firebase.service.js';
 import { sendVoipPushNotification } from '../../../../core/notifications/voip.service.js';
 import { getIO, rooms } from '../../../../config/socket.js';
+import { logger } from '../../../../utils/logger.js';
+import { addNotificationJob } from '../../../../queues/producers/notification.producer.js';
 
 const TARGET_TYPE_MAP = {
     ALL: 'ALL',
@@ -176,6 +178,16 @@ const buildNotificationPayload = ({ title, message, link, broadcastId, target })
     }
 });
 
+const buildPushPayload = ({ title, message, link, broadcastId }) => ({
+    title,
+    body: message,
+    data: {
+        type: 'admin_broadcast',
+        broadcastId: String(broadcastId),
+        link
+    }
+});
+
 const emitRealtimeNotifications = (targets = [], broadcast) => {
     const io = getIO();
     if (!io) return;
@@ -212,6 +224,71 @@ const paginationMeta = ({ page = 1, limit = 10 } = {}) => {
         page: nextPage,
         limit: nextLimit,
         skip: (nextPage - 1) * nextLimit
+    };
+};
+
+const deliverBroadcastNotificationsNow = async ({ targets = [], voipTokens = [], pushPayload = {} } = {}) => {
+    const [pushResults, voipResult] = await Promise.all([
+        notifyOwnersSafely(targets, pushPayload),
+        voipTokens.length > 0
+            ? sendVoipPushNotification(
+                voipTokens,
+                {
+                    title: pushPayload.title,
+                    body: pushPayload.body,
+                    sound: 'default',
+                    type: pushPayload?.data?.type || 'admin_broadcast',
+                    data: pushPayload.data || {}
+                },
+                { ownerType: 'RESTAURANT' }
+            )
+            : Promise.resolve(null)
+    ]);
+
+    return { pushResults, voipResult };
+};
+
+const enqueueBroadcastDelivery = async ({ broadcast, resolvedTargets = [], voipTokens = [], pushPayload = {} } = {}) => {
+    const jobPayload = {
+        type: 'admin-broadcast-delivery',
+        broadcastId: String(broadcast?._id || ''),
+        targets: resolvedTargets.map((target) => ({
+            ownerType: target.ownerType,
+            ownerId: target.ownerId
+        })),
+        voipTokens,
+        payload: pushPayload
+    };
+
+    try {
+        const job = await addNotificationJob(jobPayload, {
+            jobId: `admin-broadcast:${String(broadcast?._id || Date.now())}`
+        });
+
+        if (job) {
+            return {
+                queued: true,
+                mode: 'queue',
+                jobId: String(job.id)
+            };
+        }
+    } catch (error) {
+        logger.warn(`Failed to queue admin broadcast delivery ${String(broadcast?._id || '')}: ${error.message}`);
+    }
+
+    setImmediate(() => {
+        deliverBroadcastNotificationsNow({
+            targets: jobPayload.targets,
+            voipTokens,
+            pushPayload
+        }).catch((error) => {
+            logger.warn(`Async admin broadcast delivery failed for ${String(broadcast?._id || '')}: ${error.message}`);
+        });
+    });
+
+    return {
+        queued: false,
+        mode: 'background'
     };
 };
 
@@ -261,47 +338,24 @@ export const createBroadcastNotification = async ({ body = {}, adminId } = {}) =
         )
     });
 
-    await notifyOwnersSafely(
-        resolvedTargets.map((target) => ({
-            ownerType: target.ownerType,
-            ownerId: target.ownerId
-        })),
-        {
-            title,
-            body: message,
-            data: {
-                type: 'admin_broadcast',
-                broadcastId: String(broadcast._id),
-                link
-            }
-        }
-    );
-
-    let voipResult = null;
-    if (voipTokens.length > 0) {
-        voipResult = await sendVoipPushNotification(
-            voipTokens,
-            {
-                title,
-                body: message,
-                sound: 'default',
-                type: 'admin_broadcast',
-                data: {
-                    type: 'admin_broadcast',
-                    broadcastId: String(broadcast._id),
-                    link,
-                },
-            },
-            { ownerType: 'RESTAURANT' }
-        );
-    }
-
     emitRealtimeNotifications(resolvedTargets, broadcast);
+
+    const delivery = await enqueueBroadcastDelivery({
+        broadcast,
+        resolvedTargets,
+        voipTokens,
+        pushPayload: buildPushPayload({
+            title,
+            message,
+            link,
+            broadcastId: broadcast._id
+        })
+    });
 
     return {
         broadcast,
         targetPreview: resolvedTargets.slice(0, 10),
-        voipResult
+        delivery
     };
 };
 
