@@ -197,12 +197,37 @@ const buildMessagePayload = (payload = {}, token) => {
         }
     };
 
+    message.apns = {
+        headers: {
+            'apns-priority': '10',
+            'apns-push-type': payload.dataOnly ? 'background' : 'alert'
+        },
+        payload: {
+            aps: {
+                sound: payload.sound || 'default',
+                badge: Number(payload.badge || 1),
+                ...(payload.dataOnly ? { 'content-available': 1 } : {})
+            }
+        }
+    };
+
     if (!payload.dataOnly) {
         message.webpush.notification = {
             title: notification.title,
             body: notification.body,
             icon: image || payload.icon || '/logo.png'
         };
+
+        message.apns.payload.aps.alert = {
+            title: notification.title,
+            body: notification.body
+        };
+
+        if (image) {
+            message.apns.fcm_options = {
+                image
+            };
+        }
     }
 
     return message;
@@ -641,6 +666,7 @@ export const notifyOwnersSafely = async (targets = [], payload = {}) => {
         return [];
     }
 };
+
 
 
 
