@@ -642,6 +642,7 @@ export const sendTestNotification = async ({ ownerType, ownerId, platform, chann
         payload: {
             title: 'Test Notification',
             body: 'This is a test notification from Firebase push',
+            dataOnly: true, // Forces firebase-messaging-sw.js to manually trigger the tray notification
             data: {
                 type: 'test',
                 link: '/'

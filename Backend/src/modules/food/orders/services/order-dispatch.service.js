@@ -409,7 +409,7 @@ export async function tryAutoAssign(orderId, options = {}) {
     }));
     logger.info(`[FCM-Dispatch] Sending new_order push to ${notifyList.length} delivery partner(s) for order ${order._id}: [${notifyList.map(n => n.ownerId).join(', ')}]`);
     try {
-      const fcmResults = await notifyOwnersSafely(
+      const fcmResults = await notifyOwnersUrgentlySafely(
         notifyList,
         {
           title: '🚴 New Order Nearby!',
@@ -421,24 +421,6 @@ export async function tryAutoAssign(orderId, options = {}) {
       logger.info(`[FCM-Dispatch] new_order push results for order ${order._id}: ${JSON.stringify(fcmResults?.map?.(r => ({ success: r?.successCount, fail: r?.failureCount })) || 'void')}`);
     } catch (err) {
       logger.warn(`Push notifications failed for batch: ${err.message}`);
-  if (voipToken) {
-    try {
-      await sendVoipPushNotification(
-        [voipToken],
-        {
-          title: '?? New Order Nearby!',
-          body: `Order #${order.order_id || order._id} is waiting. Be the first to accept!`,
-          sound: 'default',
-          type: 'new_order',
-          data: { type: 'new_order', orderId: order._id.toString() },
-        },
-        { ownerType: 'DELIVERY_PARTNER' }
-      );
-    } catch (error) {
-      logger.warn(`VoIP resend failed for order ${order._id} - ${error?.message || error}`);
-    }
-  }
-
     }
 
     // Record or refresh offers for every rider notified in this attempt.
