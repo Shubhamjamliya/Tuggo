@@ -166,21 +166,27 @@ export const listOwnerUrgentPushTargets = async ({ ownerType, ownerId } = {}) =>
             .map((device) => device?.voipToken)
     );
 
-    const structuredFcmTokens = normalizeTokenList(
+    const iosFcmTokens = normalizeTokenList(
         pushDevices
-            .filter((device) => device?.fcmToken)
+            .filter((device) => device?.devicePlatform === 'ios' && device?.fcmToken)
+            .map((device) => device?.fcmToken)
+    );
+
+    const androidFcmTokens = normalizeTokenList(
+        pushDevices
+            .filter((device) => device?.devicePlatform !== 'ios' && device?.fcmToken)
             .map((device) => device?.fcmToken)
     );
 
     if (pushDevices.length > 0) {
-        return { iosVoipTokens, fcmTokens: structuredFcmTokens };
+        return { iosVoipTokens, iosFcmTokens, androidFcmTokens, fcmTokens: [] };
     }
 
     const legacyFcmTokens = normalizeTokenList([
         ...(Array.isArray(doc.fcmTokens) ? doc.fcmTokens : []),
         ...(Array.isArray(doc.fcmTokenMobile) ? doc.fcmTokenMobile : []),
     ]);
-    return { iosVoipTokens, fcmTokens: legacyFcmTokens };
+    return { iosVoipTokens, iosFcmTokens: [], androidFcmTokens: [], fcmTokens: legacyFcmTokens };
 };
 
 export const sendVoipPushNotification = async (tokens, payload = {}, options = {}) => {
@@ -273,9 +279,10 @@ export const sendVoipNotificationToOwner = async ({ ownerType, ownerId, payload 
 };
 
 export const sendUrgentOrderNotificationToOwner = async ({ ownerType, ownerId, payload } = {}) => {
-    const { iosVoipTokens, fcmTokens } = await listOwnerUrgentPushTargets({ ownerType, ownerId });
+    const { iosVoipTokens, iosFcmTokens, androidFcmTokens, fcmTokens } = await listOwnerUrgentPushTargets({ ownerType, ownerId });
     const responses = {
         voip: { successCount: 0, failureCount: 0, results: [] },
+        iosFcm: { successCount: 0, failureCount: 0, results: [] },
         fcm: { successCount: 0, failureCount: 0, results: [] },
     };
 
@@ -287,11 +294,23 @@ export const sendUrgentOrderNotificationToOwner = async ({ ownerType, ownerId, p
         }
     }
 
-    if (fcmTokens.length > 0) {
+    if (iosFcmTokens && iosFcmTokens.length > 0) {
         try {
-            responses.fcm = await sendPushNotification(fcmTokens, payload);
+            // iOS drops `dataOnly: true` (background pushes) when app is killed. 
+            // We force `dataOnly: false` so it shows up natively in the Notification Center!
+            responses.iosFcm = await sendPushNotification(iosFcmTokens, { ...payload, dataOnly: false });
         } catch (error) {
-            logger.warn(`FCM fallback failed for ${ownerType}:${ownerId} - ${error?.message || error}`);
+            logger.warn(`iOS FCM fallback failed for ${ownerType}:${ownerId} - ${error?.message || error}`);
+        }
+    }
+
+    const standardFcmTokens = androidFcmTokens && androidFcmTokens.length > 0 ? androidFcmTokens : fcmTokens;
+    if (standardFcmTokens && standardFcmTokens.length > 0) {
+        try {
+            // Android uses the original payload (usually dataOnly: true for SW interception)
+            responses.fcm = await sendPushNotification(standardFcmTokens, payload);
+        } catch (error) {
+            logger.warn(`Android FCM fallback failed for ${ownerType}:${ownerId} - ${error?.message || error}`);
         }
     }
 
