@@ -923,17 +923,8 @@ export async function registerWebPushForCurrentModule(pathname = window.location
         tokenPreview: `${token.slice(0, 12)}...`,
       });
 
-      const lastSavedToken = getSavedToken(moduleName);
-      if (lastSavedToken === token) {
-        pushDebugLog(PUSH_DEBUG_PREFIX, "FCM token unchanged — skipping backend sync", { moduleName });
-        // Still attach the foreground listener even when skipping sync
-        await attachForegroundListener(app);
-        return true;
-      }
-
-      // Cache the token in localStorage so it can be retrieved during logout for cleanup.
-      setSavedToken(moduleName, token);
-
+      // We rely on the API client's internal memory debounce (createSaveFcmTokenOnce) 
+      // to prevent spamming the backend, so we don't need localStorage caching here anymore.
       try {
         pushDebugLog(PUSH_DEBUG_PREFIX, "Synchronizing FCM token with backend database", { moduleName, tokenPreview: `${token?.slice(0, 10)}...` });
         await saveTokenByModule(moduleName, token);
