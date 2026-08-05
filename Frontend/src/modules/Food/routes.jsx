@@ -57,8 +57,10 @@ export default function App() {
     if (fcmRegisteredModulesRef.current.has(moduleName)) return
 
     registerWebPushForCurrentModule(location.pathname)
-      .then(() => {
-        fcmRegisteredModulesRef.current.add(moduleName)
+      .then((res) => {
+        if (res !== false) {
+          fcmRegisteredModulesRef.current.add(moduleName)
+        }
       })
       .catch(() => {})
   }, [location.pathname])

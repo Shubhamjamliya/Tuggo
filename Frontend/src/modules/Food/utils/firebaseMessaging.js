@@ -851,10 +851,10 @@ async function attachForegroundListener(firebaseAppInstance) {
 
 export async function registerWebPushForCurrentModule(pathname = window.location.pathname) {
   const moduleName = normalizeModuleFromPath(pathname);
-  if (moduleName === "admin") return;
+  if (moduleName === "admin") return false;
 
   const accessToken = localStorage.getItem(`${moduleName}_accessToken`);
-  if (!accessToken) return;
+  if (!accessToken) return false;
 
   initPushNotificationClient();
 

@@ -214,8 +214,15 @@ export const notificationAPI = {
     apiClient.delete(`/food/notifications/${String(id)}`, config),
   dismissAll: (config = {}) =>
     apiClient.delete("/food/notifications/inbox/all", config),
-  sendTestNotification: (platform = "web", channel = "fcm", config = {}) =>
-    apiClient.post("/fcm-tokens/test", { platform, channel }, config),
+  sendTestNotification: (platform = "web", channel = "fcm", config = {}) => {
+    let finalChannel = typeof channel === "string" ? channel : "fcm";
+    let finalConfig = typeof channel === "object" && channel !== null ? channel : config;
+    const moduleName = finalConfig?.contextModule;
+    if (moduleName === "delivery") return deliveryClient.post("/fcm-tokens/test", { platform, channel: finalChannel }, finalConfig);
+    if (moduleName === "restaurant") return restaurantClient.post("/fcm-tokens/test", { platform, channel: finalChannel }, finalConfig);
+    if (moduleName === "user") return userClient.post("/fcm-tokens/test", { platform, channel: finalChannel }, finalConfig);
+    return apiClient.post("/fcm-tokens/test", { platform, channel: finalChannel }, finalConfig);
+  },
 };
 
 /** Admin API - new backend only (GET /auth/me, PATCH /auth/admin/profile, POST /auth/admin/change-password) */
@@ -1491,6 +1498,7 @@ export const deliveryAPI = {
   saveFcmToken: saveDeliveryFcmTokenOnce,
   savePushDevice: (payload = {}) => saveDeliveryPushDevice(payload),
   removePushDevice: (payload = {}) => removeDeliveryPushDevice(payload),
+  sendTestNotification: (platform = "web", channel = "fcm") => deliveryClient.post("/fcm-tokens/test", { platform, channel }),
   removeFcmToken: (token, platform = "web") => {
     if (!token) return Promise.reject(new Error("FCM token is required"));
     return deliveryClient.delete(

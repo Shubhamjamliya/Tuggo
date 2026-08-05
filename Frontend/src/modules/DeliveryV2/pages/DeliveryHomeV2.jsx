@@ -47,6 +47,7 @@ import { useCompanyName } from "@food/hooks/useCompanyName";
 import { useNavigate } from 'react-router-dom';
 import useNotificationInbox from "@food/hooks/useNotificationInbox";
 import { writeDeliveryLocation } from "@food/realtimeTracking";
+import { registerWebPushForCurrentModule } from "@food/utils/firebaseMessaging";
 
 function getDeliveryPartnerId() {
   try {
@@ -109,6 +110,12 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   const [incomingOrders, setIncomingOrders] = useState([]);
   const [selectedIncomingId, setSelectedIncomingId] = useState(null);
   const lockedIncomingOrderIdRef = useRef(null);
+
+  useEffect(() => {
+    registerWebPushForCurrentModule("/food/delivery").catch((err) => {
+      console.error("Failed to register push notifications in DeliveryHomeV2:", err);
+    });
+  }, []);
 
   const incomingOrder = useMemo(
     () => getPrimaryIncomingOrder(incomingOrders, selectedIncomingId),
