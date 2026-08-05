@@ -83,7 +83,7 @@ export function emitDeliveryDropOtpToUser(order, plainOtp) {
 
 export async function notifyOwnersSafely(targets, payload) {
   try {
-    await sendNotificationToOwners(targets, payload);
+    return await sendNotificationToOwners(targets, payload);
   } catch (error) {
     logger.warn(`FCM notification failed: ${error?.message || error}`);
   }

@@ -407,8 +407,9 @@ export async function tryAutoAssign(orderId, options = {}) {
       ownerType: 'DELIVERY_PARTNER',
       ownerId: p.partnerId,
     }));
+    logger.info(`[FCM-Dispatch] Sending new_order push to ${notifyList.length} delivery partner(s) for order ${order._id}: [${notifyList.map(n => n.ownerId).join(', ')}]`);
     try {
-      await notifyOwnersSafely(
+      const fcmResults = await notifyOwnersSafely(
         notifyList,
         {
           title: '🚴 New Order Nearby!',
@@ -417,6 +418,7 @@ export async function tryAutoAssign(orderId, options = {}) {
           data: { type: 'new_order', orderId: order._id.toString() },
         },
       );
+      logger.info(`[FCM-Dispatch] new_order push results for order ${order._id}: ${JSON.stringify(fcmResults?.map?.(r => ({ success: r?.successCount, fail: r?.failureCount })) || 'void')}`);
     } catch (err) {
       logger.warn(`Push notifications failed for batch: ${err.message}`);
   if (voipToken) {

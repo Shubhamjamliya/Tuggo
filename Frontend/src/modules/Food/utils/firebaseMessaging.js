@@ -503,6 +503,17 @@ function setSavedToken(moduleName, token) {
   localStorage.setItem(`${tokenCachePrefix}${moduleName}`, token);
 }
 
+/**
+ * Clear the locally cached FCM token for a module.
+ * Call this on login so the next registerWebPushForCurrentModule
+ * call will force a backend sync (even if the browser token is unchanged).
+ */
+export function clearCachedFcmToken(moduleName) {
+  if (!moduleName) return;
+  localStorage.removeItem(`${tokenCachePrefix}${moduleName}`);
+  pushDebugLog(PUSH_DEBUG_PREFIX, "Cleared cached FCM token for module", { moduleName });
+}
+
 async function saveTokenByModule(moduleName, token, platform = "web") {
   pushDebugLog(PUSH_DEBUG_PREFIX, "saveTokenByModule starting", { moduleName, platform, tokenPreview: `${token?.slice(0, 10)}...` });
   if (moduleName === "restaurant") {
@@ -915,8 +926,9 @@ export async function registerWebPushForCurrentModule(pathname = window.location
       const lastSavedToken = getSavedToken(moduleName);
       if (lastSavedToken === token) {
         pushDebugLog(PUSH_DEBUG_PREFIX, "FCM token unchanged — skipping backend sync", { moduleName });
+        // Still attach the foreground listener even when skipping sync
         await attachForegroundListener(app);
-        return;
+        return true;
       }
 
       // Cache the token in localStorage so it can be retrieved during logout for cleanup.

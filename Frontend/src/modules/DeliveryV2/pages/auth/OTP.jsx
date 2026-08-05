@@ -6,7 +6,7 @@ import { Input } from "@food/components/ui/input"
 import { Button } from "@food/components/ui/button"
 import { deliveryAPI } from "@food/api"
 import { setAuthData as storeAuthData } from "@food/utils/auth"
-import { registerWebPushForCurrentModule } from "@food/utils/firebaseMessaging"
+import { registerWebPushForCurrentModule, clearCachedFcmToken } from "@food/utils/firebaseMessaging"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -287,6 +287,7 @@ export default function DeliveryOTP() {
         debugLog("Storing auth data for delivery:", { hasToken: !!accessToken, hasUser: !!user })
         storeAuthData("delivery", accessToken, user, refreshToken)
         debugLog("Auth data stored successfully")
+        clearCachedFcmToken("delivery")
         registerWebPushForCurrentModule("/food/delivery").catch(() => {})
       } catch (storageError) {
         debugError("Failed to store authentication data:", storageError)
