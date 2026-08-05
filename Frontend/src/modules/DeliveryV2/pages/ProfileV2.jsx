@@ -210,8 +210,17 @@ export const ProfileV2 = () => {
       if (typeof window !== "undefined" && window.flutter_inappwebview) {
         platform = "mobile"
       }
-      await deliveryAPI.sendTestNotification(platform)
-      toast.success("Test notification sent! Check your device.")
+      const response = await deliveryAPI.sendTestNotification(platform)
+      const details = response?.data?.data || {}
+      const successCount = details?.successCount || 0
+      const failureCount = details?.failureCount || 0
+      
+      console.log("[FCM Test Details]:", details)
+      if (successCount > 0) {
+        toast.success(`Test sent! Delivered: ${successCount}, Failed: ${failureCount}`)
+      } else {
+        toast.error(`Test failed to deliver. Delivered: 0, Failed: ${failureCount}`)
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to send test notification")
     } finally {

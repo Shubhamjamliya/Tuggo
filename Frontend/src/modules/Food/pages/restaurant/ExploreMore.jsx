@@ -711,9 +711,18 @@ export default function ExploreMore() {
           return
         }
         console.info("[RestaurantVoIPTest] voip success", voipResult)
+        toast.success("Test VOIP sent! Check your iPhone.")
+      } else {
+        const details = response?.data?.data || {}
+        const successCount = details?.successCount || 0
+        const failureCount = details?.failureCount || 0
+        console.info("[FCM Test Details]:", details)
+        if (successCount > 0) {
+          toast.success(`Test sent! Delivered: ${successCount}, Failed: ${failureCount}`)
+        } else {
+          toast.error(`Test failed to deliver. Delivered: 0, Failed: ${failureCount}`)
+        }
       }
-
-      toast.success(channel === "voip" ? "Test VOIP sent! Check your iPhone." : "Test notification sent! Check your device.")
     } catch (err) {
       console.error("[RestaurantVoIPTest] error", {
         channel,
