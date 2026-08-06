@@ -178,6 +178,8 @@ export const listOwnerUrgentPushTargets = async ({ ownerType, ownerId } = {}) =>
             .map((device) => device?.fcmToken)
     );
 
+    logger.info(`[VoIP-Trace] Fetched DB tokens for ${ownerType}:${ownerId} -> VoIP(iOS): ${iosVoipTokens.length}, FCM(iOS): ${iosFcmTokens.length}, FCM(Android): ${androidFcmTokens.length}`);
+
     if (pushDevices.length > 0) {
         return { iosVoipTokens, iosFcmTokens, androidFcmTokens, fcmTokens: [] };
     }
@@ -197,6 +199,9 @@ export const sendVoipPushNotification = async (tokens, payload = {}, options = {
 
     const client = getApnsClient();
     const topic = getVoipTopic(options.ownerType);
+    
+    logger.info(`[VoIP-Trace] Preparing to send VoIP to ${uniqueTokens.length} devices for ${options.ownerType}. Topic: ${topic}, Env: ${getApnsAuthority()}`);
+    
     const apsAlertTitle = sanitizeString(payload.title || payload.notification?.title || 'New order request');
     const apsAlertBody = sanitizeString(payload.body || payload.notification?.body || 'You have a new order request.');
     const bodyPayload = {
@@ -237,9 +242,11 @@ export const sendVoipPushNotification = async (tokens, payload = {}, options = {
         });
         req.on('end', () => {
             if (statusCode >= 200 && statusCode < 300) {
+                logger.info(`[VoIP-Trace] Apple APNs Success [${statusCode}] for token ...${token.slice(-6)}`);
                 resolveResult({ token, ok: true, response: responseBody || 'ok' });
                 return;
             }
+            logger.warn(`[VoIP-Trace] Apple APNs Rejected [${statusCode}] for token ...${token.slice(-6)}. Response: ${responseBody}`);
             resolveResult({
                 token,
                 ok: false,
@@ -255,6 +262,7 @@ export const sendVoipPushNotification = async (tokens, payload = {}, options = {
 
     const successCount = results.filter((result) => result.ok).length;
     const failureCount = results.length - successCount;
+    logger.info(`[VoIP-Trace] VoIP Batch Complete: ${successCount} succeeded, ${failureCount} failed.`);
     return { successCount, failureCount, results };
 };
 
@@ -285,6 +293,8 @@ export const sendUrgentOrderNotificationToOwner = async ({ ownerType, ownerId, p
         iosFcm: { successCount: 0, failureCount: 0, results: [] },
         fcm: { successCount: 0, failureCount: 0, results: [] },
     };
+
+    logger.info(`[VoIP-Trace] Initiating Urgent Push for ${ownerType}:${ownerId}`);
 
     if (iosVoipTokens.length > 0) {
         try {
