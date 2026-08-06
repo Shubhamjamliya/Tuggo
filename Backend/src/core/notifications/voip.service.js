@@ -294,6 +294,7 @@ export const sendUrgentOrderNotificationToOwner = async ({ ownerType, ownerId, p
         }
     }
 
+    /* 
     if (iosFcmTokens && iosFcmTokens.length > 0) {
         try {
             // iOS drops `dataOnly: true` (background pushes) when app is killed. 
@@ -303,6 +304,7 @@ export const sendUrgentOrderNotificationToOwner = async ({ ownerType, ownerId, p
             logger.warn(`iOS FCM fallback failed for ${ownerType}:${ownerId} - ${error?.message || error}`);
         }
     }
+    */
 
     const standardFcmTokens = androidFcmTokens && androidFcmTokens.length > 0 ? androidFcmTokens : fcmTokens;
     if (standardFcmTokens && standardFcmTokens.length > 0) {
