@@ -112,7 +112,7 @@ function HomeRestaurantCard({
               <CardContent className="p-3 sm:p-4 lg:p-5 pt-3 sm:pt-4 lg:pt-5 flex flex-col flex-grow">
                 <div className="flex items-start justify-between gap-2 mb-2 lg:mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg lg:text-2xl font-bold text-gray-950 dark:text-white line-clamp-1 leading-tight tracking-tight transition-colors duration-300 group-hover:text-primary">
+                    <h3 className="text-xl lg:text-[26px] font-bold text-gray-950 dark:text-white line-clamp-1 leading-tight tracking-tight transition-colors duration-300 group-hover:text-primary">
                       {restaurant.name}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
