@@ -19,6 +19,26 @@ import { isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
 const debugLog = (...args) => {}
 const debugError = (...args) => {}
 
+const normalizeImageEntry = (image) => {
+  if (typeof image === "string" && image.trim()) {
+    return { url: image.trim(), publicId: null }
+  }
+
+  if (image?.url && typeof image.url === "string" && image.url.trim()) {
+    return {
+      url: image.url.trim(),
+      publicId: image.publicId || null,
+    }
+  }
+
+  return null
+}
+
+const normalizeImageList = (images) =>
+  (Array.isArray(images) ? images : [])
+    .map(normalizeImageEntry)
+    .filter(Boolean)
+
 export default function OutletInfo() {
   const navigate = useNavigate()
   const goBack = useRestaurantBackNavigation()
@@ -44,39 +64,40 @@ export default function OutletInfo() {
   const [editFormData, setEditFormData] = useState({})
   const [savingEdit, setSavingEdit] = useState(false)
 
+  const applyRestaurantData = (data) => {
+    if (!data) return
+
+    setRestaurantData(data)
+    setRestaurantName(data.name || data.restaurantName || "")
+    setRestaurantId(data.restaurantId || data.id || "")
+    setRestaurantMongoId(String(data.id || data._id || ""))
+
+    const profileImageUrl =
+      (typeof data.profileImage === "string" ? data.profileImage : data.profileImage?.url) || ""
+    if (profileImageUrl) {
+      setThumbnailImage(profileImageUrl)
+    }
+
+    const normalizedCoverImages = normalizeImageList(data.coverImages)
+    const normalizedMenuImages = normalizeImageList(data.menuImages)
+    const galleryImages =
+      normalizedCoverImages.length > 0 ? normalizedCoverImages : normalizedMenuImages
+
+    setCoverImages(galleryImages)
+    setMainImage(
+      galleryImages[0]?.url ||
+        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop",
+    )
+  }
+
   // Fetch restaurant data on mount
   useEffect(() => {
-    const fetchRestaurantData = async () => {
+    const fetchRestaurantData = async (options = {}) => {
       try {
         setLoading(true)
-        const response = await restaurantAPI.getCurrentRestaurant()
+        const response = await restaurantAPI.getCurrentRestaurant(options)
         const data = response?.data?.data?.restaurant || response?.data?.restaurant
-        if (data) {
-          setRestaurantData(data)
-          setRestaurantName(data.name || data.restaurantName || "")
-          setRestaurantId(data.restaurantId || data.id || "")
-          const mongoId = String(data.id || data._id || "")
-          setRestaurantMongoId(mongoId)
-          
-          if (data.profileImage?.url) {
-            setThumbnailImage(data.profileImage.url)
-          }
-          if (data.coverImages && Array.isArray(data.coverImages) && data.coverImages.length > 0) {
-            setCoverImages(data.coverImages.map(img => ({
-              url: img.url || img,
-              publicId: img.publicId
-            })))
-            setMainImage(data.coverImages[0].url || data.coverImages[0])
-          } else if (data.menuImages && Array.isArray(data.menuImages) && data.menuImages.length > 0) {
-            setCoverImages(data.menuImages.map(img => ({
-              url: img.url,
-              publicId: img.publicId
-            })))
-            setMainImage(data.menuImages[0].url)
-          } else {
-            setCoverImages([])
-          }
-        }
+        applyRestaurantData(data)
       } catch (error) {
         if (error.code !== 'ERR_NETWORK' && error.code !== 'ECONNABORTED' && !error.message?.includes('timeout')) {
           debugError("Error fetching restaurant data:", error)
@@ -88,7 +109,7 @@ export default function OutletInfo() {
 
     fetchRestaurantData()
 
-    const handleUpdate = () => fetchRestaurantData()
+    const handleUpdate = () => fetchRestaurantData({ noCache: true })
     window.addEventListener("ownerDataUpdated", handleUpdate)
     window.addEventListener("cuisinesUpdated", handleUpdate)
     window.addEventListener("addressUpdated", handleUpdate)
@@ -110,9 +131,9 @@ export default function OutletInfo() {
       const uploadedImage = uploadResponse?.data?.data?.profileImage || uploadResponse?.data?.profileImage
       if (uploadedImage?.url) {
         setThumbnailImage(uploadedImage.url)
-        const response = await restaurantAPI.getCurrentRestaurant()
+        const response = await restaurantAPI.getCurrentRestaurant({ noCache: true })
         const data = response?.data?.data?.restaurant || response?.data?.restaurant
-        if (data) setRestaurantData(data)
+        applyRestaurantData(data)
       }
     } catch (error) {
       debugError("Error uploading profile image:", error)
@@ -132,11 +153,9 @@ export default function OutletInfo() {
       setImageType('menu')
       setUploadingCount(fileArray.length)
 
-      const currentResponse = await restaurantAPI.getCurrentRestaurant()
+      const currentResponse = await restaurantAPI.getCurrentRestaurant({ noCache: true })
       const currentData = currentResponse?.data?.data?.restaurant || currentResponse?.data?.restaurant
-      const existingImages = currentData?.menuImages && Array.isArray(currentData.menuImages)
-        ? currentData.menuImages.map(img => ({ url: img.url, publicId: img.publicId }))
-        : []
+      const existingImages = normalizeImageList(currentData?.menuImages)
 
       const uploadedImageData = []
       for (let i = 0; i < fileArray.length; i++) {
@@ -166,6 +185,9 @@ export default function OutletInfo() {
         }
         setCoverImages(allImages)
         if (allImages.length > 0) setMainImage(allImages[0].url)
+        const refreshedResponse = await restaurantAPI.getCurrentRestaurant({ noCache: true })
+        const refreshedData = refreshedResponse?.data?.data?.restaurant || refreshedResponse?.data?.restaurant
+        applyRestaurantData(refreshedData)
       }
     } catch (error) {
       toast.error(getUploadErrorMessage(error, { fallback: "Failed to upload images." }))
@@ -217,12 +239,9 @@ export default function OutletInfo() {
       toast.success('Details updated successfully!')
       
       // refresh data
-      const response = await restaurantAPI.getCurrentRestaurant()
+      const response = await restaurantAPI.getCurrentRestaurant({ noCache: true })
       const data = response?.data?.data?.restaurant || response?.data?.restaurant
-      if (data) {
-        setRestaurantData(data)
-        if (data.name || data.restaurantName) setRestaurantName(data.name || data.restaurantName)
-      }
+      applyRestaurantData(data)
       
       setEditModalOpen(false)
       window.dispatchEvent(new Event('ownerDataUpdated'))

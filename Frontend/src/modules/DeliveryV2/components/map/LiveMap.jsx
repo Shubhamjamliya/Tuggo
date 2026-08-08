@@ -85,25 +85,63 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
 
   const parsePoint = useCallback((raw) => {
     if (!raw) return null;
-    const lat = parseFloat(raw.lat ?? raw.latitude);
-    const lng = parseFloat(raw.lng ?? raw.longitude);
+
+    const nestedLocation = raw.location && typeof raw.location === 'object' ? raw.location : null;
+    const locationCandidate = nestedLocation || raw;
+
+    const coords = Array.isArray(locationCandidate?.coordinates)
+      ? locationCandidate.coordinates
+      : Array.isArray(locationCandidate?.location?.coordinates)
+        ? locationCandidate.location.coordinates
+        : null;
+
+    if (coords?.length >= 2) {
+      const lng = parseFloat(coords[0]);
+      const lat = parseFloat(coords[1]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+      }
+    }
+
+    const lat = parseFloat(
+      locationCandidate?.lat ??
+      locationCandidate?.latitude ??
+      locationCandidate?.location?.lat ??
+      locationCandidate?.location?.latitude
+    );
+    const lng = parseFloat(
+      locationCandidate?.lng ??
+      locationCandidate?.longitude ??
+      locationCandidate?.location?.lng ??
+      locationCandidate?.location?.longitude
+    );
+
     return (Number.isFinite(lat) && Number.isFinite(lng)) ? { lat, lng } : null;
   }, []);
 
-  const restaurantPoint = useMemo(() => parsePoint(activeOrder?.restaurantLocation), [activeOrder?.restaurantLocation, parsePoint]);
-  const customerPoint = useMemo(() => parsePoint(activeOrder?.customerLocation), [activeOrder?.customerLocation, parsePoint]);
+  const restaurantPoint = useMemo(
+    () => parsePoint(activeOrder?.restaurantLocation) || parsePoint(activeOrder?.restaurantId) || parsePoint(activeOrder?.restaurant),
+    [activeOrder?.restaurantLocation, activeOrder?.restaurantId, activeOrder?.restaurant, parsePoint],
+  );
+  const customerPoint = useMemo(
+    () =>
+      parsePoint(activeOrder?.customerLocation) ||
+      parsePoint(activeOrder?.deliveryAddress) ||
+      parsePoint(activeOrder?.customer_address) ||
+      parsePoint(activeOrder?.user),
+    [activeOrder?.customerLocation, activeOrder?.deliveryAddress, activeOrder?.customer_address, activeOrder?.user, parsePoint],
+  );
 
   const targetLocation = useMemo(() => {
     if (!activeOrder) return null;
-    let rawLoc = null;
     if (tripStatus === 'PICKING_UP' || tripStatus === 'REACHED_PICKUP') {
-      rawLoc = activeOrder.restaurantLocation;
-    } else if (tripStatus === 'PICKED_UP' || tripStatus === 'REACHED_DROP') {
-      rawLoc = activeOrder.customerLocation;
+      return restaurantPoint;
     }
-    if (!rawLoc) return null;
-    return parsePoint(rawLoc);
-  }, [activeOrder, tripStatus, parsePoint]);
+    if (tripStatus === 'PICKED_UP' || tripStatus === 'REACHED_DROP') {
+      return customerPoint;
+    }
+    return null;
+  }, [activeOrder, tripStatus, restaurantPoint, customerPoint]);
 
   const parsedRiderLocation = useMemo(() => {
     if (!riderLocation) return null;

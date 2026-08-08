@@ -68,6 +68,81 @@ function getDeliveryPartnerId() {
   return null;
 }
 
+function extractOrderLocation(ref, keysLat = [], keysLng = []) {
+  if (!ref) return null;
+
+  const nestedLocation = ref.location && typeof ref.location === 'object' ? ref.location : null;
+  const locationCandidate = nestedLocation || ref;
+
+  const coords = Array.isArray(locationCandidate?.coordinates)
+    ? locationCandidate.coordinates
+    : Array.isArray(locationCandidate?.location?.coordinates)
+      ? locationCandidate.location.coordinates
+      : null;
+
+  if (coords?.length >= 2) {
+    const lng = Number(coords[0]);
+    const lat = Number(coords[1]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng };
+    }
+  }
+
+  const lat = Number(
+    locationCandidate?.latitude ??
+    locationCandidate?.lat ??
+    locationCandidate?.location?.latitude ??
+    locationCandidate?.location?.lat
+  );
+  const lng = Number(
+    locationCandidate?.longitude ??
+    locationCandidate?.lng ??
+    locationCandidate?.location?.longitude ??
+    locationCandidate?.location?.lng
+  );
+
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng };
+  }
+
+  for (const [index, key] of keysLat.entries()) {
+    if (ref[key] != null) {
+      const parsedLat = Number(ref[key]);
+      const parsedLng = Number(ref[keysLng[index]]);
+      if (Number.isFinite(parsedLat) && Number.isFinite(parsedLng)) {
+        return { lat: parsedLat, lng: parsedLng };
+      }
+    }
+  }
+
+  return null;
+}
+
+function normalizeDeliveryActiveOrder(rawOrder) {
+  if (!rawOrder) return null;
+
+  const restaurantLocation =
+    extractOrderLocation(rawOrder.restaurantLocation) ||
+    extractOrderLocation(rawOrder.restaurantId, ['latitude', 'lat'], ['longitude', 'lng']) ||
+    extractOrderLocation(rawOrder.restaurant, ['latitude', 'lat'], ['longitude', 'lng']) ||
+    extractOrderLocation(rawOrder, ['restaurant_lat', 'restaurantLat'], ['restaurant_lng', 'restaurantLng']);
+
+  const customerLocation =
+    extractOrderLocation(rawOrder.customerLocation) ||
+    extractOrderLocation(rawOrder.deliveryAddress, ['latitude', 'lat'], ['longitude', 'lng']) ||
+    extractOrderLocation(rawOrder.customer_address, ['latitude', 'lat'], ['longitude', 'lng']) ||
+    extractOrderLocation(rawOrder.user, ['latitude', 'lat'], ['longitude', 'lng']) ||
+    extractOrderLocation(rawOrder, ['customer_lat', 'customerLat'], ['customer_lng', 'customerLng']);
+
+  return {
+    ...rawOrder,
+    _id: rawOrder._id || rawOrder.orderMongoId || rawOrder.orderId,
+    orderId: rawOrder.orderId || rawOrder.order_id || rawOrder._id || rawOrder.orderMongoId,
+    restaurantLocation,
+    customerLocation,
+  };
+}
+
 /** Minimal bottom-sheet popup (Restored from legacy FeedNavbar) */
 function BottomPopup({ isOpen, onClose, title, children }) {
   if (!isOpen) return null;
@@ -500,40 +575,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
         const serverData = (rawData && (rawData._id || rawData.orderId)) ? rawData : null;
         
         if (serverData) {
-          // Robust location mapping (Same as acceptOrder logic)
-          const getLoc = (ref, keysLat, keysLng) => {
-            if (!ref) return null;
-            if (ref.location) {
-              if (Array.isArray(ref.location.coordinates) && ref.location.coordinates.length >= 2) {
-                return {
-                  lat: ref.location.coordinates[1],
-                  lng: ref.location.coordinates[0]
-                };
-              }
-              return {
-                lat: ref.location.latitude || ref.location.lat,
-                lng: ref.location.longitude || ref.location.lng
-              };
-            }
-            for (const k of keysLat) { if (ref[k] != null) return { lat: ref[k], lng: ref[keysLng[keysLat.indexOf(k)]] }; }
-            return null;
-          };
-
-          const resLoc = getLoc(serverData.restaurantId, ['latitude', 'lat'], ['longitude', 'lng']) || 
-                         getLoc(serverData, ['restaurant_lat', 'restaurantLat', 'latitude'], ['restaurant_lng', 'restaurantLng', 'longitude']);
-                         
-          const cusLoc = getLoc(serverData.deliveryAddress, ['latitude', 'lat'], ['longitude', 'lng']) || 
-                         getLoc(serverData, ['customer_lat', 'customerLat', 'latitude'], ['customer_lng', 'customerLng', 'longitude']);
-
-          const syncedOrder = {
-            ...serverData,
-            _id: serverData._id,
-            orderId: serverData.orderId || serverData.order_id || serverData._id,
-            restaurantLocation: resLoc,
-            customerLocation: cusLoc
-          };
-
-          setActiveOrder(syncedOrder);
+          setActiveOrder(normalizeDeliveryActiveOrder(serverData));
           
           const backendStatus = serverData.deliveryStatus || serverData.orderState?.status || serverData.orderStatus || serverData.status;
           const currentPhase = serverData.deliveryState?.currentPhase;
@@ -1000,31 +1042,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
           null;
 
         if (!cancelled && currentPayload && (currentPayload._id || currentPayload.orderId)) {
-          // Robust location mapping
-          const getLoc = (ref, keysLat, keysLng) => {
-            if (!ref) return null;
-            if (ref.location) {
-              if (Array.isArray(ref.location.coordinates) && ref.location.coordinates.length >= 2) {
-                return { lat: ref.location.coordinates[1], lng: ref.location.coordinates[0] };
-              }
-              return { lat: ref.location.latitude || ref.location.lat, lng: ref.location.longitude || ref.location.lng };
-            }
-            for (const k of keysLat) { if (ref[k] != null) return { lat: ref[k], lng: ref[keysLng[keysLat.indexOf(k)]] }; }
-            return null;
-          };
-
-          const resLoc = getLoc(currentPayload.restaurantId, ['latitude', 'lat'], ['longitude', 'lng']) || 
-                         getLoc(currentPayload, ['restaurant_lat', 'restaurantLat', 'latitude'], ['restaurant_lng', 'restaurantLng', 'longitude']);
-          const cusLoc = getLoc(currentPayload.deliveryAddress, ['latitude', 'lat'], ['longitude', 'lng']) || 
-                         getLoc(currentPayload, ['customer_lat', 'customerLat', 'latitude'], ['customer_lng', 'customerLng', 'longitude']);
-
-          setActiveOrder({
-            ...currentPayload,
-            _id: currentPayload._id,
-            orderId: currentPayload.orderId || currentPayload.order_id || currentPayload._id,
-            restaurantLocation: resLoc,
-            customerLocation: cusLoc
-          });
+          setActiveOrder(normalizeDeliveryActiveOrder(currentPayload));
 
           // Sync status with server
           const backendStatus = String(currentPayload.deliveryStatus || currentPayload.orderState?.status || currentPayload.orderStatus || currentPayload.status || "").toLowerCase();
@@ -1123,11 +1141,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     ) {
       const payload = orderStatusUpdate;
       if (payload && (payload._id || payload.orderId || payload.orderMongoId)) {
-        setActiveOrder({
-          ...payload,
-          _id: payload._id || payload.orderMongoId,
-          orderId: payload.orderId || payload.order_id || payload._id,
-        });
+        setActiveOrder(normalizeDeliveryActiveOrder(payload));
         const backendStatus = String(
           payload.deliveryStatus || payload.orderStatus || payload.status || '',
         ).toLowerCase();

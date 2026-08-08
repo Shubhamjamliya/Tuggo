@@ -727,8 +727,8 @@ export const restaurantAPI = {
     return authService.verifyRestaurantOtp(phone, otp, fcmToken, platform);
   },
   getMe: () => authService.getMe("restaurant"),
-  /** Restaurant dashboard: fetch current restaurant profile (deduped + short-cached). */
-  getCurrentRestaurant: () => getRestaurantCurrentOnce(),
+  /** Restaurant dashboard: fetch current restaurant profile (deduped + short-cached). Pass { noCache: true } to force refresh. */
+  getCurrentRestaurant: (config = {}) => getRestaurantCurrentOnce(config),
   /** Finance dashboard for `hub-finance`. */
   getFinance: (params = {}) =>
     restaurantClient.get("/food/restaurant/finance", { params: params || {} }),
@@ -1371,7 +1371,15 @@ let restaurantCurrentCached = null;
 let restaurantCurrentCacheTime = 0;
 const RESTAURANT_CURRENT_CACHE_MS = 3000;
 
-const getRestaurantCurrentOnce = () => {
+const getRestaurantCurrentOnce = (config = {}) => {
+  const { noCache = false } = config || {};
+  if (noCache) {
+    return restaurantClient.get("/food/restaurant/current").then((res) => {
+      restaurantCurrentCached = res;
+      restaurantCurrentCacheTime = Date.now();
+      return res;
+    });
+  }
   const now = Date.now();
   if (
     restaurantCurrentCached &&
