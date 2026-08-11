@@ -776,6 +776,67 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     };
   }, [isOnline, isSimMode, setRiderLocation]);
 
+  // Background Web Keep-Alive (Wake Lock + Silent Audio Session)
+  // Keeps browser active in background when rider switches to Google Maps
+  useEffect(() => {
+    if (!isOnline || !activeOrder || (tripStatus !== 'PICKING_UP' && tripStatus !== 'PICKED_UP')) {
+      return;
+    }
+
+    // A. Request Screen Wake Lock if available
+    let wakeLock = null;
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator && !wakeLock) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (e) {}
+    };
+    requestWakeLock();
+
+    // B. Silent Audio Keep-Alive (Keeps Chrome JS thread awake when backgrounded)
+    let audioCtx = null;
+    let osc = null;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        audioCtx = new AudioContext();
+        osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        gain.gain.value = 0.0001; // Silent output
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+      }
+    } catch (e) {}
+
+    // C. Re-acquire wake lock & resume audio context on visibility change
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
+      }
+      if (osc) {
+        try { osc.stop(); osc.disconnect(); } catch (e) {}
+      }
+      if (audioCtx) {
+        try { audioCtx.close(); } catch (e) {}
+      }
+    };
+  }, [isOnline, activeOrder, tripStatus]);
+
   // Online heartbeat: keep rider visible in admin map / availability without per-tick HTTP.
   useEffect(() => {
     if (!isOnline) return;
