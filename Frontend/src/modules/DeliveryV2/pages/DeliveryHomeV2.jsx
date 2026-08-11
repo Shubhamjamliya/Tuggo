@@ -263,6 +263,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   const lastLocationSentAt = useRef(0);
   const lastHttpSyncAt = useRef(0);
   const lastCoordRef = useRef(null);
+  const lastRealGpsPosRef = useRef(null);
   const rollingSpeedRef = useRef([]);
   const lastAutoArrivalRef = useRef({ PICKING_UP: false, PICKED_UP: false });
 
@@ -648,7 +649,18 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       const { latitude: lat, longitude: lng, heading, speed } = pos.coords;
       const now = Date.now();
       
-      const currentRiderPos = { lat, lng, heading: heading || 0 };
+      let resolvedHeading = Number.isFinite(heading) && heading > 0 ? heading : 0;
+      if (!resolvedHeading && lastRealGpsPosRef.current) {
+        const dist = getHaversineDistance(lastRealGpsPosRef.current.lat, lastRealGpsPosRef.current.lng, lat, lng);
+        if (dist > 1.5) {
+          resolvedHeading = calculateHeading(lastRealGpsPosRef.current.lat, lastRealGpsPosRef.current.lng, lat, lng);
+        } else {
+          resolvedHeading = lastRealGpsPosRef.current.heading || 0;
+        }
+      }
+      lastRealGpsPosRef.current = { lat, lng, heading: resolvedHeading };
+
+      const currentRiderPos = { lat, lng, heading: resolvedHeading };
       setRiderLocation(currentRiderPos);
       
       // Calculate Rolling Average Speed for Smart ETA
@@ -689,7 +701,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
         const payload = { 
           lat, 
           lng, 
-          heading: heading || 0,
+          heading: resolvedHeading,
           speed: speed || 0,
           accuracy: pos.coords.accuracy,
           ...(resolveActiveOrderMeta() || {}),
@@ -709,7 +721,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
             deliveryId: partnerId,
             lat,
             lng,
-            heading: heading || 0,
+            heading: resolvedHeading,
             speed: speed || 0,
             accuracy: pos.coords.accuracy,
             isOnline: true,
@@ -721,7 +733,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
       if (now - lastHttpSyncAt.current >= 45000) {
         lastHttpSyncAt.current = now;
-        deliveryAPI.updateLocation(lat, lng, true, { heading: heading || 0, speed: speed || 0, accuracy: pos.coords.accuracy }).catch(() => {});
+        deliveryAPI.updateLocation(lat, lng, true, { heading: resolvedHeading, speed: speed || 0, accuracy: pos.coords.accuracy }).catch(() => {});
       }
     }, () => {
       // IF GPS FAILS/DENIED: Use Indore as a fallback for testing

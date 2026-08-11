@@ -103,6 +103,82 @@ function normPt(pt) {
   return { lat, lng };
 }
 
+function calcHeading(lat1, lon1, lat2, lon2) {
+  const l1 = Number(lat1);
+  const ln1 = Number(lon1);
+  const l2 = Number(lat2);
+  const ln2 = Number(lon2);
+  if (!Number.isFinite(l1) || !Number.isFinite(ln1) || !Number.isFinite(l2) || !Number.isFinite(ln2)) {
+    return 0;
+  }
+  const lat1Rad = (l1 * Math.PI) / 180;
+  const lat2Rad = (l2 * Math.PI) / 180;
+  const deltaLonRad = ((ln2 - ln1) * Math.PI) / 180;
+
+  const y = Math.sin(deltaLonRad) * Math.cos(lat2Rad);
+  const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - 
+            Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLonRad);
+  
+  const bearing = (Math.atan2(y, x) * 180) / Math.PI;
+  return (bearing + 360) % 360;
+}
+
+function getHeadingFromRoutePath(path, riderLocation) {
+  if (!path || path.length < 2 || !riderLocation) return null;
+  const idx = findClosestPointIndex(path, riderLocation);
+  let ptA, ptB;
+  if (idx < path.length - 1) {
+    ptA = path[idx];
+    ptB = path[idx + 1];
+  } else if (idx > 0) {
+    ptA = path[idx - 1];
+    ptB = path[idx];
+  } else {
+    return null;
+  }
+  const normA = normPt(ptA);
+  const normB = normPt(ptB);
+  if (!normA || !normB) return null;
+  return calcHeading(normA.lat, normA.lng, normB.lat, normB.lng);
+}
+
+function resolveRiderHeading(dataHeading, prevPos, newLat, newLng, routePath) {
+  const rawHead = Number(dataHeading);
+  let head = Number.isFinite(rawHead) && rawHead !== 0 ? rawHead : null;
+
+  // If payload heading is missing/0, calculate heading from previous location if moved > 1.5m
+  if (head === null && prevPos && Number.isFinite(prevPos.lat) && Number.isFinite(prevPos.lng)) {
+    const geo = window.google?.maps?.geometry?.spherical;
+    let dist = Infinity;
+    if (geo && window.google?.maps?.LatLng) {
+      dist = geo.computeDistanceBetween(
+        new window.google.maps.LatLng(prevPos.lat, prevPos.lng),
+        new window.google.maps.LatLng(newLat, newLng)
+      );
+    } else {
+      const dLat = (newLat - prevPos.lat) * 111000;
+      const dLng = (newLng - prevPos.lng) * 111000 * Math.cos((newLat * Math.PI) / 180);
+      dist = Math.sqrt(dLat * dLat + dLng * dLng);
+    }
+
+    if (dist > 1.5) {
+      head = calcHeading(prevPos.lat, prevPos.lng, newLat, newLng);
+    } else if (Number.isFinite(prevPos.heading) && prevPos.heading !== 0) {
+      head = prevPos.heading;
+    }
+  }
+
+  // Fallback to route path orientation if heading is still null or 0
+  if ((head === null || head === 0) && routePath && routePath.length > 1) {
+    const pathHead = getHeadingFromRoutePath(routePath, { lat: newLat, lng: newLng });
+    if (Number.isFinite(pathHead)) {
+      head = pathHead;
+    }
+  }
+
+  return head ?? prevPos?.heading ?? 0;
+}
+
 const DeliveryTrackingMapInner = ({
   orderId,
   orderTrackingIds = [],
@@ -119,6 +195,11 @@ const DeliveryTrackingMapInner = ({
    * We store it as plain [{lat,lng}] so it's React-state-safe.
    */
   const [fullRoutePath, setFullRoutePath] = useState(null);
+  const fullRoutePathRef = useRef(fullRoutePath);
+  useEffect(() => {
+    fullRoutePathRef.current = fullRoutePath;
+  }, [fullRoutePath]);
+
   /**
    * cloudPolyline — encoded polyline coming from the driver's real-time Firebase push.
    * When present, we decode it and use it as the fullRoutePath instead.
@@ -178,10 +259,31 @@ const DeliveryTrackingMapInner = ({
       const lat = typeof loc.lat === 'number' ? loc.lat : (Array.isArray(loc.coordinates) ? Number(loc.coordinates[1]) : null);
       const lng = typeof loc.lng === 'number' ? loc.lng : (Array.isArray(loc.coordinates) ? Number(loc.coordinates[0]) : null);
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        setRiderLocation({ lat, lng, heading: loc.bearing || loc.heading || 0 });
+        const rawHead = loc.bearing || loc.heading;
+        const heading = resolveRiderHeading(rawHead, null, lat, lng, fullRoutePathRef.current);
+        setRiderLocation({ lat, lng, heading });
       }
     }
   }, [order, riderLocation]);
+
+  // Align initial rider heading once fullRoutePath is available
+  useEffect(() => {
+    if (!fullRoutePath || fullRoutePath.length < 2) return;
+    setRiderLocation((prev) => {
+      if (!prev) return prev;
+      const currentHead = prev.heading || 0;
+      if (currentHead === 0) {
+        const pathHead = getHeadingFromRoutePath(fullRoutePath, prev);
+        if (Number.isFinite(pathHead) && pathHead !== 0) {
+          if (interpStateRef.current?.nextPos) {
+            interpStateRef.current.nextPos.heading = pathHead;
+          }
+          return { ...prev, heading: pathHead };
+        }
+      }
+      return prev;
+    });
+  }, [fullRoutePath]);
 
   // 2. Live location via shared user socket (single connection, no Firebase)
   useEffect(() => {
@@ -204,10 +306,14 @@ const DeliveryTrackingMapInner = ({
 
       if (!data || !matchedId || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
+      const prevPos = interpStateRef.current?.nextPos || riderLocation;
+      const rawHeading = data?.heading ?? data?.bearing ?? data?.location?.heading;
+      const heading = resolveRiderHeading(rawHeading, prevPos, lat, lng, fullRoutePathRef.current);
+
       const nextPos = {
         lat,
         lng,
-        heading: Number(data?.heading ?? data?.bearing ?? data?.location?.heading ?? 0),
+        heading,
       };
       const now = Date.now();
       const delta = Math.max(300, Math.min(now - (lastUpdateAtRef.current || now), 4000));

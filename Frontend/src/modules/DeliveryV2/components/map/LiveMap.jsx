@@ -147,8 +147,34 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
     if (!riderLocation) return null;
     const lat = parseFloat(riderLocation.lat || riderLocation.latitude);
     const lng = parseFloat(riderLocation.lng || riderLocation.longitude);
-    return (Number.isFinite(lat) && Number.isFinite(lng)) ? { lat, lng, heading: parseFloat(riderLocation.heading || 0) } : null;
-  }, [riderLocation]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    let head = parseFloat(riderLocation.heading || 0);
+    if ((!head || head === 0) && directions?.routes?.[0]?.overview_path?.length > 1) {
+      const path = directions.routes[0].overview_path;
+      let minDist = Infinity;
+      let closestIdx = 0;
+      for (let i = 0; i < path.length; i++) {
+        const ptLat = typeof path[i].lat === 'function' ? path[i].lat() : path[i].lat;
+        const ptLng = typeof path[i].lng === 'function' ? path[i].lng() : path[i].lng;
+        const dLat = (ptLat - lat) * 111000;
+        const dLng = (ptLng - lng) * 111000 * Math.cos((lat * Math.PI) / 180);
+        const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+        if (dist < minDist) {
+          minDist = dist;
+          closestIdx = i;
+        }
+      }
+      const nextPt = path[closestIdx < path.length - 1 ? closestIdx + 1 : closestIdx];
+      const prevPt = path[closestIdx < path.length - 1 ? closestIdx : Math.max(0, closestIdx - 1)];
+      const p1 = { lat: typeof prevPt.lat === 'function' ? prevPt.lat() : prevPt.lat, lng: typeof prevPt.lng === 'function' ? prevPt.lng() : prevPt.lng };
+      const p2 = { lat: typeof nextPt.lat === 'function' ? nextPt.lat() : nextPt.lat, lng: typeof nextPt.lng === 'function' ? nextPt.lng() : nextPt.lng };
+      if (p1 && p2 && (p1.lat !== p2.lat || p1.lng !== p2.lng)) {
+        head = calculateHeading(p1.lat, p1.lng, p2.lat, p2.lng);
+      }
+    }
+    return { lat, lng, heading: head };
+  }, [riderLocation, directions]);
 
   useEffect(() => { if (map) map.setZoom(zoom); }, [zoom, map]);
 
