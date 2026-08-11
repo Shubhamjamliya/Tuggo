@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChefHat, MapPin, Phone, 
   ChevronDown, ChevronUp, Package, 
-  Navigation, CheckCircle2, Camera, Loader2, Image as ImageIcon
+  Navigation, CheckCircle2, Camera, Loader2, Image as ImageIcon, FastForward
 } from 'lucide-react';
 import { ActionSlider } from '@/modules/DeliveryV2/components/ui/ActionSlider';
 import { toast } from 'sonner';
@@ -27,6 +27,7 @@ export const PickupActionModal = ({
   const [showItems, setShowItems] = useState(false);
   const [pickupOtp, setPickupOtp] = useState('');
   const [otpRequested, setOtpRequested] = useState(false);
+  const [isSkippedOtp, setIsSkippedOtp] = useState(false);
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
 
   if (!order) return null;
@@ -145,38 +146,61 @@ export const PickupActionModal = ({
             <div className="space-y-4">
               <div>
                 <p className="text-center text-[10px] font-bold uppercase tracking-widest mb-3 text-green-600">
-                  {otpRequested ? "Enter OTP & Swipe to pick up" : "Request OTP from restaurant"}
+                  {isSkippedOtp
+                    ? "OTP Bypassed — Swipe to pick up"
+                    : otpRequested
+                    ? "Enter OTP & Swipe to pick up"
+                    : "Request OTP from restaurant or Skip"}
                 </p>
 
-                {/* Step 1: Request OTP button — sends OTP to restaurant via socket */}
-                <button
-                  onClick={async () => {
-                    const orderId = order.order_id || order.orderId || order._id || order.orderMongoId;
-                    if (!orderId) { toast.error('Order ID missing'); return; }
-                    setIsRequestingOtp(true);
-                    try {
-                      const { deliveryAPI } = await import('@food/api');
-                      await deliveryAPI.requestPickupOtp(orderId);
-                      setOtpRequested(true);
-                      toast.success('OTP sent to restaurant! Ask them for the code.');
-                    } catch (err) {
-                      toast.error(err?.response?.data?.error || 'Failed to send OTP to restaurant');
-                    } finally {
-                      setIsRequestingOtp(false);
-                    }
-                  }}
-                  disabled={isRequestingOtp}
-                  className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-60 mb-3 ${otpRequested ? 'bg-orange-400' : 'bg-orange-500'}`}
-                >
-                  {isRequestingOtp ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /><span>Sending...</span></>
-                  ) : (
-                    <span>{otpRequested ? '🔔 Resend OTP' : '🔔 Request OTP'} (Order #{order.order_id || order.orderId || order._id})</span>
-                  )}
-                </button>
+                {/* Step 1: Request OTP or Skip OTP buttons */}
+                <div className="flex gap-2.5 mb-3">
+                  <button
+                    onClick={async () => {
+                      const orderId = order.order_id || order.orderId || order._id || order.orderMongoId;
+                      if (!orderId) { toast.error('Order ID missing'); return; }
+                      setIsRequestingOtp(true);
+                      try {
+                        const { deliveryAPI } = await import('@food/api');
+                        await deliveryAPI.requestPickupOtp(orderId);
+                        setOtpRequested(true);
+                        setIsSkippedOtp(false);
+                        toast.success('OTP sent to restaurant! Ask them for the code.');
+                      } catch (err) {
+                        toast.error(err?.response?.data?.error || 'Failed to send OTP to restaurant');
+                      } finally {
+                        setIsRequestingOtp(false);
+                      }
+                    }}
+                    disabled={isRequestingOtp}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white font-black text-xs sm:text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-60 ${otpRequested ? 'bg-orange-400' : 'bg-orange-500'}`}
+                  >
+                    {isRequestingOtp ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /><span>Sending...</span></>
+                    ) : (
+                      <span>{otpRequested ? '🔔 Resend' : '🔔 Request OTP'}</span>
+                    )}
+                  </button>
 
-                {/* Step 2: OTP input + Slider — visible only after OTP requested */}
-                {otpRequested && (
+                  <button
+                    onClick={() => {
+                      setIsSkippedOtp(true);
+                      setPickupOtp('');
+                      toast.info('OTP Step Bypassed! Slide to Pick Up');
+                    }}
+                    className={`px-4 py-3.5 rounded-2xl border-2 font-black text-xs uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all ${
+                      isSkippedOtp
+                        ? 'bg-amber-500 border-amber-500 text-white shadow-lg'
+                        : 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <FastForward className="w-4 h-4" />
+                    <span>{isSkippedOtp ? 'Skipped ✓' : 'Skip OTP'}</span>
+                  </button>
+                </div>
+
+                {/* Step 2: OTP input + Slider — visible when OTP requested and not skipped */}
+                {otpRequested && !isSkippedOtp && (
                   <>
                     <div className="mb-4 px-2">
                       <input
@@ -196,6 +220,18 @@ export const PickupActionModal = ({
                       color="bg-orange-500"
                     />
                   </>
+                )}
+
+                {/* Step 2 (Skipped): Direct Pickup Slider if OTP is skipped */}
+                {isSkippedOtp && (
+                  <ActionSlider
+                    key="action-pickup-skipped"
+                    label="Slide to Pick Up (Bypass OTP)"
+                    successLabel="Picked Up!"
+                    disabled={false}
+                    onConfirm={() => onPickedUp(null, 'SKIP')}
+                    color="bg-amber-600"
+                  />
                 )}
               </div>
             </div>

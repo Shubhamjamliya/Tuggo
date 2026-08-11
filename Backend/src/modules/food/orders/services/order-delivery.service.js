@@ -920,14 +920,22 @@ export async function confirmPickupDelivery(orderId, deliveryPartnerId, billImag
   const pickupVerified = order.deliveryVerification?.pickupOtp?.verified === true;
 
   if (pickupRequired && !pickupVerified) {
-    if (!otp) {
-      throw new ValidationError("Pickup OTP is required to mark this order as picked up.");
+    const isSkipped = typeof otp === 'string' && ['SKIP', 'BYPASS', 'NONE', 'skip', 'bypass'].includes(otp.trim().toUpperCase());
+    if (!isSkipped) {
+      if (!otp) {
+        throw new ValidationError("Pickup OTP is required to mark this order as picked up.");
+      }
+      if (!isOtpMatch(order.pickupOtp, otp)) {
+        throw new ValidationError("Invalid Pickup OTP. Please ask the restaurant for the correct OTP.");
+      }
     }
-    if (!isOtpMatch(order.pickupOtp, otp)) {
-      throw new ValidationError("Invalid Pickup OTP. Please ask the restaurant for the correct OTP.");
-    }
+    if (!order.deliveryVerification) order.deliveryVerification = {};
+    if (!order.deliveryVerification.pickupOtp) order.deliveryVerification.pickupOtp = {};
     order.deliveryVerification.pickupOtp.verified = true;
-    order.markModified('deliveryVerification.pickupOtp.verified');
+    if (isSkipped) {
+      order.deliveryVerification.pickupOtp.bypassed = true;
+    }
+    order.markModified('deliveryVerification');
   }
 
   order.orderStatus = nextStatus;
