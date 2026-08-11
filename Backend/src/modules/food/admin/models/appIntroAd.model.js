@@ -42,6 +42,11 @@ const appIntroAdSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FoodRestaurant",
+      default: null,
+    },
   },
   {
     timestamps: true,

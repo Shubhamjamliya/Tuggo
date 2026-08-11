@@ -2308,9 +2308,9 @@ function RestaurantDetailsContent() {
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 rounded-none h-8 sm:h-9 md:h-10 px-3 sm:px-4 flex items-center justify-between gap-3 min-w-[90px] md:min-w-[100px] z-10 transition-all duration-300 ${shouldShowGrayscale || isRestaurantOffline
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50 shadow-none border border-gray-300'
-                  : 'shadow-[0_4px_14px_0_rgba(0,183,97,0.39)] bg-[#00B761] hover:bg-[#00A055] text-white'
+              className={`absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 rounded-xl h-8 sm:h-9 md:h-10 px-3 sm:px-4 flex items-center justify-between gap-3 min-w-[90px] md:min-w-[100px] z-10 transition-all duration-300 ${shouldShowGrayscale || isRestaurantOffline
+                  ? 'bg-gray-300 dark:bg-gray-800 text-gray-500 cursor-not-allowed opacity-50 shadow-none border border-gray-300 dark:border-gray-700'
+                  : 'shadow-md bg-white dark:bg-black text-orange-500 border border-orange-500 dark:border-orange-500'
                 }`}
             >
               <button
@@ -2321,11 +2321,11 @@ function RestaurantDetailsContent() {
                   }
                 }}
                 disabled={shouldShowGrayscale || isRestaurantOffline}
-                className={shouldShowGrayscale || isRestaurantOffline ? 'text-gray-500 cursor-not-allowed' : 'text-white hover:text-white/80 active:scale-90 transition-transform'}
+                className={shouldShowGrayscale || isRestaurantOffline ? 'text-gray-500 cursor-not-allowed' : 'text-orange-500 hover:text-orange-600 active:scale-90 transition-transform'}
               >
                 <Minus size={16} className="stroke-[3px]" />
               </button>
-              <span className="text-[13px] sm:text-[15px] font-black">{quantity}</span>
+              <span className="text-[13px] sm:text-[15px] font-black text-orange-600 dark:text-orange-400">{quantity}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -2334,7 +2334,7 @@ function RestaurantDetailsContent() {
                   }
                 }}
                 disabled={shouldShowGrayscale || isRestaurantOffline}
-                className={shouldShowGrayscale || isRestaurantOffline ? 'text-gray-500 cursor-not-allowed' : 'text-white hover:text-white/80 active:scale-90 transition-transform'}
+                className={shouldShowGrayscale || isRestaurantOffline ? 'text-gray-500 cursor-not-allowed' : 'text-orange-500 hover:text-orange-600 active:scale-90 transition-transform'}
               >
                 <Plus size={16} className="stroke-[3px]" />
               </button>
@@ -2349,9 +2349,9 @@ function RestaurantDetailsContent() {
                 }
               }}
               disabled={shouldShowGrayscale || isRestaurantOffline}
-              className={`absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 rounded-none h-8 sm:h-9 md:h-10 px-5 sm:px-7 text-[12px] sm:text-[14px] md:text-[16px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap min-w-[90px] md:min-w-[100px] z-10 ${shouldShowGrayscale || isRestaurantOffline
+              className={`absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 rounded-xl h-8 sm:h-9 md:h-10 px-5 sm:px-7 text-[12px] sm:text-[14px] md:text-[16px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap min-w-[90px] md:min-w-[100px] z-10 ${shouldShowGrayscale || isRestaurantOffline
                 ? 'bg-gray-400 dark:bg-gray-700 text-white cursor-not-allowed shadow-none border border-gray-400/20'
-                : 'bg-[var(--primary)] hover:opacity-90 text-white shadow-md border border-[var(--primary)]/20'
+                : 'bg-white dark:bg-black hover:bg-orange-50/50 dark:hover:bg-zinc-900 text-orange-500 dark:text-orange-500 shadow-md border border-orange-500 dark:border-orange-500'
                 }`}
             >
               {isRestaurantOffline ? "OFFLINE" : (

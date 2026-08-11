@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, Video, Loader2, Play } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, Video, Loader2, Play, Store } from "lucide-react";
 import api from "@food/api";
 import { getModuleToken } from "@food/utils/auth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog";
@@ -21,6 +21,7 @@ const getAuthConfig = (additionalConfig = {}) => {
 
 export default function AppIntroAds() {
   const [ads, setAds] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("intro"); // 'intro' or 'ad'
 
@@ -33,6 +34,7 @@ export default function AppIntroAds() {
     duration: 3,
     type: "intro",
     isActive: true,
+    restaurantId: "",
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -44,7 +46,19 @@ export default function AppIntroAds() {
 
   useEffect(() => {
     fetchAds();
+    fetchRestaurants();
   }, []);
+
+  const fetchRestaurants = async () => {
+    try {
+      const res = await api.get('/food/admin/restaurants?limit=500', getAuthConfig());
+      if (res.data?.success) {
+        setRestaurants(res.data.data?.restaurants || res.data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch restaurants", err);
+    }
+  };
 
   const fetchAds = async () => {
     try {
@@ -70,6 +84,7 @@ export default function AppIntroAds() {
         duration: ad.duration || 3,
         type: ad.type || "intro",
         isActive: ad.isActive,
+        restaurantId: ad.restaurantId?._id || ad.restaurantId || "",
       });
       setPreviewUrl(getMediaUrl(ad.mediaUrl || ""));
       setSelectedFile(null);
@@ -81,6 +96,7 @@ export default function AppIntroAds() {
         duration: 3,
         type: tab,
         isActive: true,
+        restaurantId: "",
       });
       setPreviewUrl("");
       setSelectedFile(null);
@@ -130,6 +146,7 @@ export default function AppIntroAds() {
       submitData.append("duration", formData.duration);
       submitData.append("type", formData.type);
       submitData.append("isActive", formData.isActive);
+      submitData.append("restaurantId", formData.restaurantId || "");
 
       if (selectedFile) {
         submitData.append("media", selectedFile);
@@ -276,6 +293,7 @@ export default function AppIntroAds() {
                   <th className="px-6 py-4 font-semibold text-slate-700">Order</th>
                   <th className="px-6 py-4 font-semibold text-slate-700">Media</th>
                   <th className="px-6 py-4 font-semibold text-slate-700">Title</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700">Target Restaurant</th>
                   <th className="px-6 py-4 font-semibold text-slate-700">Duration</th>
                   <th className="px-6 py-4 font-semibold text-slate-700">Status</th>
                   <th className="px-6 py-4 font-semibold text-slate-700 text-right">Actions</th>
@@ -322,6 +340,20 @@ export default function AppIntroAds() {
                     <td className="px-6 py-4">
                       <p className="font-medium text-slate-900">{ad.title || "Untitled"}</p>
                       <p className="text-xs text-slate-500 uppercase">{ad.type}</p>
+                    </td>
+                    <td className="px-6 py-4 text-slate-700">
+                      {ad.restaurantId ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg text-xs font-medium">
+                          <Store className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                          <span className="truncate max-w-[140px]">
+                            {typeof ad.restaurantId === 'object'
+                              ? (ad.restaurantId.restaurantName || ad.restaurantId.onboarding?.step1?.restaurantName || 'Linked')
+                              : 'Linked'}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">None</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-slate-600">
                       {ad.duration} sec
@@ -395,6 +427,25 @@ export default function AppIntroAds() {
                 placeholder="e.g. Welcome to Tuggo Food Foods"
                 className="mt-1"
               />
+            </div>
+
+            <div>
+              <Label>Target Restaurant (Optional Redirect on Click)</Label>
+              <select
+                value={formData.restaurantId}
+                onChange={(e) => setFormData({ ...formData, restaurantId: e.target.value })}
+                className="w-full mt-1 border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+              >
+                <option value="">None (No redirect)</option>
+                {restaurants.map((rest) => {
+                  const restName = rest.restaurantName || rest.onboarding?.step1?.restaurantName || "Restaurant";
+                  return (
+                    <option key={rest._id} value={rest._id}>
+                      {restName} {rest.area ? `(${rest.area})` : ''}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
 
             <div>

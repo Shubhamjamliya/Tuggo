@@ -60,7 +60,7 @@ const resolveUploadedMedia = async (req) => {
 
 export const getAppIntroAds = async (req, res) => {
     try {
-        const ads = await AppIntroAd.find().sort({ order: 1, createdAt: -1 });
+        const ads = await AppIntroAd.find().populate('restaurantId', 'restaurantName slug onboarding').sort({ order: 1, createdAt: -1 });
         res.status(200).json({ success: true, data: ads.map(serializeAd) });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
@@ -69,7 +69,7 @@ export const getAppIntroAds = async (req, res) => {
 
 export const createAppIntroAd = async (req, res) => {
     try {
-        const { title, mediaType, duration, isActive, order, type, startDate, endDate } = req.body;
+        const { title, mediaType, duration, isActive, order, type, startDate, endDate, restaurantId } = req.body;
 
         const uploadedMedia = await resolveUploadedMedia(req);
         const normalizedBodyMediaUrl = normalizeToUploadsPath(req.body.mediaUrl);
@@ -89,10 +89,12 @@ export const createAppIntroAd = async (req, res) => {
             order: Number(order) || 0,
             type: type || 'ad',
             startDate: startDate || null,
-            endDate: endDate || null
+            endDate: endDate || null,
+            restaurantId: (restaurantId && restaurantId !== "null" && restaurantId !== "undefined") ? restaurantId : null,
         });
 
         await newAd.save();
+        await newAd.populate('restaurantId', 'restaurantName slug onboarding');
         res.status(201).json({ success: true, data: serializeAd(newAd), message: 'Ad created successfully' });
     } catch (error) {
         console.error('Error creating app intro ad:', error);
@@ -123,8 +125,11 @@ export const updateAppIntroAd = async (req, res) => {
         if (updates.isActive !== undefined) {
             updates.isActive = updates.isActive === 'true' || updates.isActive === true;
         }
+        if (updates.restaurantId !== undefined) {
+            updates.restaurantId = (updates.restaurantId && updates.restaurantId !== "null" && updates.restaurantId !== "undefined") ? updates.restaurantId : null;
+        }
 
-        const ad = await AppIntroAd.findByIdAndUpdate(id, updates, { new: true });
+        const ad = await AppIntroAd.findByIdAndUpdate(id, updates, { new: true }).populate('restaurantId', 'restaurantName slug onboarding');
 
         if (!ad) {
             return res.status(404).json({ success: false, message: 'Ad not found' });
@@ -200,7 +205,7 @@ export const getPublicActiveAds = async (req, res) => {
             ]
         };
 
-        const ads = await AppIntroAd.find(query).sort({ order: 1, createdAt: -1 });
+        const ads = await AppIntroAd.find(query).populate('restaurantId', 'restaurantName slug onboarding').sort({ order: 1, createdAt: -1 });
         res.status(200).json({ success: true, data: ads.map(serializeAd) });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
