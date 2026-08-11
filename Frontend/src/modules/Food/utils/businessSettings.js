@@ -38,6 +38,15 @@ export const normalizeSettingsUrls = (settings) => {
   if (newSettings.logo?.url) {
     newSettings.logo = { ...newSettings.logo, url: normalizeUrl(newSettings.logo.url) };
   }
+  if (newSettings.userLogo?.url) {
+    newSettings.userLogo = { ...newSettings.userLogo, url: normalizeUrl(newSettings.userLogo.url) };
+  }
+  if (newSettings.restaurantLogo?.url) {
+    newSettings.restaurantLogo = { ...newSettings.restaurantLogo, url: normalizeUrl(newSettings.restaurantLogo.url) };
+  }
+  if (newSettings.deliveryLogo?.url) {
+    newSettings.deliveryLogo = { ...newSettings.deliveryLogo, url: normalizeUrl(newSettings.deliveryLogo.url) };
+  }
   if (newSettings.favicon?.url) {
     newSettings.favicon = { ...newSettings.favicon, url: normalizeUrl(newSettings.favicon.url) };
   }

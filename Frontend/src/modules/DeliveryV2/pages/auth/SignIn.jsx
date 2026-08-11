@@ -6,11 +6,13 @@ import { Button } from "@food/components/ui/button"
 import { toast } from "sonner"
 import { deliveryAPI } from "@food/api"
 import { clearModuleAuth } from "@food/utils/auth"
+import { useAppLogo } from "@food/hooks/useAppLogo"
 import logoNew from "@/assets/logo.png"
 
 const DEFAULT_COUNTRY_CODE = "+91"
 
 export default function DeliverySignIn() {
+  const logoUrl = useAppLogo('delivery_app') || logoNew
   const navigate = useNavigate()
   const [phone, setPhone] = useState(() => {
     const draft = localStorage.getItem("delivery_draft_phone")
@@ -136,10 +138,9 @@ export default function DeliverySignIn() {
               style={{ borderRadius: '50%', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
             >
               <img 
-                src={logoNew} 
+                src={logoUrl} 
                 alt="Delivery Logo" 
-                className="w-full h-full object-cover scale-[1.05]"
-                style={{ borderRadius: '50%' }}
+                className="w-full h-full object-contain p-2"
               />
             </motion.div>
           </div>

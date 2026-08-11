@@ -127,6 +127,27 @@ export async function updateBusinessSettings(req, res, next) {
             settings.logo = { url: String(data.logo).trim(), publicId: null };
         }
 
+        if (req.files?.userLogo) {
+            const userLogoUrl = await uploadGenericImage(req.files.userLogo[0].buffer, 'business/logos');
+            settings.userLogo = { url: userLogoUrl, publicId: null };
+        } else if (data.userLogo !== undefined) {
+            settings.userLogo = { url: String(data.userLogo || '').trim(), publicId: null };
+        }
+
+        if (req.files?.restaurantLogo) {
+            const restaurantLogoUrl = await uploadGenericImage(req.files.restaurantLogo[0].buffer, 'business/logos');
+            settings.restaurantLogo = { url: restaurantLogoUrl, publicId: null };
+        } else if (data.restaurantLogo !== undefined) {
+            settings.restaurantLogo = { url: String(data.restaurantLogo || '').trim(), publicId: null };
+        }
+
+        if (req.files?.deliveryLogo) {
+            const deliveryLogoUrl = await uploadGenericImage(req.files.deliveryLogo[0].buffer, 'business/logos');
+            settings.deliveryLogo = { url: deliveryLogoUrl, publicId: null };
+        } else if (data.deliveryLogo !== undefined) {
+            settings.deliveryLogo = { url: String(data.deliveryLogo || '').trim(), publicId: null };
+        }
+
         if (req.files?.favicon) {
             const faviconUrl = await uploadGenericImage(req.files.favicon[0].buffer, 'business/favicons');
             settings.favicon = { url: faviconUrl, publicId: null };

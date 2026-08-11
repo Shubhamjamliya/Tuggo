@@ -5,11 +5,13 @@ import { ShieldCheck, Utensils, Star, Heart, ArrowRight, Loader2, Store, ShieldQ
 import { Button } from "@food/components/ui/button"
 import { toast } from "sonner"
 import { restaurantAPI } from "@food/api"
+import { useAppLogo } from "@food/hooks/useAppLogo"
 import logoNew from "@/assets/logo.png"
 
 const DEFAULT_COUNTRY_CODE = "+91"
 
 export default function RestaurantLogin() {
+  const logoUrl = useAppLogo('restaurant_app') || logoNew
   const navigate = useNavigate()
   const phoneInputRef = useRef(null)
   const [phone, setPhone] = useState(() => sessionStorage.getItem("restaurantLoginPhone") || "")
@@ -122,10 +124,9 @@ export default function RestaurantLogin() {
               style={{ borderRadius: '50%', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
             >
               <img
-                src={logoNew}
-                alt="Tuggo Food Delivery Logo"
-                className="w-full h-full object-cover scale-[1.15]"
-                style={{ borderRadius: '50%' }}
+                src={logoUrl}
+                alt="Restaurant Logo"
+                className="w-full h-full object-contain p-2"
               />
             </motion.div>
 

@@ -33,7 +33,8 @@ export default function RestaurantSidebar({
   useEffect(() => {
     const apply = (settings) => {
       if (settings?.companyName) setCompanyName(settings.companyName)
-      if (settings?.logo?.url) setLogoUrl(settings.logo.url)
+      const resLogo = settings?.restaurantLogo?.url || settings?.logo?.url
+      if (resLogo) setLogoUrl(resLogo)
     }
     const cached = getCachedSettings()
     if (cached) apply(cached)
