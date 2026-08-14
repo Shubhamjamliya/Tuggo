@@ -1286,33 +1286,17 @@ export default function Home() {
                   ? restaurant.cuisines[0]
                   : "Multi-cuisine";
 
-              // Legacy-safe image extraction (supports old schema variants).
-              const coverImages = extractImages([
-                ...(Array.isArray(restaurant.coverImages) ? restaurant.coverImages : [restaurant.coverImages]).filter(Boolean),
-                restaurant.coverImage,
-              ]);
-
-              const profileImageCandidates = extractImages([
-                ...buildRestaurantImageCandidates(restaurant.profileImage),
-                ...buildRestaurantImageCandidates(
-                  restaurant.onboarding?.step2?.profileImageUrl,
-                ),
-                ...buildRestaurantImageCandidates(restaurant.image),
-                ...buildRestaurantImageCandidates(restaurant.imageUrl),
-              ]);
-              const profileImageUrl = profileImageCandidates[0] || "";
-
-              const allImages = Array.from(
-                new Set(
-                  [
-                    ...coverImages,
-                    ...profileImageCandidates,
-                  ].filter(Boolean),
-                ),
+              // Restaurant cards use menu gallery images only. Profile photos are
+              // intentionally excluded because they are not carousel content.
+              const menuImages = extractImages(
+                (Array.isArray(restaurant.menuImages)
+                  ? restaurant.menuImages
+                  : [restaurant.menuImages]
+                ).filter(Boolean),
               );
 
-              // Keep single image for backward compatibility
-              const image = allImages[0] || profileImageUrl || "";
+              const carouselImages = Array.from(new Set(menuImages));
+              const image = carouselImages[0] || "";
               const offerText = restaurant.offer || null;
 
               return {
@@ -1333,7 +1317,7 @@ export default function Home() {
                 distance: distance,
                 distanceInKm: distanceInKm, // Store numeric distance for sorting
                 image: image,
-                images: allImages, // Array of cover images for carousel (separate from menu images)
+                images: carouselImages,
                 priceRange: restaurant.priceRange || "$$", // Use from API or default
                 featuredDish:
                   restaurant.featuredDish ||
@@ -1802,14 +1786,13 @@ export default function Home() {
         Array.isArray(restaurant?.cuisines) && restaurant.cuisines.length > 0
           ? restaurant.cuisines[0]
           : "Multi-cuisine";
-      const imageCandidates = extractImages([
-        ...(Array.isArray(restaurant?.coverImages)
-          ? restaurant.coverImages
-          : [restaurant?.coverImages]
+      const menuImages = extractImages(
+        (Array.isArray(restaurant?.menuImages)
+          ? restaurant.menuImages
+          : [restaurant?.menuImages]
         ).filter(Boolean),
-        restaurant?.profileImage,
-      ]);
-      const image = imageCandidates[0] || foodImages[0];
+      );
+      const image = menuImages[0] || foodImages[0];
 
       return {
         id: restaurant?.restaurantId || restaurantId,
@@ -1820,7 +1803,7 @@ export default function Home() {
         distance: "",
         deliveryTime: "",
         image: normalizeImageUrl(image) || foodImages[0],
-        images: imageCandidates.length > 0 ? imageCandidates : [foodImages[0]],
+        images: menuImages.length > 0 ? menuImages : [foodImages[0]],
         slug: restaurant?.slug || restaurant?.restaurantId || restaurantId,
         offer: null,
         pureVegRestaurant: restaurant?.pureVegRestaurant === true,

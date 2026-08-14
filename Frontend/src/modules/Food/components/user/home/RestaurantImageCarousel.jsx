@@ -73,26 +73,8 @@ const RestaurantImageCarousel = React.memo(
     );
 
     const images = useMemo(() => {
-      let foodImage = null;
-      const allItems = [];
-      if (restaurant.menu?.sections && Array.isArray(restaurant.menu.sections)) {
-        restaurant.menu.sections.forEach(sec => {
-          if (Array.isArray(sec.items)) allItems.push(...sec.items);
-        });
-      }
-      if (Array.isArray(restaurant.popularItems)) allItems.push(...restaurant.popularItems);
-      if (Array.isArray(restaurant.menuItems)) allItems.push(...restaurant.menuItems);
-      if (Array.isArray(restaurant.itemDiscounts)) allItems.push(...restaurant.itemDiscounts);
-
-      const itemWithImage = allItems.find(item => item.image && typeof item.image === 'string' && item.image.trim().length > 0);
-      if (itemWithImage) {
-        foodImage = itemWithImage.image;
-      }
-
       let sourceImages = [];
-      if (foodImage) {
-         sourceImages = [foodImage];
-      } else if (Array.isArray(restaurant.images) && restaurant.images.length > 0) {
+      if (Array.isArray(restaurant.images) && restaurant.images.length > 0) {
          sourceImages = restaurant.images;
       } else if (restaurant.coverImages && Array.isArray(restaurant.coverImages) && restaurant.coverImages.length > 0) {
          sourceImages = restaurant.coverImages;

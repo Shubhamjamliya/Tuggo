@@ -15,6 +15,22 @@ function decodeJwtPayload(token) {
   }
 }
 
+const MODULE_TOKEN_ROLES = {
+  admin: new Set(["ADMIN", "SUPER_ADMIN", "SUB_ADMIN"]),
+  restaurant: new Set(["RESTAURANT"]),
+  delivery: new Set(["DELIVERY_PARTNER"]),
+  user: new Set(["USER"]),
+};
+
+function tokenCanAccessModule(token, module) {
+  const allowedRoles = MODULE_TOKEN_ROLES[module];
+  if (!allowedRoles) return false;
+
+  const payload = decodeJwtPayload(token);
+  const role = String(payload?.role || "").trim().toUpperCase();
+  return allowedRoles.has(role);
+}
+
 export function isTokenExpired(token) {
   const payload = decodeJwtPayload(token);
 
@@ -146,7 +162,11 @@ export function getCurrentUser(module) {
  */
 export function isModuleAuthenticated(module) {
   const token = getModuleToken(module);
-  return !!token && !isTokenExpired(token);
+  return (
+    !!token &&
+    !isTokenExpired(token) &&
+    tokenCanAccessModule(token, module)
+  );
 }
 
 /**
