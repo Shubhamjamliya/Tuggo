@@ -387,6 +387,12 @@ export const adminAPI = {
       params: { limit: 1000, ...params },
       ...config,
     }),
+  /** List approved restaurants for admin selectors and management pages. */
+  getApprovedRestaurants: (params = {}, config = {}) =>
+    adminClient.get("/food/admin/restaurants", {
+      params: { limit: 1000, ...params, status: "approved" },
+      ...config,
+    }),
   getRestaurantReviews: (params = {}) =>
     adminClient.get("/food/admin/restaurants/reviews", {
       params: { page: 1, limit: 1000, ...params }
