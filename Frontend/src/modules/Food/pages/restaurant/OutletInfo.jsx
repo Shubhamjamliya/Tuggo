@@ -49,7 +49,7 @@ export default function OutletInfo() {
   const [restaurantName, setRestaurantName] = useState("")
   const [mainImage, setMainImage] = useState("https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop")
   const [thumbnailImage, setThumbnailImage] = useState("https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=200&fit=crop")
-  const [coverImages, setCoverImages] = useState([])
+  const [menuImages, setMenuImages] = useState([])
   const [restaurantId, setRestaurantId] = useState("")
   const [restaurantMongoId, setRestaurantMongoId] = useState("")
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -78,14 +78,12 @@ export default function OutletInfo() {
       setThumbnailImage(profileImageUrl)
     }
 
-    const normalizedCoverImages = normalizeImageList(data.coverImages)
     const normalizedMenuImages = normalizeImageList(data.menuImages)
-    const galleryImages =
-      normalizedCoverImages.length > 0 ? normalizedCoverImages : normalizedMenuImages
+    const latestMenuImage = normalizedMenuImages[normalizedMenuImages.length - 1]
 
-    setCoverImages(galleryImages)
+    setMenuImages(normalizedMenuImages)
     setMainImage(
-      galleryImages[0]?.url ||
+      latestMenuImage?.url ||
         "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop",
     )
   }
@@ -144,8 +142,8 @@ export default function OutletInfo() {
     }
   }
 
-  // Handle multiple cover images addition
-  const handleCoverImageAdd = async (files) => {
+  // Menu images are stored oldest-to-newest; the newest image is the lead image.
+  const handleMenuImageAdd = async (files) => {
     if (!files || (Array.isArray(files) && files.length === 0)) return
     const fileArray = Array.isArray(files) ? files : [files]
     try {
@@ -183,8 +181,8 @@ export default function OutletInfo() {
         } catch (updateError) {
           toast.error("Images uploaded but failed to save.")
         }
-        setCoverImages(allImages)
-        if (allImages.length > 0) setMainImage(allImages[0].url)
+        setMenuImages(allImages)
+        if (allImages.length > 0) setMainImage(allImages[allImages.length - 1].url)
         const refreshedResponse = await restaurantAPI.getCurrentRestaurant({ noCache: true })
         const refreshedData = refreshedResponse?.data?.data?.restaurant || refreshedResponse?.data?.restaurant
         applyRestaurantData(refreshedData)
@@ -252,20 +250,19 @@ export default function OutletInfo() {
     }
   }
 
-  const handleCoverImageDelete = async (indexToDelete) => {
-    if (!window.confirm("Are you sure you want to delete this cover image?")) return
+  const handleMenuImageDelete = async (indexToDelete) => {
+    if (!window.confirm("Are you sure you want to delete this menu image?")) return
     try {
       setUploadingImage(true)
       setImageType('menu')
-      const updatedImages = coverImages.filter((_, index) => index !== indexToDelete)
+      const updatedImages = menuImages.filter((_, index) => index !== indexToDelete)
       const menuImagesForBackend = updatedImages.map(img => ({ url: img.url, publicId: img.publicId || null }))
       await restaurantAPI.updateProfile({ menuImages: menuImagesForBackend })
-      setCoverImages(updatedImages)
-      if (indexToDelete === 0 && updatedImages.length > 0) {
-        setMainImage(updatedImages[0].url)
-      } else if (updatedImages.length === 0) {
-        setMainImage("https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop")
-      }
+      setMenuImages(updatedImages)
+      setMainImage(
+        updatedImages[updatedImages.length - 1]?.url ||
+          "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop",
+      )
       toast.success("Image deleted successfully")
     } catch (error) {
       toast.error("Failed to delete image.")
@@ -302,24 +299,24 @@ export default function OutletInfo() {
       </div>
 
       <div className="bg-white">
-        {/* Cover Image */}
+        {/* Menu gallery lead image */}
         <div className="relative w-full h-56 bg-gray-100">
           {mainImage && (
-            <img src={mainImage} alt="Cover" className="w-full h-full object-cover" />
+            <img src={mainImage} alt="Menu gallery" className="w-full h-full object-cover" />
           )}
           <div className="absolute bottom-4 right-4 flex gap-2.5">
             <button 
               disabled={uploadingImage}
               className="bg-[#111827] text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-70 transition-colors shadow-sm" 
-              onClick={() => handleImageClick('cover', menuImageInputRef, "Add Cover Image", true)}
+              onClick={() => handleImageClick('menu', menuImageInputRef, "Add Menu Images", true)}
             >
               {uploadingImage && imageType === 'menu' ? 'Uploading...' : 'Add image'}
             </button>
-            {mainImage && (
+            {menuImages.length > 0 && (
               <button 
                 disabled={uploadingImage}
                 className="bg-[#FF3B4D] text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-70 transition-colors shadow-sm" 
-                onClick={() => handleCoverImageDelete(0)}
+                onClick={() => handleMenuImageDelete(menuImages.length - 1)}
               >
                 Remove
               </button>
@@ -330,7 +327,7 @@ export default function OutletInfo() {
               accept="image/*"
               multiple
               className="hidden"
-              onChange={(e) => handleCoverImageAdd(Array.from(e.target.files || []))}
+              onChange={(e) => handleMenuImageAdd(Array.from(e.target.files || []))}
             />
           </div>
         </div>
@@ -623,7 +620,7 @@ export default function OutletInfo() {
           if (activePicker?.type === 'profile') {
             handleProfileImageReplace(file)
           } else {
-            handleCoverImageAdd(file)
+            handleMenuImageAdd(file)
           }
         }}
         title={activePicker?.title}

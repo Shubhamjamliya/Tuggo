@@ -1155,6 +1155,12 @@ export async function approveRestaurant(req, res, next) {
                 message: 'Restaurant not found'
             });
         }
+        // Approval publishes the restaurant's latest profile/menu images. Clear
+        // every public restaurant cache so user cards cannot keep the old image.
+        await invalidateCache('restaurants:*');
+        await invalidateCache('restaurant_detail:*');
+        await invalidateCache('restaurant_menu:*');
+        await invalidateCache('restaurant:*');
         res.status(200).json({
             success: true,
             message: 'Restaurant approved successfully',

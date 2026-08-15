@@ -1295,7 +1295,8 @@ export default function Home() {
                 ).filter(Boolean),
               );
 
-              const carouselImages = Array.from(new Set(menuImages));
+              // Uploads are stored oldest-to-newest; show the approved update first.
+              const carouselImages = Array.from(new Set(menuImages)).reverse();
               const image = carouselImages[0] || "";
               const offerText = restaurant.offer || null;
 
@@ -1792,7 +1793,8 @@ export default function Home() {
           : [restaurant?.menuImages]
         ).filter(Boolean),
       );
-      const image = menuImages[0] || foodImages[0];
+      const carouselImages = Array.from(new Set(menuImages)).reverse();
+      const image = carouselImages[0] || foodImages[0];
 
       return {
         id: restaurant?.restaurantId || restaurantId,
@@ -1803,7 +1805,7 @@ export default function Home() {
         distance: "",
         deliveryTime: "",
         image: normalizeImageUrl(image) || foodImages[0],
-        images: menuImages.length > 0 ? menuImages : [foodImages[0]],
+        images: carouselImages.length > 0 ? carouselImages : [foodImages[0]],
         slug: restaurant?.slug || restaurant?.restaurantId || restaurantId,
         offer: null,
         pureVegRestaurant: restaurant?.pureVegRestaurant === true,
