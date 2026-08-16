@@ -515,6 +515,70 @@ export const adminAPI = {
     adminClient.post(`/food/admin/orders/${String(orderId)}/resend-notification`, { voipToken }),
   deleteOrder: (orderId) =>
     adminClient.delete(`/food/admin/orders/${String(orderId)}`),
+  /** Safety and emergency reports */
+  getSafetyEmergencyReports: (params = {}) => adminClient.get("/food/admin/safety-emergency-reports", { params }),
+  updateSafetyEmergencyStatus: (id, status) => adminClient.put(`/food/admin/safety-emergency-reports/${String(id)}/status`, { status }),
+  updateSafetyEmergencyPriority: (id, priority) => adminClient.put(`/food/admin/safety-emergency-reports/${String(id)}/priority`, { priority }),
+  deleteSafetyEmergencyReport: (id) => adminClient.delete(`/food/admin/safety-emergency-reports/${String(id)}`),
+
+  /** Restaurant commissions */
+  getRestaurantCommissionBootstrap: () => adminClient.get("/food/admin/restaurant-commissions/bootstrap"),
+  updateGlobalRestaurantCommissionSettings: (body = {}) => adminClient.post("/food/admin/restaurant-commissions/global", body),
+  getRestaurantCommissions: (params = {}) => adminClient.get("/food/admin/restaurant-commissions", { params }),
+  getRestaurantCommissionById: (id) => adminClient.get(`/food/admin/restaurant-commissions/${String(id)}`),
+  createRestaurantCommission: (body = {}) => adminClient.post("/food/admin/restaurant-commissions", body),
+  updateRestaurantCommission: (id, body = {}) => adminClient.patch(`/food/admin/restaurant-commissions/${String(id)}`, body),
+  deleteRestaurantCommission: (id) => adminClient.delete(`/food/admin/restaurant-commissions/${String(id)}`),
+  toggleRestaurantCommissionStatus: (id) => adminClient.patch(`/food/admin/restaurant-commissions/${String(id)}/toggle`, {}),
+
+  /** Restaurant add-ons */
+  getRestaurantAddons: (params = {}) => adminClient.get("/food/admin/addons", { params }),
+  updateRestaurantAddon: (id, body = {}) => adminClient.patch(`/food/admin/addons/${String(id)}`, body),
+  approveRestaurantAddon: (id) => adminClient.patch(`/food/admin/addons/${String(id)}/approve`, {}),
+  rejectRestaurantAddon: (id, reason = "") => adminClient.patch(`/food/admin/addons/${String(id)}/reject`, { reason }),
+
+  /** Offers and coupons */
+  getAllOffers: (params = {}) => adminClient.get("/food/admin/offers", { params }),
+  createAdminOffer: (body = {}) => adminClient.post("/food/admin/offers", body),
+  updateAdminOfferCartVisibility: (id, itemId, showInCart) => adminClient.patch(`/food/admin/offers/${String(id)}/cart-visibility`, { itemId, showInCart }),
+  deleteAdminOffer: (id) => adminClient.delete(`/food/admin/offers/${String(id)}`),
+
+  /** Feedback, fee, and referral settings */
+  getFeedbackExperiences: (params = {}) => adminClient.get("/food/admin/feedback-experiences", { params }),
+  deleteFeedbackExperience: (id) => adminClient.delete(`/food/admin/feedback-experiences/${String(id)}`),
+  getFeeSettings: () => adminClient.get("/food/admin/fee-settings"),
+  createOrUpdateFeeSettings: (body = {}) => adminClient.put("/food/admin/fee-settings", body),
+  getReferralSettings: () => adminClient.get("/food/admin/referral-settings"),
+  createOrUpdateReferralSettings: (body = {}) => adminClient.put("/food/admin/referral-settings", body),
+
+  /** Delivery settings and emergency help */
+  getDeliveryCashLimit: () => adminClient.get("/food/admin/delivery-cash-limit"),
+  updateDeliveryCashLimit: (body = {}) => adminClient.patch("/food/admin/delivery-cash-limit", body),
+  getEmergencyHelp: () => adminClient.get("/food/admin/delivery-emergency-help"),
+  createOrUpdateEmergencyHelp: (body = {}) => adminClient.put("/food/admin/delivery-emergency-help", body),
+  getCashLimitSettlements: (params = {}) => adminClient.get("/food/admin/delivery/cash-limit-settlements", { params }),
+
+  /** Delivery wallets, earnings, bonuses, and commissions */
+  getDeliveryWallets: (params = {}) => adminClient.get("/food/admin/delivery/wallets", { params }),
+  getDeliveryPartnerBonusTransactions: (params = {}) => adminClient.get("/food/admin/delivery/bonus-transactions", { params }),
+  getDeliveryEarnings: (params = {}) => adminClient.get("/food/admin/delivery/earnings", { params }),
+  addDeliveryPartnerBonus: (deliveryPartnerId, amount, reference = "") => adminClient.post("/food/admin/delivery/bonus", { deliveryPartnerId, amount, reference }),
+  getCommissionRules: (params = {}) => adminClient.get("/food/admin/delivery/commission-rules", { params }),
+  createCommissionRule: (body = {}) => adminClient.post("/food/admin/delivery/commission-rules", body),
+  updateCommissionRule: (id, body = {}) => adminClient.patch(`/food/admin/delivery/commission-rules/${String(id)}`, body),
+  deleteCommissionRule: (id) => adminClient.delete(`/food/admin/delivery/commission-rules/${String(id)}`),
+  toggleCommissionRuleStatus: (id, status) => adminClient.patch(`/food/admin/delivery/commission-rules/${String(id)}/status`, { status }),
+
+  /** Delivery earning add-ons */
+  getEarningAddons: (params = {}) => adminClient.get("/food/admin/delivery/earning-addons", { params }),
+  createEarningAddon: (body = {}) => adminClient.post("/food/admin/delivery/earning-addons", body),
+  updateEarningAddon: (id, body = {}) => adminClient.patch(`/food/admin/delivery/earning-addons/${String(id)}`, body),
+  deleteEarningAddon: (id) => adminClient.delete(`/food/admin/delivery/earning-addons/${String(id)}`),
+  toggleEarningAddonStatus: (id, status) => adminClient.patch(`/food/admin/delivery/earning-addons/${String(id)}/status`, { status }),
+  getEarningAddonHistory: (params = {}) => adminClient.get("/food/admin/delivery/earning-addon-history", { params }),
+  creditEarningToWallet: (id, notes = "") => adminClient.post(`/food/admin/delivery/earning-addon-history/${String(id)}/credit`, { notes }),
+  cancelEarningAddonHistory: (id, reason = "") => adminClient.post(`/food/admin/delivery/earning-addon-history/${String(id)}/cancel`, { reason }),
+  checkEarningAddonCompletions: (deliveryPartnerId = "all", force = false) => adminClient.post("/food/admin/delivery/earning-addon-completions/check", { deliveryPartnerId, force }),
   /** Dispatch settings â€“ auto vs manual assign (global) */
   /** Create restaurant (admin). Single API: POST /food/admin/restaurants. Body: JSON with image URLs. */
   createRestaurant: (body) =>
