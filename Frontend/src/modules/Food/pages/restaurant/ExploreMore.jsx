@@ -680,6 +680,12 @@ export default function ExploreMore() {
         platform = "mobile"
       }
 
+      // Refresh the current device registration before testing FCM. This also
+      // prompts for browser notification permission when it has not been set.
+      if (channel === "fcm") {
+        await registerWebPushForCurrentModule()
+      }
+
       console.info("[RestaurantVoIPTest] click", {
         channel,
         platform,
@@ -1415,9 +1421,8 @@ export default function ExploreMore() {
                 </button>
               </div>
 
-              {!isProductionEnv && (
-                <>
-              {/* Test Notifications (Debug) */}
+              {/* FCM test is intentionally available in production so a restaurant
+                  can verify its current device registration end to end. */}
               <div className="px-6 pb-4 space-y-3">
                 <button
                   onClick={() => handleTestNotification("fcm")}
@@ -1433,22 +1438,22 @@ export default function ExploreMore() {
                   <ChevronRight className="w-5 h-5 text-blue-300 group-hover:text-blue-500 transition-colors" />
                 </button>
 
-                <button
-                  onClick={() => handleTestNotification("voip")}
-                  disabled={Boolean(activeTestNotification)}
-                  className="w-full bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100/50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-bold py-4 px-4 rounded-2xl transition-all flex items-center justify-between group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-xl shadow-sm">
-                      <Bell className={`w-5 h-5 text-emerald-500 ${activeTestNotification === "voip" ? "animate-pulse" : ""}`} />
+                {!isProductionEnv && (
+                  <button
+                    onClick={() => handleTestNotification("voip")}
+                    disabled={Boolean(activeTestNotification)}
+                    className="w-full bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100/50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-bold py-4 px-4 rounded-2xl transition-all flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white p-2 rounded-xl shadow-sm">
+                        <Bell className={`w-5 h-5 text-emerald-500 ${activeTestNotification === "voip" ? "animate-pulse" : ""}`} />
+                      </div>
+                      <span className="text-base font-bold">{activeTestNotification === "voip" ? "Sending VOIP..." : "Test VOIP Call"}</span>
                     </div>
-                    <span className="text-base font-bold">{activeTestNotification === "voip" ? "Sending VOIP..." : "Test VOIP Call"}</span>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-emerald-300 group-hover:text-emerald-500 transition-colors" />
-                </button>
+                    <ChevronRight className="w-5 h-5 text-emerald-300 group-hover:text-emerald-500 transition-colors" />
+                  </button>
+                )}
               </div>
-                </>
-              )}
 
               {/* Logout Buttons */}
               <div className="px-6 pb-6 space-y-3">
