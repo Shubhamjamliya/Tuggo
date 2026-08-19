@@ -581,7 +581,8 @@ export async function listPublicApprovedFoods(query = {}) {
         const zoneRestaurants = await FoodRestaurant.distinct('_id', {
             zoneId: new mongoose.Types.ObjectId(zoneIdRaw),
             status: 'approved'
-             filter.restaurantId = { $in: zoneRestaurants };
+        });
+        filter.restaurantId = { $in: zoneRestaurants };
     }
 
     const [list, total] = await Promise.all([
