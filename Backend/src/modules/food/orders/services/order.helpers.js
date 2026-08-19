@@ -301,7 +301,7 @@ export async function notifyRestaurantNewOrder(orderDoc) {
       );
     }
 
-    await notifyOwnerVoipOnlySafely(
+    await notifyOwnerUrgentlySafely(
       { ownerType: "RESTAURANT", ownerId: orderDoc.restaurantId },
       {
         title: "New order received",

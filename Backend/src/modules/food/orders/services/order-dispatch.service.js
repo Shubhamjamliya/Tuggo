@@ -414,8 +414,13 @@ export async function tryAutoAssign(orderId, options = {}) {
         {
           title: '🚴 New Order Nearby!',
           body: `Order #${order.order_id || order._id} is waiting. Be the first to accept!`,
-          dataOnly: true,
-          data: { type: 'new_order', orderId: order._id.toString() },
+          sound: 'default',
+          data: {
+            type: 'new_order',
+            orderId: order._id.toString(),
+            orderMongoId: order._id?.toString?.() || '',
+            link: `/delivery/orders/${order._id?.toString?.() || ''}`,
+          },
         },
       );
       logger.info(`[FCM-Dispatch] new_order push results for order ${order._id}: ${JSON.stringify(fcmResults?.map?.(r => ({ success: r?.successCount, fail: r?.failureCount })) || 'void')}`);

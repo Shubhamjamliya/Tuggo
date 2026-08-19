@@ -178,17 +178,25 @@ export const listOwnerUrgentPushTargets = async ({ ownerType, ownerId } = {}) =>
             .map((device) => device?.fcmToken)
     );
 
-    logger.info(`[VoIP-Trace] Fetched DB tokens for ${ownerType}:${ownerId} -> VoIP(iOS): ${iosVoipTokens.length}, FCM(iOS): ${iosFcmTokens.length}, FCM(Android): ${androidFcmTokens.length}`);
-
-    if (pushDevices.length > 0) {
-        return { iosVoipTokens, iosFcmTokens, androidFcmTokens, fcmTokens: [] };
-    }
-
     const legacyFcmTokens = normalizeTokenList([
         ...(Array.isArray(doc.fcmTokens) ? doc.fcmTokens : []),
         ...(Array.isArray(doc.fcmTokenMobile) ? doc.fcmTokenMobile : []),
     ]);
-    return { iosVoipTokens, iosFcmTokens: [], androidFcmTokens: [], fcmTokens: legacyFcmTokens };
+
+    // Merge Android FCM tokens from both pushDevices and top-level token arrays (deduplicated)
+    const allAndroidFcmTokens = normalizeTokenList([
+        ...androidFcmTokens,
+        ...legacyFcmTokens,
+    ]);
+
+    logger.info(`[VoIP-Trace] Fetched DB tokens for ${ownerType}:${ownerId} -> VoIP(iOS): ${iosVoipTokens.length}, FCM(iOS): ${iosFcmTokens.length}, FCM(Android): ${allAndroidFcmTokens.length}`);
+
+    return {
+        iosVoipTokens,
+        iosFcmTokens,
+        androidFcmTokens: allAndroidFcmTokens,
+        fcmTokens: allAndroidFcmTokens,
+    };
 };
 
 export const sendVoipPushNotification = async (tokens, payload = {}, options = {}) => {
