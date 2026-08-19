@@ -10,6 +10,9 @@ const MAIN_TAB_ROUTES = new Set([
 
 const HIDE_BOTTOM_NAV_PATTERNS = [
   "/create-offers",
+  "/hub-menu/item",
+  "/outlet-timings/",
+  "/orders/",
 ]
 
 export function getRestaurantHeaderOptions(pathname) {

@@ -258,7 +258,7 @@ const populateRecommendedItems = async (restaurants = []) => {
             restaurantId: { $in: restaurantIds },
             isRecommended: true,
             isAvailable: { $ne: false },
-            approvalStatus: 'approved'
+            approvalStatus: { $ne: 'rejected' }
         })
             .select('name price variants image isRecommended restaurantId')
             .lean();

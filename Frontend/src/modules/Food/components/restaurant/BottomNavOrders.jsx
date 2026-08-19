@@ -65,7 +65,11 @@ export default function BottomNavOrders() {
 
   const tabs = useMemo(() => getOrdersTabs(basePath), [basePath])
 
-  const isInternalPage = pathname.includes("/create-offers")
+  const isInternalPage =
+    pathname.includes("/create-offers") ||
+    pathname.includes("/hub-menu/item") ||
+    pathname.includes("/outlet-timings/") ||
+    (pathname.includes("/orders/") && !pathname.endsWith("/orders/all"))
   if (isInternalPage || isKeyboardVisible) {
     return null
   }

@@ -1344,14 +1344,14 @@ export default function ItemDetailsPage() {
 
       {/* Bottom Sticky Buttons */}
       <div
-        className="fixed left-0 right-0 bg-white border-t border-gray-200 z-40"
+        className="fixed left-0 right-0 bg-white border-t border-gray-200 z-50 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
         style={{ bottom: `${keyboardInset}px` }}
       >
-        <div className={`flex gap-3 px-4 py-4 ${isNewItem ? 'justify-end' : ''}`}>
+        <div className={`flex gap-3 px-4 py-3 max-w-lg mx-auto pb-[max(0.75rem,env(safe-area-inset-bottom))] ${isNewItem ? 'justify-end' : ''}`}>
           {!isNewItem && (
             <button
               onClick={handleDelete}
-              className="flex-1 py-3 px-4 border border-black rounded-lg text-sm font-semibold text-black bg-white hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors"
             >
               Delete
             </button>
@@ -1359,8 +1359,8 @@ export default function ItemDetailsPage() {
           <button
             onClick={handleSave}
             disabled={uploadingImages}
-            className={`${isNewItem ? 'w-full' : 'flex-1'} py-3 px-4 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${!uploadingImages
-              ? "bg-black text-white hover:bg-black"
+            className={`${isNewItem ? 'w-full' : 'flex-1'} py-3 px-4 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${!uploadingImages
+              ? "bg-primary text-white hover:opacity-95 shadow-md shadow-primary/25"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
           >
@@ -1370,7 +1370,7 @@ export default function ItemDetailsPage() {
                 <span>Uploading...</span>
               </>
             ) : (
-              "Save"
+              "Save Item"
             )}
           </button>
         </div>
