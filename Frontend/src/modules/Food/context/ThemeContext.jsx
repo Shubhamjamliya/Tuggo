@@ -11,7 +11,7 @@ export function ThemeProvider({ children }) {
     const isUserApp = !isAdmin && !isRestaurant && !isDelivery;
     
     let storageKey = "userAppTheme";
-    let defaultTheme = "dark";
+    let defaultTheme = "light";
     
     if (isAdmin) {
       storageKey = "adminAppTheme";
