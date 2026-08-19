@@ -4,40 +4,17 @@ import useRestaurantBackNavigation from "@food/hooks/useRestaurantBackNavigation
 import { ArrowLeft, Star, ChevronRight } from "lucide-react"
 import { restaurantAPI } from "@food/api"
 import { toast } from "sonner"
-import { getImageValidationError, getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
-import { Button } from "@food/components/ui/button"
+import { getUploadErrorMessage } from '@/shared/utils/uploadErrors.js'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@food/components/ui/dialog"
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
 
-const debugLog = (...args) => {}
 const debugError = (...args) => {}
-
-const normalizeImageEntry = (image) => {
-  if (typeof image === "string" && image.trim()) {
-    return { url: image.trim(), publicId: null }
-  }
-
-  if (image?.url && typeof image.url === "string" && image.url.trim()) {
-    return {
-      url: image.url.trim(),
-      publicId: image.publicId || null,
-    }
-  }
-
-  return null
-}
-
-const normalizeImageList = (images) =>
-  (Array.isArray(images) ? images : [])
-    .map(normalizeImageEntry)
-    .filter(Boolean)
 
 export default function OutletInfo() {
   const navigate = useNavigate()
@@ -49,15 +26,12 @@ export default function OutletInfo() {
   const [restaurantName, setRestaurantName] = useState("")
   const [mainImage, setMainImage] = useState("https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop")
   const [thumbnailImage, setThumbnailImage] = useState("https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=200&fit=crop")
-  const [menuImages, setMenuImages] = useState([])
   const [restaurantId, setRestaurantId] = useState("")
   const [restaurantMongoId, setRestaurantMongoId] = useState("")
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imageType, setImageType] = useState(null)
-  const [uploadingCount, setUploadingCount] = useState(0)
   
   const profileImageInputRef = useRef(null)
-  const menuImageInputRef = useRef(null)
   const [activePicker, setActivePicker] = useState(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editSection, setEditSection] = useState(null)
@@ -78,14 +52,13 @@ export default function OutletInfo() {
       setThumbnailImage(profileImageUrl)
     }
 
-    const normalizedMenuImages = normalizeImageList(data.menuImages)
-    const latestMenuImage = normalizedMenuImages[normalizedMenuImages.length - 1]
-
-    setMenuImages(normalizedMenuImages)
-    setMainImage(
-      latestMenuImage?.url ||
-        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop",
-    )
+    const coverImages = Array.isArray(data.coverImages) ? data.coverImages : []
+    const firstCover = typeof coverImages[0] === 'string' ? coverImages[0] : coverImages[0]?.url
+    if (firstCover) {
+      setMainImage(firstCover)
+    } else if (profileImageUrl) {
+      setMainImage(profileImageUrl)
+    }
   }
 
   // Fetch restaurant data on mount
@@ -139,60 +112,6 @@ export default function OutletInfo() {
     } finally {
       setUploadingImage(false)
       setImageType(null)
-    }
-  }
-
-  // Menu images are stored oldest-to-newest; the newest image is the lead image.
-  const handleMenuImageAdd = async (files) => {
-    if (!files || (Array.isArray(files) && files.length === 0)) return
-    const fileArray = Array.isArray(files) ? files : [files]
-    try {
-      setUploadingImage(true)
-      setImageType('menu')
-      setUploadingCount(fileArray.length)
-
-      const currentResponse = await restaurantAPI.getCurrentRestaurant({ noCache: true })
-      const currentData = currentResponse?.data?.data?.restaurant || currentResponse?.data?.restaurant
-      const existingImages = normalizeImageList(currentData?.menuImages)
-
-      const uploadedImageData = []
-      for (let i = 0; i < fileArray.length; i++) {
-        try {
-          const uploadResponse = await restaurantAPI.uploadMenuImage(fileArray[i])
-          const uploadedImage = uploadResponse?.data?.data?.menuImage || uploadResponse?.data?.menuImage
-          if (uploadedImage?.url) {
-            uploadedImageData.push({ url: uploadedImage.url, publicId: uploadedImage.publicId || null })
-          }
-        } catch (error) {
-          debugError("Upload failed", error)
-          toast.error(getUploadErrorMessage(error, { fallback: `Failed to upload image ${i + 1}.` }))
-        }
-      }
-
-      if (uploadedImageData.length > 0) {
-        const allImages = [...existingImages]
-        uploadedImageData.forEach(uploaded => {
-          if (!allImages.find(img => img.url === uploaded.url)) allImages.push(uploaded)
-        })
-
-        try {
-          await restaurantAPI.updateProfile({ menuImages: allImages })
-          toast.success(`Successfully uploaded ${uploadedImageData.length} image(s)`)
-        } catch (updateError) {
-          toast.error("Images uploaded but failed to save.")
-        }
-        setMenuImages(allImages)
-        if (allImages.length > 0) setMainImage(allImages[allImages.length - 1].url)
-        const refreshedResponse = await restaurantAPI.getCurrentRestaurant({ noCache: true })
-        const refreshedData = refreshedResponse?.data?.data?.restaurant || refreshedResponse?.data?.restaurant
-        applyRestaurantData(refreshedData)
-      }
-    } catch (error) {
-      toast.error(getUploadErrorMessage(error, { fallback: "Failed to upload images." }))
-    } finally {
-      setUploadingImage(false)
-      setImageType(null)
-      setUploadingCount(0)
     }
   }
 
@@ -250,28 +169,6 @@ export default function OutletInfo() {
     }
   }
 
-  const handleMenuImageDelete = async (indexToDelete) => {
-    if (!window.confirm("Are you sure you want to delete this menu image?")) return
-    try {
-      setUploadingImage(true)
-      setImageType('menu')
-      const updatedImages = menuImages.filter((_, index) => index !== indexToDelete)
-      const menuImagesForBackend = updatedImages.map(img => ({ url: img.url, publicId: img.publicId || null }))
-      await restaurantAPI.updateProfile({ menuImages: menuImagesForBackend })
-      setMenuImages(updatedImages)
-      setMainImage(
-        updatedImages[updatedImages.length - 1]?.url ||
-          "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop",
-      )
-      toast.success("Image deleted successfully")
-    } catch (error) {
-      toast.error("Failed to delete image.")
-    } finally {
-      setUploadingImage(false)
-      setImageType(null)
-    }
-  }
-
   const formatDate = (dateString) => {
     if (!dateString) return "N/A"
     const d = new Date(dateString)
@@ -299,68 +196,43 @@ export default function OutletInfo() {
       </div>
 
       <div className="bg-white">
-        {/* Menu gallery lead image */}
+        {/* Outlet Banner */}
         <div className="relative w-full h-56 bg-gray-100">
           {mainImage && (
-            <img src={mainImage} alt="Menu gallery" className="w-full h-full object-cover" />
+            <img src={mainImage} alt="Outlet banner" className="w-full h-full object-cover" />
           )}
-          <div className="absolute bottom-4 right-4 flex gap-2.5">
-            <button 
-              disabled={uploadingImage}
-              className="bg-[#111827] text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-70 transition-colors shadow-sm" 
-              onClick={() => handleImageClick('menu', menuImageInputRef, "Add Menu Images", true)}
-            >
-              {uploadingImage && imageType === 'menu' ? 'Uploading...' : 'Add image'}
-            </button>
-            {menuImages.length > 0 && (
-              <button 
-                disabled={uploadingImage}
-                className="bg-[#FF3B4D] text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-70 transition-colors shadow-sm" 
-                onClick={() => handleMenuImageDelete(menuImages.length - 1)}
-              >
-                Remove
-              </button>
-            )}
-            <input
-              ref={menuImageInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => handleMenuImageAdd(Array.from(e.target.files || []))}
-            />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+          
+          <div className="absolute bottom-3 left-4 text-white">
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/80">Outlet Photo</p>
+            <p className="text-sm font-bold truncate max-w-[240px] sm:max-w-xs">{restaurantName || "Outlet Banner"}</p>
           </div>
         </div>
 
-        {/* Profile Image */}
+        {/* Profile Image / Logo */}
         <div className="px-4 py-5 border-b border-gray-100">
           <div className="flex items-center justify-between bg-white border border-gray-100/80 rounded-3xl p-3.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
             <div className="w-[88px] h-[88px] bg-gray-100 rounded-[1.25rem] overflow-hidden shrink-0 border border-gray-100 shadow-sm">
               <img src={thumbnailImage} alt="Profile" className="w-full h-full object-cover" />
             </div>
-            <div className="flex gap-2.5">
-              <button 
-                disabled={uploadingImage}
-                className="bg-[#111827] text-white px-4 py-2.5 rounded-xl text-[13px] font-bold disabled:opacity-70 shadow-sm transition-colors" 
-                onClick={() => handleImageClick('profile', profileImageInputRef, "Update Profile Photo")}
-              >
-                {uploadingImage && imageType === 'profile' ? 'Uploading...' : 'Add image'}
-              </button>
-              {thumbnailImage && (
+            <div className="flex flex-col items-end gap-1.5">
+              <span className="text-xs font-semibold text-gray-500">Logo / Profile Photo</span>
+              <div className="flex gap-2.5">
                 <button 
-                  className="bg-[#FF3B4D] text-white px-4 py-2.5 rounded-xl text-[13px] font-bold shadow-sm transition-colors"
-                  // onClick={() => {/* handle profile image delete if needed */}}
+                  disabled={uploadingImage}
+                  className="bg-[#111827] text-white px-4 py-2.5 rounded-xl text-[13px] font-bold disabled:opacity-70 shadow-sm transition-colors" 
+                  onClick={() => handleImageClick('profile', profileImageInputRef, "Update Profile Photo")}
                 >
-                  Delete
+                  {uploadingImage && imageType === 'profile' ? 'Uploading...' : 'Change Logo'}
                 </button>
-              )}
-              <input
-                ref={profileImageInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleProfileImageReplace(e.target.files?.[0])}
-              />
+                <input
+                  ref={profileImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleProfileImageReplace(e.target.files?.[0])}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -619,8 +491,6 @@ export default function OutletInfo() {
         onFileSelect={(file) => {
           if (activePicker?.type === 'profile') {
             handleProfileImageReplace(file)
-          } else {
-            handleMenuImageAdd(file)
           }
         }}
         title={activePicker?.title}

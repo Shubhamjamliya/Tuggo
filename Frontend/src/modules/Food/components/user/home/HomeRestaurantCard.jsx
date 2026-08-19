@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { memo, useMemo } from "react";
 import {
   BadgePercent,
@@ -41,6 +41,7 @@ function HomeRestaurantCard({
   onToggleFavorite,
   animateEntrance = false,
 }) {
+  const navigate = useNavigate();
   const { ref, outletTimings } = useDeferredOutletTimings(
     restaurant?.mongoId,
     restaurant?.outletTimings ?? null,
@@ -59,6 +60,16 @@ function HomeRestaurantCard({
   const restaurantSlug = resolveRestaurantSlug(restaurant, index);
   const favorite = isFavorite(restaurantSlug);
   const priority = index < 3;
+
+  const handleSlideClick = (slide, event) => {
+    if (slide?.id && slide?.isRecommended) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      navigate(`/user/restaurants/${restaurantSlug}?highlightItemId=${slide.id}`);
+    }
+  };
 
   return (
     <div
@@ -85,6 +96,7 @@ function HomeRestaurantCard({
                 restaurant={restaurant}
                 priority={priority}
                 backendOrigin={backendOrigin}
+                onSlideClick={handleSlideClick}
               />
 
               <div className="absolute top-4 right-4 z-10 transform transition-transform duration-300 group-hover:scale-110">

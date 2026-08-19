@@ -113,7 +113,17 @@ function RestaurantDetailsContent() {
   const goBack = useAppBackNavigation()
   const [searchParams] = useSearchParams()
   const showOnlyUnder250 = searchParams.get('under250') === 'true'
-  const targetDishId = useMemo(() => String(searchParams.get('dish') || '').trim(), [searchParams])
+  const targetDishId = useMemo(
+    () => String(
+      searchParams.get('highlightItemId') ||
+      searchParams.get('dish') ||
+      searchParams.get('dishId') ||
+      searchParams.get('foodId') ||
+      searchParams.get('itemId') ||
+      ''
+    ).trim(),
+    [searchParams]
+  )
   const BACKEND_ORIGIN = useMemo(() => API_BASE_URL.replace(/\/api(\/v\d+)?\/?$/, ""), [])
   const { addToCart, updateQuantity, removeFromCart, getCartItem, cart } = useCart()
   const { vegMode, vegModeOption, addDishFavorite, removeDishFavorite, isDishFavorite, getDishFavorites, getFavorites, addFavorite, removeFavorite, isFavorite } = useProfile()
@@ -1378,7 +1388,7 @@ function RestaurantDetailsContent() {
   }
 
   const isRecommendedItem = (item) => {
-    return item.isRecommended === true && typeof item.isRecommended === "boolean"
+    return Boolean(item?.isRecommended || item?.recommended || item?.isPopular || item?.popular || item?.isBestseller)
   }
 
   const getSectionDisplayName = (section) => {

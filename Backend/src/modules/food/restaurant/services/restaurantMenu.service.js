@@ -59,6 +59,7 @@ const buildMenuFromFoods = async (foods = []) => {
             image: resolveStoredUploadPath(food.image || ''),
             foodType: food.foodType || 'Non-Veg',
             isAvailable: food.isAvailable !== false,
+            isRecommended: Boolean(food.isRecommended),
             approvalStatus: food.approvalStatus || 'approved',
             rejectionReason: food.rejectionReason || '',
             requestedAt: food.requestedAt,

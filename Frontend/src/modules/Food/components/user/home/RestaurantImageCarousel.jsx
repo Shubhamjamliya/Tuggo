@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 import { foodImages } from "@food/constants/images";
 
 const WEBVIEW_SESSION_CACHE_BUSTER = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -30,13 +31,13 @@ function OfferBannerContent({ item }) {
 }
 
 const RestaurantImageCarousel = React.memo(
-
   ({
     restaurant,
     priority = false,
     backendOrigin = "",
     className = "h-48 sm:h-56 md:h-60 lg:h-64 xl:h-72",
     roundedClass = "rounded-t-md",
+    onSlideClick = null,
   }) => {
     const webviewSessionKeyRef = useRef(WEBVIEW_SESSION_CACHE_BUSTER);
     const imageElementRef = useRef(null);
@@ -62,8 +63,6 @@ const RestaurantImageCarousel = React.memo(
 
         try {
           const parsed = new URL(resolvedUrl, window.location.origin);
-
-          // Apply cache-buster only to app/backend-hosted URLs to avoid third-party CDN signature issues.
           return parsed.toString();
         } catch {
           return resolvedUrl;
@@ -72,43 +71,59 @@ const RestaurantImageCarousel = React.memo(
       [backendOrigin],
     );
 
-    const images = useMemo(() => {
-      let sourceImages = [];
-      if (Array.isArray(restaurant.images) && restaurant.images.length > 0) {
-         sourceImages = restaurant.images;
-      } else if (restaurant.coverImages && Array.isArray(restaurant.coverImages) && restaurant.coverImages.length > 0) {
-         sourceImages = restaurant.coverImages;
-      } else if (restaurant.image) {
-         sourceImages = [restaurant.image];
-      } else {
-         sourceImages = [foodImages[0]];
-      }
+    const slides = useMemo(() => {
+      const result = [];
+      const recItems = Array.isArray(restaurant?.recommendedItems) ? restaurant.recommendedItems : [];
 
-      const validImages = sourceImages
-        .filter((img) => typeof img === "string")
-        .map((img) => img.trim())
-        .filter(Boolean);
-
-      const seen = new Set();
-      const uniqueImages = [];
-      
-      validImages.forEach((img) => {
-        let sig = img;
-        try {
-          let pathParts = new URL(img).pathname.split('/');
-          sig = pathParts[pathParts.length - 1]; // Use just the filename
-        } catch (e) {
-          sig = img;
-        }
-        
-        if (!seen.has(sig)) {
-          seen.add(sig);
-          uniqueImages.push(img);
+      // Add recommended food items
+      recItems.forEach((item) => {
+        const rawImg = item?.image || item?.imageUrl || item?.photoUrl;
+        if (typeof rawImg === "string" && rawImg.trim()) {
+          result.push({
+            url: withCacheBuster(rawImg.trim()),
+            id: item.id || item._id,
+            name: item.name || "Recommended Dish",
+            price: item.price || 0,
+            isRecommended: true,
+          });
         }
       });
 
-      return uniqueImages.map((img) => withCacheBuster(img));
-    }, [restaurant.images, restaurant.image, withCacheBuster]);
+      // Also gather regular restaurant images
+      let sourceImages = [];
+      if (Array.isArray(restaurant?.images) && restaurant.images.length > 0) {
+        sourceImages = restaurant.images;
+      } else if (Array.isArray(restaurant?.coverImages) && restaurant.coverImages.length > 0) {
+        sourceImages = restaurant.coverImages;
+      } else if (restaurant?.image) {
+        sourceImages = [restaurant.image];
+      }
+
+      const validImages = sourceImages
+        .filter((img) => typeof img === "string" && img.trim())
+        .map((img) => img.trim());
+
+      validImages.forEach((img) => {
+        const processedUrl = withCacheBuster(img);
+        if (!result.some((s) => s.url === processedUrl)) {
+          result.push({
+            url: processedUrl,
+            isRecommended: false,
+          });
+        }
+      });
+
+      if (result.length === 0) {
+        result.push({
+          url: foodImages[0],
+          isRecommended: false,
+        });
+      }
+
+      return result;
+    }, [restaurant?.recommendedItems, restaurant?.images, restaurant?.coverImages, restaurant?.image, withCacheBuster]);
+
+    const images = useMemo(() => slides.map((s) => s.url), [slides]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [currentItemIndex, setCurrentItemIndex] = useState(0);
 
@@ -116,110 +131,112 @@ const RestaurantImageCarousel = React.memo(
       const items = [];
 
       // If backend populated dish names inside itemDiscounts, use them directly!
-      if (Array.isArray(restaurant.itemDiscounts) && restaurant.itemDiscounts.some(d => d.name)) {
-        restaurant.itemDiscounts.forEach(d => {
+      if (Array.isArray(restaurant?.itemDiscounts) && restaurant.itemDiscounts.some((d) => d.name)) {
+        restaurant.itemDiscounts.forEach((d) => {
           if (d.name) {
             items.push({
               id: d.itemId,
               name: d.name,
-              price: d.price || 0
+              price: d.price || 0,
             });
           }
         });
       }
 
-      if (items.length === 0 && restaurant.menu?.sections && Array.isArray(restaurant.menu.sections)) {
-        restaurant.menu.sections.forEach(sec => {
+      if (items.length === 0 && restaurant?.menu?.sections && Array.isArray(restaurant.menu.sections)) {
+        restaurant.menu.sections.forEach((sec) => {
           if (Array.isArray(sec.items)) items.push(...sec.items);
         });
       }
 
       if (items.length === 0) {
-        if (Array.isArray(restaurant.popularItems) && restaurant.popularItems.length > 0) {
+        if (Array.isArray(restaurant?.popularItems) && restaurant.popularItems.length > 0) {
           items.push(...restaurant.popularItems);
-        } else if (Array.isArray(restaurant.menuItems) && restaurant.menuItems.length > 0) {
+        } else if (Array.isArray(restaurant?.menuItems) && restaurant.menuItems.length > 0) {
           items.push(...restaurant.menuItems);
         }
       }
 
-      if (items.length === 0 && restaurant.featuredDish) {
+      if (items.length === 0 && restaurant?.featuredDish) {
         items.push({
           name: restaurant.featuredDish,
           price: restaurant.featuredPrice || 0,
-          originalPrice: restaurant.featuredPrice || 0
+          originalPrice: restaurant.featuredPrice || 0,
         });
       }
 
-      const globalOffers = Array.isArray(restaurant.offers) ? restaurant.offers : [];
+      const globalOffers = Array.isArray(restaurant?.offers) ? restaurant.offers : [];
       let bestGlobalOffer = null;
-      globalOffers.forEach(offer => {
-        if (!bestGlobalOffer || (Number(offer.discountValue) > Number(bestGlobalOffer.discountValue))) {
+      globalOffers.forEach((offer) => {
+        if (!bestGlobalOffer || Number(offer.discountValue) > Number(bestGlobalOffer.discountValue)) {
           bestGlobalOffer = offer;
         }
       });
 
-      const discountedItems = items.map((item) => {
-        let priceNum = Number(item.price || item.originalPrice || 0);
+      const discountedItems = items
+        .map((item) => {
+          let priceNum = Number(item.price || item.originalPrice || 0);
 
-        if (typeof item.price === 'string') {
-          const parsed = parseFloat(item.price.replace(/[^0-9.]/g, ''));
-          if (!isNaN(parsed)) priceNum = parsed;
-        }
+          if (typeof item.price === "string") {
+            const parsed = parseFloat(item.price.replace(/[^0-9.]/g, ""));
+            if (!isNaN(parsed)) priceNum = parsed;
+          }
 
-        let discountedPrice = null;
-        let dText = 'SPECIAL OFFER';
+          let discountedPrice = null;
+          let dText = "SPECIAL OFFER";
 
-        const specificDiscount = Array.isArray(restaurant.itemDiscounts)
-          ? restaurant.itemDiscounts.find(d => String(d.itemId) === String(item.id || item._id || item.menuItemId))
-          : null;
+          const specificDiscount = Array.isArray(restaurant?.itemDiscounts)
+            ? restaurant.itemDiscounts.find((d) => String(d.itemId) === String(item.id || item._id || item.menuItemId))
+            : null;
 
-        if (specificDiscount) {
-          const discountVal = Number(specificDiscount.discountValue) || 0;
-          const isFlat = String(specificDiscount.discountType || '').toUpperCase() === 'FLAT';
-          if (!isFlat) {
-            discountedPrice = priceNum * (1 - discountVal / 100);
-            dText = `${discountVal}% OFF`;
+          if (specificDiscount) {
+            const discountVal = Number(specificDiscount.discountValue) || 0;
+            const isFlat = String(specificDiscount.discountType || "").toUpperCase() === "FLAT";
+            if (!isFlat) {
+              discountedPrice = priceNum * (1 - discountVal / 100);
+              dText = `${discountVal}% OFF`;
+            } else {
+              discountedPrice = Math.max(0, priceNum - discountVal);
+              dText = `FLAT ₹${discountVal} OFF`;
+            }
+          } else if (!discountedPrice && bestGlobalOffer) {
+            const discountVal = Number(bestGlobalOffer.discountValue) || 0;
+            const isFlat = String(bestGlobalOffer.discountType || "").toUpperCase() === "FLAT";
+            if (!isFlat) {
+              const maxD = Number(bestGlobalOffer.maxDiscount) || Infinity;
+              const calcD = priceNum * (discountVal / 100);
+              const actualD = Math.min(calcD, maxD);
+              discountedPrice = priceNum - actualD;
+              dText = bestGlobalOffer.title || `${discountVal}% OFF`;
+            } else {
+              discountedPrice = Math.max(0, priceNum - discountVal);
+              dText = bestGlobalOffer.title || `FLAT ₹${discountVal} OFF`;
+            }
+          } else if (!discountedPrice && restaurant?.discount > 0) {
+            discountedPrice = priceNum * (1 - restaurant.discount / 100);
+            dText = `${restaurant.discount}% OFF`;
           } else {
-            discountedPrice = Math.max(0, priceNum - discountVal);
-            dText = `FLAT â‚¹${discountVal} OFF`;
+            const matchingRule = (restaurant?.discountRules || []).find((rule) => {
+              const val = Number(rule.conditionValue);
+              if (rule.conditionType === "PRICE_ABOVE" && priceNum > val) return true;
+              if (rule.conditionType === "PRICE_BELOW" && priceNum < val) return true;
+              return false;
+            });
+            if (matchingRule) {
+              const discountVal = matchingRule.discountValue || 0;
+              discountedPrice = priceNum * (1 - discountVal / 100);
+              dText = `${discountVal}% OFF`;
+            }
           }
-        } else if (!discountedPrice && bestGlobalOffer) {
-          const discountVal = Number(bestGlobalOffer.discountValue) || 0;
-          const isFlat = String(bestGlobalOffer.discountType || '').toUpperCase() === 'FLAT';
-          if (!isFlat) {
-            const maxD = Number(bestGlobalOffer.maxDiscount) || Infinity;
-            const calcD = priceNum * (discountVal / 100);
-            const actualD = Math.min(calcD, maxD);
-            discountedPrice = priceNum - actualD;
-            dText = bestGlobalOffer.title || `${discountVal}% OFF`;
-          } else {
-            discountedPrice = Math.max(0, priceNum - discountVal);
-            dText = bestGlobalOffer.title || `FLAT â‚¹${discountVal} OFF`;
-          }
-        } else if (!discountedPrice && restaurant.discount > 0) {
-          discountedPrice = priceNum * (1 - restaurant.discount / 100);
-          dText = `${restaurant.discount}% OFF`;
-        } else {
-          const matchingRule = (restaurant.discountRules || []).find(rule => {
-            const val = Number(rule.conditionValue);
-            if (rule.conditionType === 'PRICE_ABOVE' && priceNum > val) return true;
-            if (rule.conditionType === 'PRICE_BELOW' && priceNum < val) return true;
-            return false;
-          });
-          if (matchingRule) {
-            const discountVal = matchingRule.discountValue || 0;
-            discountedPrice = priceNum * (1 - discountVal / 100);
-            dText = `${discountVal}% OFF`;
-          }
-        }
 
-        return {
-          name: item.name,
-          price: priceNum,
-          discountedPrice: discountedPrice,
-          dText: dText
-        };
-      }).filter(item => item.discountedPrice !== null && item.discountedPrice < item.price);
+          return {
+            name: item.name,
+            price: priceNum,
+            discountedPrice: discountedPrice,
+            dText: dText,
+          };
+        })
+        .filter((item) => item.discountedPrice !== null && item.discountedPrice < item.price);
 
       return discountedItems.slice(0, 5);
     }, [restaurant]);
@@ -232,7 +249,7 @@ const RestaurantImageCarousel = React.memo(
       return () => clearInterval(interval);
     }, [priority, bannerItems.length]);
 
-    // Auto-slide for restaurant images (priority cards only â€” reduces timer churn)
+    // Auto-slide for restaurant/recommended images (priority cards only)
     useEffect(() => {
       if (!priority || images.length <= 1) return;
       const interval = setInterval(() => {
@@ -254,10 +271,10 @@ const RestaurantImageCarousel = React.memo(
       images.length > 0
         ? ((currentIndex % images.length) + images.length) % images.length
         : 0;
+    const currentSlide = slides[safeIndex] || null;
     const primarySrc = images[safeIndex] || "";
     const displaySrc = primarySrc;
     const renderSrc = displaySrc || lastGoodSrc;
-    const isImageLoaded = Boolean(loadedBySrc[renderSrc] || lastGoodSrc);
 
     // Reset transient image state when restaurant or source list changes.
     useEffect(() => {
@@ -308,7 +325,6 @@ const RestaurantImageCarousel = React.memo(
       const currentX = e.touches[0].clientX;
       const diff = touchStartX.current - currentX;
 
-      // If swipe distance is significant, mark as swiping
       if (Math.abs(diff) > 10) {
         isSwiping.current = true;
       }
@@ -319,7 +335,7 @@ const RestaurantImageCarousel = React.memo(
 
       touchEndX.current = e.changedTouches[0].clientX;
       const diff = touchStartX.current - touchEndX.current;
-      const minSwipeDistance = 85; // Keep card swipe less sensitive on mobile
+      const minSwipeDistance = 85;
 
       if (Math.abs(diff) > minSwipeDistance) {
         if (diff > 0) {
@@ -331,10 +347,15 @@ const RestaurantImageCarousel = React.memo(
         }
       }
 
-      // Reset
       isSwiping.current = false;
       touchStartX.current = 0;
       touchEndX.current = 0;
+    };
+
+    const handleCarouselClick = (e) => {
+      if (onSlideClick && currentSlide) {
+        onSlideClick(currentSlide, e);
+      }
     };
 
     const showMultipleImages = images.length > 1;
@@ -344,7 +365,9 @@ const RestaurantImageCarousel = React.memo(
         className={`relative ${className} w-full overflow-hidden ${roundedClass} flex-shrink-0 group`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}>
+        onTouchEnd={handleTouchEnd}
+        onClick={handleCarouselClick}
+      >
         {showShimmer && !isImageUnavailable && Boolean(renderSrc) && (
           <div className="absolute inset-0 z-[1] overflow-hidden bg-gray-200">
             <div className="h-full w-full animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200" />
@@ -356,7 +379,7 @@ const RestaurantImageCarousel = React.memo(
             <img
               ref={imageElementRef}
               src={renderSrc}
-              alt={`${restaurant.name} - Image ${safeIndex + 1}`}
+              alt={`${restaurant?.name || "Restaurant"} - Image ${safeIndex + 1}`}
               className="w-full h-full object-cover"
               loading={priority ? "eager" : "lazy"}
               fetchPriority={priority ? "high" : "low"}
@@ -374,9 +397,7 @@ const RestaurantImageCarousel = React.memo(
                   if (attemptedCount >= images.length) {
                     setIsImageUnavailable(true);
                   } else if (images.length > 1) {
-                    setCurrentIndex(
-                      (prevIndex) => (prevIndex + 1) % images.length,
-                    );
+                    setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
                   }
 
                   return next;
@@ -387,18 +408,29 @@ const RestaurantImageCarousel = React.memo(
               }}
             />
           )}
-          
+
           {/* Secretly preload the next image to prevent white flash on swipe */}
           {images.length > 1 && (
-            <img 
-              src={images[(currentIndex + 1) % images.length]} 
-              className="hidden" 
-              alt="preload next" 
+            <img
+              src={images[(currentIndex + 1) % images.length]}
+              className="hidden"
+              alt="preload next"
               aria-hidden="true"
               decoding="async"
             />
           )}
         </div>
+
+        {/* Recommended Dish Floating Tag */}
+        {currentSlide?.isRecommended && currentSlide?.name && (
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-[11px] font-bold shadow-lg border border-amber-400/40 pointer-events-none">
+            <Sparkles className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+            <span className="truncate max-w-[140px] sm:max-w-[190px]">{currentSlide.name}</span>
+            {currentSlide.price > 0 && (
+              <span className="text-amber-300 font-extrabold ml-0.5">₹{Math.round(currentSlide.price)}</span>
+            )}
+          </div>
+        )}
 
         {isImageUnavailable && (
           <div className="absolute inset-0 z-[2] flex items-center justify-center bg-gray-100">
@@ -418,12 +450,14 @@ const RestaurantImageCarousel = React.memo(
                   setCurrentIndex(index);
                 }}
                 className="w-10 h-10 flex items-center justify-center focus:outline-none group/btn rounded-full"
-                aria-label={`Go to image ${index + 1}`}>
+                aria-label={`Go to image ${index + 1}`}
+              >
                 <div
-                  className={`h-1.5 rounded-full transition-all duration-300 ${index === currentIndex
-                    ? "w-6 bg-white"
-                    : "w-1.5 bg-white/50 group-hover/btn:bg-white/75"
-                    }`}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    index === currentIndex
+                      ? "w-6 bg-white"
+                      : "w-1.5 bg-white/50 group-hover/btn:bg-white/75"
+                  }`}
                 />
               </button>
             ))}
@@ -436,9 +470,7 @@ const RestaurantImageCarousel = React.memo(
         {/* Shine Effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full transition-transform duration-1000 group-hover:animate-shine" />
 
-        {/* Discount Badge removed and moved to HomeRestaurantCard */}
-
-        {/* Sliding Minimal Blue Banner for Items or Static Fallback */}
+        {/* Sliding Minimal Orange Banner for Items or Static Fallback */}
         {bannerItems.length > 0 ? (
           <div className="absolute bottom-0 left-0 right-0 bg-[#ea580c] z-[20]">
             <div className="w-full relative overflow-hidden h-[24px]">
@@ -463,9 +495,9 @@ const RestaurantImageCarousel = React.memo(
             </div>
           </div>
         ) : (() => {
-          let maxDiscount = restaurant.discount || 0;
-          if (Array.isArray(restaurant.discountRules) && restaurant.discountRules.length > 0) {
-            const maxRule = Math.max(...restaurant.discountRules.map(r => r.discountValue || 0));
+          let maxDiscount = restaurant?.discount || 0;
+          if (Array.isArray(restaurant?.discountRules) && restaurant.discountRules.length > 0) {
+            const maxRule = Math.max(...restaurant.discountRules.map((r) => r.discountValue || 0));
             if (maxRule > maxDiscount) maxDiscount = maxRule;
           }
           if (maxDiscount > 0) {

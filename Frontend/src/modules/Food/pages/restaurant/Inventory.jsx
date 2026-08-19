@@ -1089,9 +1089,7 @@ export default function Inventory() {
                   foodType: item.foodType || "Non-Veg",
                   approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                   rejectionReason: item.rejectionReason || "",
-                  // Backend menu is generated from food_items and currently doesn't persist "recommended".
-                  // Keep as a local UI preference keyed by food item id.
-                  isRecommended: Boolean(recommendedMap?.[String(item.id)]),
+                  isRecommended: item.isRecommended !== undefined ? Boolean(item.isRecommended) : Boolean(recommendedMap?.[String(item.id)]),
                   stockQuantity: item.stock || "Unlimited",
                   unit: item.itemSizeUnit || "piece",
                   expiryDate: null,
@@ -1121,7 +1119,7 @@ export default function Inventory() {
                   foodType: item.foodType || "Non-Veg",
                   approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                   rejectionReason: item.rejectionReason || "",
-                  isRecommended: Boolean(recommendedMap?.[String(item.id)]),
+                  isRecommended: item.isRecommended !== undefined ? Boolean(item.isRecommended) : Boolean(recommendedMap?.[String(item.id)]),
                   stockQuantity: item.stock || "Unlimited",
                   unit: item.itemSizeUnit || "piece",
                   expiryDate: null,
@@ -1969,8 +1967,11 @@ export default function Inventory() {
       })
     )
 
-    // Persist local recommended preference (backend doesn't support it yet).
+    // Persist to backend and local storage
     try {
+      if (itemId) {
+        await restaurantAPI.updateFood(itemId, { isRecommended: newRecommendationStatus })
+      }
       setRecommendedMap((prev) => {
         const next = { ...(prev || {}) }
         next[String(itemId)] = Boolean(newRecommendationStatus)

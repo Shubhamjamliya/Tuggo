@@ -1531,6 +1531,9 @@ export const listApprovedRestaurants = async (query = {}) => {
         } catch (err) {
             // Silently ignore
         }
+
+        const recommendedMap = await populateRecommendedItems(restaurantsRawGeo);
+
         const origin = { lat, lng };
         const dests = (restaurantsRawGeo || []).map(r => ({
             id: r._id,
@@ -1555,6 +1558,7 @@ export const listApprovedRestaurants = async (query = {}) => {
                 closingTime: r.closingTime || null,
                 openDays: Array.isArray(r.openDays) ? r.openDays : [],
                 menuImages: Array.isArray(r.menuImages) ? r.menuImages : [],
+                recommendedItems: recommendedMap.get(String(r._id)) || [],
                 distanceInfo: drivingInfo || null,
                 distanceText: drivingInfo ? drivingInfo.distanceText : null
             };
@@ -1654,6 +1658,8 @@ export const listApprovedRestaurants = async (query = {}) => {
         // Silently ignore if population fails
     }
 
+    const recommendedMap = await populateRecommendedItems(restaurantsRaw);
+
     let drivingDistances = new Map();
     if (lat !== null && lng !== null) {
         const origin = { lat, lng };
@@ -1682,6 +1688,7 @@ export const listApprovedRestaurants = async (query = {}) => {
             openDays: Array.isArray(r.openDays) ? r.openDays : [],
             // Keep menuImages as an array for fallbacks; allow both string and {url} on client.
             menuImages: Array.isArray(r.menuImages) ? r.menuImages : [],
+            recommendedItems: recommendedMap.get(String(r._id)) || [],
             distanceInfo: drivingInfo || null,
             distanceText: drivingInfo ? drivingInfo.distanceText : null
         };
@@ -1783,7 +1790,10 @@ export const getApprovedRestaurantByIdOrSlug = async (idOrSlug, query = {}) => {
         }
     }
 
-    const offers = await fetchOffers(doc._id);
+    const [offers, singleRecMap] = await Promise.all([
+        fetchOffers(doc._id),
+        populateRecommendedItems([doc])
+    ]);
 
     return {
         ...doc,
@@ -1792,6 +1802,7 @@ export const getApprovedRestaurantByIdOrSlug = async (idOrSlug, query = {}) => {
             ...(doc.restaurantOffers || {}),
             coupons: offers
         },
+        recommendedItems: singleRecMap.get(String(doc._id)) || [],
         rating: normalizeRatingValue(doc.rating),
         totalRatings: normalizeTotalRatingsValue(doc.totalRatings),
         distanceInfo: drivingInfo || null,

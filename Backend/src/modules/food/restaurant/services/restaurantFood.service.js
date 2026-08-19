@@ -266,6 +266,7 @@ export async function createRestaurantFood(restaurantId, body = {}) {
     const description = toStr(body.description);
     const image = await ensureLocalImageUrl(body.image || body.imageUrl || body.photoUrl || body.photo);
     const isAvailable = body.isAvailable !== false;
+    const isRecommended = Boolean(body.isRecommended);
     const foodType = normalizeFoodType(body.foodType);
     const preparationTime = toStr(body.preparationTime);
     const { categoryObjectId, categoryName } = await resolveCategoryForRestaurant(context, { ...body, foodType });
@@ -285,6 +286,7 @@ export async function createRestaurantFood(restaurantId, body = {}) {
         image,
         foodType,
         isAvailable,
+        isRecommended,
         preparationTime,
         approvalStatus: 'pending',
         requestedAt: new Date()
@@ -336,6 +338,7 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
     }
     Object.assign(update, getUpdatedFoodPricing(existing, body));
     if (body.isAvailable !== undefined) update.isAvailable = body.isAvailable !== false;
+    if (body.isRecommended !== undefined) update.isRecommended = Boolean(body.isRecommended);
     if (body.preparationTime !== undefined) update.preparationTime = toStr(body.preparationTime);
 
     const targetFoodType = body.foodType !== undefined ? normalizeFoodType(body.foodType) : normalizeFoodType(existing.foodType);
@@ -355,7 +358,8 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
         update.categoryName = categoryName || '';
     }
 
-    const shouldResubmitForApproval = Object.keys(update).length > 0;
+    const approvalRequiredKeys = ['name', 'description', 'price', 'variants', 'image', 'priceOnOtherPlatforms', 'otherPlatformGst', 'foodType', 'categoryId', 'categoryName'];
+    const shouldResubmitForApproval = Object.keys(update).some(key => approvalRequiredKeys.includes(key));
 
     if (shouldResubmitForApproval) {
         update.approvalStatus = 'pending';
@@ -396,35 +400,28 @@ export async function bulkCreateFood(restaurantId, items = []) {
     const results = {
         successCount: 0,
         errorCount: 0,
-        errors: [],
-        items: []
+        errors: []
     };
 
     if (!Array.isArray(items) || items.length === 0) {
-        throw new ValidationError('No items provided for bulk upload');
-    }
-
-    // Limit bulk size to prevent timeout
-    if (items.length > MAX_BULK_ITEMS) {
-        throw new ValidationError(`Bulk upload limit is ${MAX_BULK_ITEMS} items per request`);
+        return results;
     }
 
     const processedItems = [];
-
-    await asyncPool(BULK_CONCURRENCY, items, async (item, index) => {
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         try {
             const name = toStr(item.name);
-            if (!name) throw new Error('Item name is required');
+            if (!name) {
+                results.errorCount++;
+                results.errors.push(`Row ${i + 1}: Name is required`);
+                continue;
+            }
 
+            const { price, variants } = sanitizeFoodPricing(item);
             const foodType = normalizeFoodType(item.foodType);
-            const { categoryObjectId, categoryName } = await resolveCategoryForRestaurant(context, {
-                categoryId: item.categoryId,
-                categoryName: item.categoryName,
-                foodType
-            });
-
-            const { price: finalPrice, variants: finalVariants } = getCreateFoodPricing(item);
-            const imageUrl = await ensureLocalImageUrl(item.image || item.imageUrl || item.photoUrl || item.photo);
+            const { categoryObjectId, categoryName } = await resolveCategoryForRestaurant(context, { ...item, foodType });
+            const image = await ensureLocalImageUrl(item.image || item.imageUrl || item.photoUrl || item.photo);
 
             processedItems.push({
                 restaurantId,
@@ -432,49 +429,124 @@ export async function bulkCreateFood(restaurantId, items = []) {
                 categoryName: categoryName || '',
                 name,
                 description: toStr(item.description),
-                price: finalPrice,
-                variants: finalVariants,
-                image: imageUrl,
+                price,
+                priceOnOtherPlatforms: item.priceOnOtherPlatforms ? Number(item.priceOnOtherPlatforms) : null,
+                otherPlatformGst: item.otherPlatformGst !== undefined && item.otherPlatformGst !== null
+                    ? Number(item.otherPlatformGst)
+                    : null,
+                variants,
+                image,
                 foodType,
                 isAvailable: item.isAvailable !== false,
+                isRecommended: Boolean(item.isRecommended),
                 preparationTime: toStr(item.preparationTime),
                 approvalStatus: 'pending',
                 requestedAt: new Date()
             });
-
             results.successCount++;
         } catch (err) {
             results.errorCount++;
-            results.errors.push({
-                index,
-                name: item?.name || 'Unknown',
-                message: err.message
-            });
+            results.errors.push(`Row ${i + 1}: ${err.message}`);
         }
-    });
+    }
 
     if (processedItems.length > 0) {
         const docs = await FoodItem.insertMany(processedItems);
-        results.items = docs;
-
-        // Notify admins about the bulk request
         try {
             const { notifyAdminsSafely } = await import('../../../../core/notifications/firebase.service.js');
             void notifyAdminsSafely({
-                title: 'Bulk Product Approval Request 🚀',
-                body: `Restaurant has uploaded ${processedItems.length} new items for approval.`,
+                title: 'Bulk Products Approval Request 📦',
+                body: `Restaurant has uploaded ${docs.length} items for approval.`,
                 data: {
                     type: 'approval_request',
                     subType: 'food_bulk',
-                    restaurantId: String(restaurantId)
+                    count: String(docs.length)
                 }
             });
         } catch (e) {
-            console.error('Failed to notify admins of bulk food upload:', e);
+            console.error('Failed to notify admins of bulk food approval request:', e);
         }
     }
 
     return results;
+}
+
+export async function deleteRestaurantFood(restaurantId, foodId) {
+    if (!foodId || !mongoose.Types.ObjectId.isValid(String(foodId))) {
+        throw new ValidationError('Invalid food id');
+    }
+
+    const foodItem = await FoodItem.findOne({
+        _id: foodId,
+        restaurantId
+    }).lean();
+
+    if (!foodItem) {
+        return false;
+    }
+
+    await FoodItem.findByIdAndDelete(foodId);
+    return true;
+}
+
+export async function listRestaurantFoods(restaurantId, query = {}) {
+    const page = Math.max(1, parseInt(query.page) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter = {
+        restaurantId,
+        isAvailable: { $ne: false }
+    };
+
+    if (query.categoryId && mongoose.Types.ObjectId.isValid(String(query.categoryId))) {
+        filter.categoryId = query.categoryId;
+    }
+
+    if (query.search) {
+        const term = String(query.search).trim();
+        if (term) {
+            filter.name = { $regex: term, $options: 'i' };
+        }
+    }
+
+    const [list, total] = await Promise.all([
+        FoodItem.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        FoodItem.countDocuments(filter)
+    ]);
+
+    const restaurantIds = [...new Set(list.map((f) => f.restaurantId).filter(Boolean))];
+    const restaurants = restaurantIds.length
+        ? await FoodRestaurant.find({ _id: { $in: restaurantIds } })
+            .select('restaurantName')
+            .lean()
+        : [];
+    const restaurantMap = new Map(
+        restaurants.map((r) => [String(r._id), r.restaurantName])
+    );
+
+    const foods = list.map((f) => ({
+        id: f._id,
+        _id: f._id,
+        restaurantId: f.restaurantId,
+        restaurantName: restaurantMap.get(String(f.restaurantId)) || '',
+        categoryId: f.categoryId || null,
+        categoryName: f.categoryName || '',
+        name: f.name,
+        description: f.description || '',
+        price: getFoodDisplayPrice(f),
+        image: resolveStoredUploadPath(f.image || ''),
+        foodType: f.foodType || 'Non-Veg',
+        isAvailable: f.isAvailable !== false,
+        isRecommended: Boolean(f.isRecommended),
+        approvalStatus: f.approvalStatus || 'approved'
+    }));
+
+    return { foods, total, page, limit };
 }
 
 export async function deleteFood(userId, foodId) {
@@ -509,8 +581,7 @@ export async function listPublicApprovedFoods(query = {}) {
         const zoneRestaurants = await FoodRestaurant.distinct('_id', {
             zoneId: new mongoose.Types.ObjectId(zoneIdRaw),
             status: 'approved'
-        });
-        filter.restaurantId = { $in: zoneRestaurants };
+             filter.restaurantId = { $in: zoneRestaurants };
     }
 
     const [list, total] = await Promise.all([
@@ -547,6 +618,7 @@ export async function listPublicApprovedFoods(query = {}) {
         image: resolveStoredUploadPath(f.image || ''),
         foodType: f.foodType || 'Non-Veg',
         isAvailable: f.isAvailable !== false,
+        isRecommended: Boolean(f.isRecommended),
         approvalStatus: f.approvalStatus || 'approved'
     }));
 
