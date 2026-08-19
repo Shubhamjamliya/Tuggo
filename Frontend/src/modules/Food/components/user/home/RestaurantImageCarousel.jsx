@@ -89,7 +89,12 @@ const RestaurantImageCarousel = React.memo(
         }
       });
 
-      // Also gather regular restaurant images
+      // If recommended food images exist, show ONLY recommended dishes
+      if (result.length > 0) {
+        return result;
+      }
+
+      // Fallback: If no recommended items exist, use regular restaurant cover images
       let sourceImages = [];
       if (Array.isArray(restaurant?.images) && restaurant.images.length > 0) {
         sourceImages = restaurant.images;

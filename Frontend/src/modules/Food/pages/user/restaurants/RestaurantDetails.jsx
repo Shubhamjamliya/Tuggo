@@ -2126,7 +2126,7 @@ function RestaurantDetailsContent() {
 
     const highlightTimer = window.setTimeout(() => {
       setHighlightedDishId((current) => (current === targetDishId ? null : current))
-    }, 2600)
+    }, 3500)
 
     return () => {
       window.clearTimeout(scrollTimer)
@@ -2373,37 +2373,6 @@ function RestaurantDetailsContent() {
       </>
     )
 
-    if (isHighlighted) {
-      return (
-        <motion.div
-          key={item.id || item._id}
-          ref={(node) => {
-            const itemId = item.id || item._id;
-            if (node) {
-              dishCardRefs.current[itemId] = node
-            } else {
-              delete dishCardRefs.current[itemId]
-            }
-          }}
-          initial={{ scale: 0.98, opacity: 0.95 }}
-          animate={{
-            scale: [1, 1.02, 1.01],
-            opacity: 1,
-            boxShadow: [
-              "0 4px 12px rgba(126,56,102,0.1)",
-              "0 16px 36px rgba(126,56,102,0.3)",
-              "0 12px 28px rgba(126,56,102,0.22)"
-            ]
-          }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex gap-4 p-4 border-b border-gray-100 dark:border-gray-800 last:border-none relative cursor-pointer transition-all duration-500 rounded-2xl bg-gradient-to-r from-[#7e38660a] to-[#7e386615] dark:from-[#7e386618] dark:to-[#7e386622] ring-2 ring-primary z-10 mx-1 my-2"
-          onClick={() => handleItemClick(item)}
-        >
-          {cardContent}
-        </motion.div>
-      )
-    }
-
     return (
       <div
         key={item.id || item._id}
@@ -2415,7 +2384,11 @@ function RestaurantDetailsContent() {
             delete dishCardRefs.current[itemId]
           }
         }}
-        className="flex gap-4 p-4 border-b border-gray-100 dark:border-gray-800 last:border-none relative cursor-pointer rounded-2xl hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors duration-200"
+        className={`flex gap-4 p-4 border-b border-gray-100 dark:border-gray-800 last:border-none relative cursor-pointer rounded-2xl transition-all duration-500 ${
+          isHighlighted
+            ? "ring-2 ring-[#ea580c] shadow-[0_0_0_4px_rgba(234,88,12,0.2),0_8px_24px_rgba(234,88,12,0.15)] bg-orange-50/40 dark:bg-orange-950/20 z-10 mx-1 my-1.5 animate-pulse"
+            : "hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"
+        }`}
         onClick={() => handleItemClick(item)}
       >
         {cardContent}
