@@ -1,5 +1,5 @@
 import { FoodRestaurant } from '../models/restaurant.model.js';
-import { uploadRestaurantImage, uploadFileBuffer } from '../../../../services/upload.service.js';
+import { uploadRestaurantImage, uploadFileBuffer, resolveStoredUploadPath } from '../../../../services/upload.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import mongoose from 'mongoose';
 import { FoodZone } from '../../admin/models/zone.model.js';
@@ -234,6 +234,55 @@ const getZoneRadiusKm = (zoneDoc) => {
 const buildZoneRestaurantMatch = (_zoneDoc, zoneIdRaw) => {
     if (!zoneIdRaw || !mongoose.Types.ObjectId.isValid(zoneIdRaw)) return null;
     return { zoneId: new mongoose.Types.ObjectId(zoneIdRaw) };
+};
+
+const populateRecommendedItems = async (restaurants = []) => {
+    const map = new Map();
+    if (!Array.isArray(restaurants) || restaurants.length === 0) {
+        return map;
+    }
+
+    try {
+        const restaurantIds = restaurants
+            .map((r) => r?._id || r?.id)
+            .filter((id) => id && mongoose.Types.ObjectId.isValid(String(id)));
+
+        if (restaurantIds.length === 0) {
+            return map;
+        }
+
+        const { FoodItem } = await import('../../admin/models/food.model.js');
+        const { getFoodDisplayPrice } = await import('../../admin/services/foodVariant.service.js');
+
+        const items = await FoodItem.find({
+            restaurantId: { $in: restaurantIds },
+            isRecommended: true,
+            isAvailable: { $ne: false },
+            approvalStatus: 'approved'
+        })
+            .select('name price variants image isRecommended restaurantId')
+            .lean();
+
+        for (const item of items) {
+            const rId = String(item.restaurantId);
+            if (!map.has(rId)) {
+                map.set(rId, []);
+            }
+            map.get(rId).push({
+                id: item._id,
+                _id: item._id,
+                name: item.name,
+                price: getFoodDisplayPrice(item),
+                image: resolveStoredUploadPath(item.image || ''),
+                imageUrl: resolveStoredUploadPath(item.image || ''),
+                isRecommended: true
+            });
+        }
+    } catch (err) {
+        console.error('Error in populateRecommendedItems:', err);
+    }
+
+    return map;
 };
 
 const notifyAdminsAboutRestaurantProfileReview = async (restaurantId, restaurantName) => {
