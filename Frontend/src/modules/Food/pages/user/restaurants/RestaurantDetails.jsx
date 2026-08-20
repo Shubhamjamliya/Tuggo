@@ -125,7 +125,7 @@ function RestaurantDetailsContent() {
     [searchParams]
   )
   const BACKEND_ORIGIN = useMemo(() => API_BASE_URL.replace(/\/api(\/v\d+)?\/?$/, ""), [])
-  const { addToCart, updateQuantity, removeFromCart, getCartItem, cart } = useCart()
+  const { addToCart, updateQuantity, removeFromCart, getCartItem, cart, itemCount } = useCart()
   const { vegMode, vegModeOption, addDishFavorite, removeDishFavorite, isDishFavorite, getDishFavorites, getFavorites, addFavorite, removeFavorite, isFavorite } = useProfile()
   const { location: userLocation, zoneId, zone, loading: loadingZone, isOutOfService, serviceUnavailableMessage } = useAppLocation()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -2740,14 +2740,6 @@ function RestaurantDetailsContent() {
                       )}
                     </Button>
                   )}
-                  <Button
-                    className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-1.5 shadow-[0_4px_12px_rgba(255,102,0,0.4)] border border-white/20 rounded-full font-bold transform transition-all duration-300 active:scale-95 group ml-1"
-                    size="sm"
-                    onClick={() => setShowMenuSheet(true)}
-                  >
-                    <Utensils className="h-3.5 w-3.5 text-white group-hover:rotate-12 transition-transform" />
-                    <span className="tracking-widest text-xs uppercase">MENU</span>
-                  </Button>
                 </div>
               </div>
 
@@ -4171,6 +4163,33 @@ function RestaurantDetailsContent() {
               </>
             )}
           </AnimatePresence>,
+          document.body
+        )}
+
+      {/* Floating menu button: occupies the cart slot while empty, then moves above the cart. */}
+      {typeof window !== "undefined" && !showScanAnimation &&
+        createPortal(
+          <motion.div
+            initial={{ y: 20, opacity: 0, scale: 0.9 }}
+            animate={{
+              y: 0,
+              opacity: 1,
+              scale: 1,
+              bottom: itemCount > 0 ? 138 : 80,
+            }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="fixed left-0 right-0 z-[9998] flex justify-center px-4 pointer-events-none"
+          >
+            <button
+              type="button"
+              onClick={() => setShowMenuSheet(true)}
+              className="pointer-events-auto min-w-[110px] bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center gap-1.5 px-4 py-2.5 shadow-[0_4px_15px_rgba(255,102,0,0.4)] border border-white/20 rounded-full font-bold transition-transform active:scale-95 group"
+              aria-label="Open menu categories"
+            >
+              <Utensils className="h-4 w-4 text-white group-hover:rotate-12 transition-transform" />
+              <span className="tracking-widest text-xs uppercase">Menu</span>
+            </button>
+          </motion.div>,
           document.body
         )}
 
