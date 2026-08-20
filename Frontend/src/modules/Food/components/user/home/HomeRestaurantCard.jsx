@@ -9,7 +9,9 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@food/components/ui/card";
 import { Button } from "@food/components/ui/button";
-import RestaurantImageCarousel from "@food/components/user/home/RestaurantImageCarousel";
+import RestaurantImageCarousel, {
+  RestaurantOfferBanner,
+} from "@food/components/user/home/RestaurantImageCarousel";
 import { useDeferredOutletTimings } from "@food/hooks/user/useDeferredOutletTimings";
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability";
 
@@ -137,12 +139,6 @@ function HomeRestaurantCard({
                       >
                         {availability.isOpen ? "Open now" : "Offline"}
                       </span>
-                      {restaurant.discount > 0 && (
-                        <div className="inline-flex rounded-full px-2.5 py-1 bg-[#ea580c] text-white text-[10px] font-black uppercase tracking-widest shadow-sm items-center gap-1">
-                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.864 2.227l8.909 8.91a2.182 2.182 0 010 3.085l-7.364 7.364a2.182 2.182 0 01-3.085 0l-8.91-8.91A2.182 2.182 0 012 11.137V4.41A2.182 2.182 0 014.182 2.23h6.727a2.182 2.182 0 011.955-.003z" /></svg>
-                          {restaurant.discount}% OFF
-                        </div>
-                      )}
                       {availability.isOpen &&
                         availability.closingCountdownLabel &&
                         availability.openingTime &&
@@ -182,6 +178,11 @@ function HomeRestaurantCard({
                     {restaurant.distance}
                   </span>
                 </div>
+
+                <RestaurantOfferBanner
+                  restaurant={restaurant}
+                  priority={priority}
+                />
 
                 {restaurant.offer && (
                   <div className="flex items-center gap-2 text-sm lg:text-base mt-auto transform transition-transform duration-300 group-hover:translate-x-1">

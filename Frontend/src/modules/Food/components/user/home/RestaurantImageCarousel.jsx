@@ -9,23 +9,187 @@ function OfferBannerContent({ item }) {
   if (!item) return null;
   return (
     <div className="flex items-center w-full gap-2 px-3 py-1.5">
-      <span className="text-[11px] font-semibold text-white uppercase whitespace-nowrap">
+      <span className="text-[11px] font-semibold text-black uppercase whitespace-nowrap">
         {item.dText}
       </span>
-      <div className="w-[3px] h-[3px] rounded-full bg-white/60 shrink-0" />
-      <span className="font-medium text-white/95 text-[11px] whitespace-nowrap truncate flex-1">
+      <div className="w-[3px] h-[3px] rounded-full bg-black/60 shrink-0" />
+      <span className="font-medium text-black text-[11px] whitespace-nowrap truncate flex-1">
         {item.name}
       </span>
       <div className="flex items-center gap-1.5 shrink-0 pl-1">
         {item.discountedPrice && item.discountedPrice < item.price ? (
           <>
-            <span className="text-[10px] text-white/70 line-through">₹{Math.round(item.price)}</span>
-            <span className="font-semibold text-white text-[11px]">₹{Math.round(item.discountedPrice)}</span>
+            <span className="text-[10px] text-black/50 line-through">₹{Math.round(item.price)}</span>
+            <span className="font-semibold text-black text-[11px]">₹{Math.round(item.discountedPrice)}</span>
           </>
         ) : (
-          <span className="font-semibold text-white text-[11px]">₹{Math.round(item.price)}</span>
+          <span className="font-semibold text-black text-[11px]">₹{Math.round(item.price)}</span>
         )}
       </div>
+    </div>
+  );
+}
+
+function getBannerItems(restaurant) {
+  const items = [];
+
+  if (Array.isArray(restaurant?.itemDiscounts) && restaurant.itemDiscounts.some((d) => d.name)) {
+    restaurant.itemDiscounts.forEach((d) => {
+      if (d.name) {
+        items.push({ id: d.itemId, name: d.name, price: d.price || 0 });
+      }
+    });
+  }
+
+  if (items.length === 0 && Array.isArray(restaurant?.menu?.sections)) {
+    restaurant.menu.sections.forEach((section) => {
+      if (Array.isArray(section.items)) items.push(...section.items);
+    });
+  }
+
+  if (items.length === 0) {
+    if (Array.isArray(restaurant?.popularItems) && restaurant.popularItems.length > 0) {
+      items.push(...restaurant.popularItems);
+    } else if (Array.isArray(restaurant?.menuItems) && restaurant.menuItems.length > 0) {
+      items.push(...restaurant.menuItems);
+    }
+  }
+
+  if (items.length === 0 && restaurant?.featuredDish) {
+    items.push({
+      name: restaurant.featuredDish,
+      price: restaurant.featuredPrice || 0,
+      originalPrice: restaurant.featuredPrice || 0,
+    });
+  }
+
+  const globalOffers = Array.isArray(restaurant?.offers) ? restaurant.offers : [];
+  const bestGlobalOffer = globalOffers.reduce(
+    (best, offer) =>
+      !best || Number(offer.discountValue) > Number(best.discountValue) ? offer : best,
+    null,
+  );
+
+  return items
+    .map((item) => {
+      let priceNum = Number(item.price || item.originalPrice || 0);
+      if (typeof item.price === "string") {
+        const parsed = parseFloat(item.price.replace(/[^0-9.]/g, ""));
+        if (!isNaN(parsed)) priceNum = parsed;
+      }
+
+      let discountedPrice = null;
+      let dText = "SPECIAL OFFER";
+      const specificDiscount = Array.isArray(restaurant?.itemDiscounts)
+        ? restaurant.itemDiscounts.find(
+            (discount) =>
+              String(discount.itemId) === String(item.id || item._id || item.menuItemId),
+          )
+        : null;
+
+      if (specificDiscount) {
+        const discountValue = Number(specificDiscount.discountValue) || 0;
+        const isFlat = String(specificDiscount.discountType || "").toUpperCase() === "FLAT";
+        discountedPrice = isFlat
+          ? Math.max(0, priceNum - discountValue)
+          : priceNum * (1 - discountValue / 100);
+        dText = isFlat ? `FLAT â‚¹${discountValue} OFF` : `${discountValue}% OFF`;
+      } else if (bestGlobalOffer) {
+        const discountValue = Number(bestGlobalOffer.discountValue) || 0;
+        const isFlat = String(bestGlobalOffer.discountType || "").toUpperCase() === "FLAT";
+        if (isFlat) {
+          discountedPrice = Math.max(0, priceNum - discountValue);
+        } else {
+          const maxDiscount = Number(bestGlobalOffer.maxDiscount) || Infinity;
+          discountedPrice = priceNum - Math.min(priceNum * (discountValue / 100), maxDiscount);
+        }
+        dText = bestGlobalOffer.title ||
+          (isFlat ? `FLAT â‚¹${discountValue} OFF` : `${discountValue}% OFF`);
+      } else if (restaurant?.discount > 0) {
+        discountedPrice = priceNum * (1 - restaurant.discount / 100);
+        dText = `${restaurant.discount}% OFF`;
+      } else {
+        const matchingRule = (restaurant?.discountRules || []).find((rule) => {
+          const value = Number(rule.conditionValue);
+          return (
+            (rule.conditionType === "PRICE_ABOVE" && priceNum > value) ||
+            (rule.conditionType === "PRICE_BELOW" && priceNum < value)
+          );
+        });
+        if (matchingRule) {
+          const discountValue = matchingRule.discountValue || 0;
+          discountedPrice = priceNum * (1 - discountValue / 100);
+          dText = `${discountValue}% OFF`;
+        }
+      }
+
+      return { name: item.name, price: priceNum, discountedPrice, dText };
+    })
+    .filter((item) => item.discountedPrice !== null && item.discountedPrice < item.price)
+    .slice(0, 5);
+}
+
+export function RestaurantOfferBanner({ restaurant, priority = false }) {
+  const bannerItems = useMemo(() => getBannerItems(restaurant), [restaurant]);
+  const [currentItemIndex, setCurrentItemIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentItemIndex(0);
+  }, [restaurant?.id, restaurant?.slug, bannerItems.length]);
+
+  useEffect(() => {
+    if (!priority || bannerItems.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentItemIndex((previous) => (previous + 1) % bannerItems.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [priority, bannerItems.length]);
+
+  if (bannerItems.length > 0) {
+    return (
+      <div className="mb-2 w-full overflow-hidden lg:mb-3">
+        <div className="relative h-[28px] w-full overflow-hidden">
+          {priority && bannerItems.length > 1 ? (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentItemIndex}
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -15, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 flex w-full items-center"
+              >
+                <OfferBannerContent item={bannerItems[currentItemIndex]} />
+              </motion.div>
+            </AnimatePresence>
+          ) : (
+            <div className="absolute inset-0 flex w-full items-center">
+              <OfferBannerContent item={bannerItems[0]} />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  let maxDiscount = restaurant?.discount || 0;
+  if (Array.isArray(restaurant?.discountRules) && restaurant.discountRules.length > 0) {
+    maxDiscount = Math.max(
+      maxDiscount,
+      ...restaurant.discountRules.map((rule) => rule.discountValue || 0),
+    );
+  }
+
+  if (maxDiscount <= 0) return null;
+
+  return (
+    <div className="mb-2 flex w-full items-center justify-between px-3 py-1.5 lg:mb-3">
+      <span className="text-[11px] font-semibold uppercase whitespace-nowrap text-black">
+        SPECIAL OFFER
+      </span>
+      <span className="text-[11px] font-medium whitespace-nowrap text-black">
+        UP TO {maxDiscount}% OFF
+      </span>
     </div>
   );
 }
@@ -130,6 +294,7 @@ const RestaurantImageCarousel = React.memo(
 
     const images = useMemo(() => slides.map((s) => s.url), [slides]);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [slideDirection, setSlideDirection] = useState(1);
     const [currentItemIndex, setCurrentItemIndex] = useState(0);
 
     const bannerItems = useMemo(() => {
@@ -258,8 +423,9 @@ const RestaurantImageCarousel = React.memo(
     useEffect(() => {
       if (!priority || images.length <= 1) return;
       const interval = setInterval(() => {
+        setSlideDirection(1);
         setCurrentIndex((prev) => (prev + 1) % images.length);
-      }, 3500);
+      }, 5000);
       return () => clearInterval(interval);
     }, [priority, images.length]);
 
@@ -345,9 +511,11 @@ const RestaurantImageCarousel = React.memo(
       if (Math.abs(diff) > minSwipeDistance) {
         if (diff > 0) {
           // Swipe left - next image
+          setSlideDirection(1);
           setCurrentIndex((prev) => (prev + 1) % images.length);
         } else {
           // Swipe right - previous image
+          setSlideDirection(-1);
           setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
         }
       }
@@ -380,39 +548,57 @@ const RestaurantImageCarousel = React.memo(
         )}
 
         <div className="absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-110">
-          {renderSrc && (
-            <img
-              ref={imageElementRef}
-              src={renderSrc}
-              alt={`${restaurant?.name || "Restaurant"} - Image ${safeIndex + 1}`}
-              className="w-full h-full object-cover"
-              loading={priority ? "eager" : "lazy"}
-              fetchPriority={priority ? "high" : "low"}
-              decoding="async"
-              onLoad={() => {
-                setLoadedBySrc((prev) => ({ ...prev, [renderSrc]: true }));
-                setLastGoodSrc(renderSrc);
-                setShowShimmer(false);
-              }}
-              onError={() => {
-                setAttemptedSrcs((prev) => {
-                  const next = { ...prev, [primarySrc]: true };
-                  const attemptedCount = Object.keys(next).length;
+          <AnimatePresence initial={false} custom={slideDirection}>
+            {renderSrc && (
+              <motion.div
+                key={`${safeIndex}-${primarySrc}`}
+                custom={slideDirection}
+                variants={{
+                  enter: (direction) => ({ x: direction > 0 ? "100%" : "-100%" }),
+                  center: { x: 0 },
+                  exit: (direction) => ({ x: direction > 0 ? "-100%" : "100%" }),
+                }}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 1.05, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 will-change-transform"
+              >
+                <img
+                  ref={imageElementRef}
+                  src={renderSrc}
+                  alt={`${restaurant?.name || "Restaurant"} - Image ${safeIndex + 1}`}
+                  className="w-full h-full object-cover"
+                  loading={priority ? "eager" : "lazy"}
+                  fetchPriority={priority ? "high" : "low"}
+                  decoding="async"
+                  onLoad={() => {
+                    setLoadedBySrc((prev) => ({ ...prev, [renderSrc]: true }));
+                    setLastGoodSrc(renderSrc);
+                    setShowShimmer(false);
+                  }}
+                  onError={() => {
+                    setAttemptedSrcs((prev) => {
+                      const next = { ...prev, [primarySrc]: true };
+                      const attemptedCount = Object.keys(next).length;
 
-                  if (attemptedCount >= images.length) {
-                    setIsImageUnavailable(true);
-                  } else if (images.length > 1) {
-                    setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
-                  }
+                      if (attemptedCount >= images.length) {
+                        setIsImageUnavailable(true);
+                      } else if (images.length > 1) {
+                        setSlideDirection(1);
+                        setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+                      }
 
-                  return next;
-                });
-                if (images.length === 1) {
-                  setIsImageUnavailable(true);
-                }
-              }}
-            />
-          )}
+                      return next;
+                    });
+                    if (images.length === 1) {
+                      setIsImageUnavailable(true);
+                    }
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Secretly preload the next image to prevent white flash on swipe */}
           {images.length > 1 && (
@@ -452,6 +638,7 @@ const RestaurantImageCarousel = React.memo(
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  setSlideDirection(index > safeIndex ? 1 : -1);
                   setCurrentIndex(index);
                 }}
                 className="w-10 h-10 flex items-center justify-center focus:outline-none group/btn rounded-full"
@@ -475,50 +662,6 @@ const RestaurantImageCarousel = React.memo(
         {/* Shine Effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full transition-transform duration-1000 group-hover:animate-shine" />
 
-        {/* Sliding Minimal Orange Banner for Items or Static Fallback */}
-        {bannerItems.length > 0 ? (
-          <div className="absolute bottom-0 left-0 right-0 bg-[#ea580c] z-[20]">
-            <div className="w-full relative overflow-hidden h-[24px]">
-              {priority && bannerItems.length > 1 ? (
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentItemIndex}
-                    initial={{ y: 15, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -15, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0 flex items-center w-full"
-                  >
-                    <OfferBannerContent item={bannerItems[currentItemIndex]} />
-                  </motion.div>
-                </AnimatePresence>
-              ) : (
-                <div className="absolute inset-0 flex items-center w-full">
-                  <OfferBannerContent item={bannerItems[0]} />
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (() => {
-          let maxDiscount = restaurant?.discount || 0;
-          if (Array.isArray(restaurant?.discountRules) && restaurant.discountRules.length > 0) {
-            const maxRule = Math.max(...restaurant.discountRules.map((r) => r.discountValue || 0));
-            if (maxRule > maxDiscount) maxDiscount = maxRule;
-          }
-          if (maxDiscount > 0) {
-            return (
-              <div className="absolute bottom-0 left-0 right-0 bg-[#ea580c] px-3 py-1.5 z-[20] flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-white uppercase whitespace-nowrap">
-                  SPECIAL OFFER
-                </span>
-                <span className="font-medium text-white/95 text-[11px] whitespace-nowrap">
-                  UP TO {maxDiscount}% OFF
-                </span>
-              </div>
-            );
-          }
-          return null;
-        })()}
       </div>
     );
   },

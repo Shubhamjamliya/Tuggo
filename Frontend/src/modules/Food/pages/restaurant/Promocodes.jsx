@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { ArrowLeft, Ticket, Plus, Trash2, X, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { restaurantAPI } from "@food/api";
@@ -127,7 +126,7 @@ export default function Promocodes() {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className={isModalOpen ? "hidden" : "p-4"}>
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -216,7 +215,7 @@ export default function Promocodes() {
       </div>
 
       {/* Floating Action Button */}
-      {promocodes.length > 0 && (
+      {!isModalOpen && promocodes.length > 0 && (
         <button
           onClick={() => setIsModalOpen(true)}
           className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-[#6a2f56] hover:scale-105 active:scale-95 transition-all z-20 lg:bottom-6"
@@ -225,20 +224,15 @@ export default function Promocodes() {
         </button>
       )}
 
-      {/* Create Modal */}
-      {isModalOpen && typeof document !== "undefined" && createPortal(
-            <div className="fixed inset-0 z-[10000] flex items-end justify-center md:items-center md:p-4">
-              <button
-                type="button"
-                aria-label="Close create promo code"
-                className="absolute inset-0 bg-black/55"
-                onClick={() => setIsModalOpen(false)}
-              />
+      {/* Render as a regular page instead of a modal. iOS WebViews can crash when
+          portals, fixed overlays and animated sheets are mounted together. */}
+      {isModalOpen && (
+            <div className="px-3 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-4 md:py-6">
               <div
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="new-promo-title"
-                className="relative z-10 flex max-h-[calc(100dvh-0.75rem)] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl md:max-h-[min(90dvh,760px)] md:max-w-lg md:rounded-3xl"
+                className="mx-auto w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100"
               >
               <div className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-4 py-4 sm:px-6">
                 <h2 id="new-promo-title" className="text-lg font-bold text-gray-900 sm:text-xl">New Promo Code</h2>
@@ -250,7 +244,7 @@ export default function Promocodes() {
                 </button>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">
+              <div className="px-4 py-5 sm:px-6 sm:py-6">
                 <form id="promoForm" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Code <span className="text-red-500">*</span></label>
@@ -387,8 +381,7 @@ export default function Promocodes() {
                 </button>
               </div>
               </div>
-            </div>,
-        document.body
+            </div>
       )}
     </div>
   );
