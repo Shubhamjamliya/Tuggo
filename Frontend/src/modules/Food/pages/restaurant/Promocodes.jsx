@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 import { ArrowLeft, Ticket, Plus, Trash2, X, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { restaurantAPI } from "@food/api";
@@ -219,32 +219,29 @@ export default function Promocodes() {
       {promocodes.length > 0 && (
         <button
           onClick={() => setIsModalOpen(true)}
-          className="fixed bottom-6 right-4 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-[#6a2f56] hover:scale-105 active:scale-95 transition-all z-20"
+          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-[#6a2f56] hover:scale-105 active:scale-95 transition-all z-20 lg:bottom-6"
         >
           <Plus className="w-6 h-6" />
         </button>
       )}
 
       {/* Create Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
-              onClick={() => setIsModalOpen(false)}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="restaurant-modal-sheet bg-white rounded-t-3xl z-50 max-h-[90vh] overflow-hidden flex flex-col"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
-                <h2 className="text-xl font-bold text-gray-900">New Promo Code</h2>
+      {isModalOpen && typeof document !== "undefined" && createPortal(
+            <div className="fixed inset-0 z-[10000] flex items-end justify-center md:items-center md:p-4">
+              <button
+                type="button"
+                aria-label="Close create promo code"
+                className="absolute inset-0 bg-black/55"
+                onClick={() => setIsModalOpen(false)}
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="new-promo-title"
+                className="relative z-10 flex max-h-[calc(100dvh-0.75rem)] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl md:max-h-[min(90dvh,760px)] md:max-w-lg md:rounded-3xl"
+              >
+              <div className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-4 py-4 sm:px-6">
+                <h2 id="new-promo-title" className="text-lg font-bold text-gray-900 sm:text-xl">New Promo Code</h2>
                 <button
                   onClick={() => setIsModalOpen(false)}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -253,8 +250,8 @@ export default function Promocodes() {
                 </button>
               </div>
 
-              <div className="overflow-y-auto px-6 py-6 pb-24">
-                <form id="promoForm" onSubmit={handleSubmit} className="space-y-5">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">
+                <form id="promoForm" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Code <span className="text-red-500">*</span></label>
                     <input
@@ -264,7 +261,7 @@ export default function Promocodes() {
                       value={formData.code}
                       onChange={handleChange}
                       placeholder="e.g. SUMMER50"
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent uppercase font-bold tracking-wider"
+                      className="w-full px-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent uppercase font-bold tracking-wider"
                     />
                   </div>
 
@@ -277,18 +274,18 @@ export default function Promocodes() {
                       value={formData.description}
                       onChange={handleChange}
                       placeholder="e.g. 50% off on all orders"
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1">Discount Type</label>
                       <select
                         name="discountType"
                         value={formData.discountType}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       >
                         <option value="PERCENTAGE">Percentage (%)</option>
                         <option value="FLAT">Flat Amount (₹)</option>
@@ -307,12 +304,12 @@ export default function Promocodes() {
                         value={formData.discountValue}
                         onChange={handleChange}
                         placeholder={formData.discountType === "PERCENTAGE" ? "e.g. 50" : "e.g. 150"}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1">Min Order (₹)</label>
                       <input
@@ -322,7 +319,7 @@ export default function Promocodes() {
                         value={formData.minOrderAmount}
                         onChange={handleChange}
                         placeholder="0"
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                     </div>
                     {formData.discountType === "PERCENTAGE" && (
@@ -335,13 +332,13 @@ export default function Promocodes() {
                           value={formData.maxDiscountAmount}
                           onChange={handleChange}
                           placeholder="No limit"
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                          className="w-full px-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                         />
                       </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1">Expiry Date <span className="text-red-500">*</span></label>
                       <input
@@ -351,7 +348,7 @@ export default function Promocodes() {
                         min={new Date().toISOString().split('T')[0]}
                         value={formData.expiryDate}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                     </div>
                     <div>
@@ -363,7 +360,7 @@ export default function Promocodes() {
                         value={formData.usageLimit}
                         onChange={handleChange}
                         placeholder="Unlimited"
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -375,7 +372,7 @@ export default function Promocodes() {
                 </form>
               </div>
 
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
+              <div className="shrink-0 border-t border-gray-100 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] sm:px-6 sm:py-4">
                 <button
                   type="submit"
                   form="promoForm"
@@ -389,10 +386,10 @@ export default function Promocodes() {
                   )}
                 </button>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              </div>
+            </div>,
+        document.body
+      )}
     </div>
   );
 }
