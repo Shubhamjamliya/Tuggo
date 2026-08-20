@@ -34,9 +34,14 @@ export const config = {
     otpRateWindow: Number(process.env.OTP_RATE_WINDOW || 600),
     useDefaultOtp: process.env.USE_DEFAULT_OTP === 'true',
 
-    // MSG91
-    msg91AuthKey: process.env.MSG91_AUTH_KEY,
-    msg91TemplateId: process.env.MSG91_TEMPLATE_ID,
+    // SMSWala India
+    smsWalaApiUrl: process.env.SMSWALA_API_URL || 'https://sms.smswala.in/app/smsapi/index.php',
+    smsWalaApiKey: process.env.SMSWALA_API_KEY,
+    smsWalaCampaignId: process.env.SMSWALA_CAMPAIGN_ID || '16541',
+    smsWalaRouteId: process.env.SMSWALA_ROUTE_ID || '30',
+    smsWalaSenderId: process.env.SMSWALA_SENDER_ID,
+    smsWalaTemplateId: process.env.SMSWALA_TEMPLATE_ID,
+    smsWalaPeId: process.env.SMSWALA_PE_ID,
 
     // Rate limiting
     rateLimitWindowMinutes: Number(process.env.RATE_LIMIT_WINDOW || 15),
@@ -119,8 +124,13 @@ export const updateConfig = () => {
     config.otpRateLimit = Number(process.env.OTP_RATE_LIMIT || config.otpRateLimit);
     config.otpRateWindow = Number(process.env.OTP_RATE_WINDOW || config.otpRateWindow);
     config.useDefaultOtp = process.env.USE_DEFAULT_OTP === 'true';
-    config.msg91AuthKey = process.env.MSG91_AUTH_KEY || config.msg91AuthKey;
-    config.msg91TemplateId = process.env.MSG91_TEMPLATE_ID || config.msg91TemplateId;
+    config.smsWalaApiUrl = process.env.SMSWALA_API_URL || config.smsWalaApiUrl;
+    config.smsWalaApiKey = process.env.SMSWALA_API_KEY || config.smsWalaApiKey;
+    config.smsWalaCampaignId = process.env.SMSWALA_CAMPAIGN_ID || config.smsWalaCampaignId;
+    config.smsWalaRouteId = process.env.SMSWALA_ROUTE_ID || config.smsWalaRouteId;
+    config.smsWalaSenderId = process.env.SMSWALA_SENDER_ID || config.smsWalaSenderId;
+    config.smsWalaTemplateId = process.env.SMSWALA_TEMPLATE_ID || config.smsWalaTemplateId;
+    config.smsWalaPeId = process.env.SMSWALA_PE_ID || config.smsWalaPeId;
     config.rateLimitWindowMinutes = Number(process.env.RATE_LIMIT_WINDOW || config.rateLimitWindowMinutes);
     config.rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX || config.rateLimitMaxRequests);
     config.authRateLimitWindowMinutes = Number(process.env.AUTH_RATE_LIMIT_WINDOW || config.authRateLimitWindowMinutes);

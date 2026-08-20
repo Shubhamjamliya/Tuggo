@@ -10,50 +10,74 @@ const generateOtpCode = () => {
     return String(code);
 };
 
+const maskPhone = (phone) => {
+    const digits = String(phone || '').replace(/\D/g, '');
+    return digits.length >= 4 ? `******${digits.slice(-4)}` : 'unknown';
+};
+
 /**
- * Sends SMS via MSG91 API
- * @param {string} phone - 10-digit mobile number
- * @param {string} otp
+ * Sends a DLT-approved OTP message through SMSWala India.
+ * Form-encoded POST keeps the API key out of request URLs and application logs.
  */
-const sendSmsViaMsg91 = async (phone, otp) => {
+const sendSmsViaSmsWala = async (phone, otp) => {
+    const requiredConfig = {
+        SMSWALA_API_KEY: config.smsWalaApiKey,
+        SMSWALA_SENDER_ID: config.smsWalaSenderId,
+        SMSWALA_TEMPLATE_ID: config.smsWalaTemplateId,
+        SMSWALA_PE_ID: config.smsWalaPeId,
+    };
+    const missing = Object.entries(requiredConfig)
+        .filter(([, value]) => !String(value || '').trim())
+        .map(([key]) => key);
+    if (missing.length > 0) {
+        throw new Error(`SMSWala configuration missing: ${missing.join(', ')}`);
+    }
+
+    const digits = String(phone || '').replace(/\D/g, '');
+    const mobile = digits.slice(-10);
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+        throw new ValidationError('A valid Indian mobile number is required');
+    }
+
+    const form = new URLSearchParams({
+        key: config.smsWalaApiKey,
+        campaign: String(config.smsWalaCampaignId || '16541'),
+        routeid: String(config.smsWalaRouteId || '30'),
+        type: 'text',
+        contacts: mobile,
+        senderid: config.smsWalaSenderId,
+        msg: `Welcome to TUGGO IT Services, Your OTP is ${otp} for Verification.`,
+        template_id: config.smsWalaTemplateId,
+        pe_id: config.smsWalaPeId,
+    });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
-        // Normalize phone: strip non-digits, ensure 91 country code prefix
-        const digits = String(phone || '').replace(/\D/g, '');
-        let msisdn = digits;
-        if (msisdn.length === 10) {
-            msisdn = `91${msisdn}`;
-        } else if (!msisdn.startsWith('91')) {
-            msisdn = `91${msisdn}`;
+        logger.info(`[SMS] Sending OTP to ${maskPhone(mobile)} via SMSWala...`);
+        const response = await fetch(config.smsWalaApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: form.toString(),
+            signal: controller.signal,
+        });
+        const resultText = (await response.text()).trim();
+        const indicatesFailure = /\b(error|invalid|failed|failure|insufficient|unauthori[sz]ed)\b/i.test(resultText);
+
+        if (!response.ok || !resultText || indicatesFailure) {
+            logger.error(`[SMS] SMSWala rejected OTP for ${maskPhone(mobile)} (HTTP ${response.status})`);
+            throw new Error('SMS provider rejected the OTP request');
         }
 
-        // MSG91 API
-        const url = new URL('https://control.msg91.com/api/v5/otp');
-        url.searchParams.append('template_id', config.msg91TemplateId);
-        url.searchParams.append('mobile', msisdn);
-        url.searchParams.append('authkey', config.msg91AuthKey);
-        url.searchParams.append('otp', otp);
-
-        logger.info(`[SMS] Sending OTP to ${msisdn} via MSG91...`);
-        const response = await fetch(url.toString(), { method: 'POST' });
-        const resultText = await response.text();
-        logger.info(`[SMS] Raw response for ${msisdn}: ${resultText}`);
-
-        let parsed = null;
-        try { parsed = JSON.parse(resultText); } catch (_) { }
-
-        if (parsed && parsed.type === 'error') {
-            const errMsg = `MSG91 ERROR for ${phone}: ${parsed.message || resultText}`;
-            logger.error(errMsg);
-            // eslint-disable-next-line no-console
-            console.error(`❌ [SMS ERROR] ${errMsg}`);
-        } else if (!response.ok) {
-            logger.error(`SMS API HTTP error for ${phone}: ${response.status} – ${resultText}`);
-        } else {
-            logger.info(`✅ SMS sent successfully to ${msisdn} via MSG91`);
-        }
+        logger.info(`[SMS] OTP accepted by SMSWala for ${maskPhone(mobile)}`);
     } catch (error) {
-        logger.error(`Error sending SMS to ${phone} via MSG91: ${error.message}`);
-        // Do NOT throw — OTP is already stored in DB; SMS failure should not block the flow
+        const message = error?.name === 'AbortError'
+            ? 'SMS provider request timed out'
+            : error.message;
+        logger.error(`[SMS] SMSWala OTP delivery failed for ${maskPhone(mobile)}: ${message}`);
+        throw new Error(message);
+    } finally {
+        clearTimeout(timeoutId);
     }
 };
 
@@ -115,7 +139,7 @@ export const createOrUpdateOtp = async (phone) => {
 
     // Only send SMS if not in default OTP mode
     if (!config.useDefaultOtp && !phone.endsWith('9755633147') && !phone.endsWith('8624862400')) {
-        await sendSmsViaMsg91(phone, otp);
+        await sendSmsViaSmsWala(phone, otp);
     }
 
     return otp;
