@@ -25,6 +25,7 @@ const createFoodForm = () => ({
   image: "",
   foodType: "Non-Veg",
   isAvailable: true,
+  isRecommended: false,
   preparationTime: "",
 })
 
@@ -145,6 +146,7 @@ export default function FoodsList() {
               description: f.description || "",
               preparationTime: f.preparationTime || "",
               isAvailable: f.isAvailable !== false,
+              isRecommended: f.isRecommended === true,
               createdAt: f.createdAt,
               updatedAt: f.updatedAt,
             }))
@@ -283,6 +285,7 @@ export default function FoodsList() {
       image: String(food.image || ""),
       foodType: String(food.foodType || "Non-Veg"),
       isAvailable: food.isAvailable !== false,
+      isRecommended: food.isRecommended === true,
       preparationTime: String(food.preparationTime || ""),
     })
     setSelectedImageFile(null)
@@ -422,6 +425,7 @@ export default function FoodsList() {
         image: imageUrl,
         foodType: foodForm.foodType === "Veg" ? "Veg" : "Non-Veg",
         isAvailable: foodForm.isAvailable !== false,
+        isRecommended: foodForm.isRecommended === true,
         preparationTime: String(foodForm.preparationTime || "").trim(),
       }
 
@@ -983,6 +987,16 @@ export default function FoodsList() {
                   />
                   Available
                 </label>
+                {foodFormMode === "edit" && (
+                  <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={foodForm.isRecommended}
+                      onChange={(e) => setFoodForm((prev) => ({ ...prev, isRecommended: e.target.checked }))}
+                    />
+                    Recommended
+                  </label>
+                )}
               </div>
             </div>
             <div>
