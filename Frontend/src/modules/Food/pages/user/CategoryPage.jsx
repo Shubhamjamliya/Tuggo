@@ -22,7 +22,7 @@ import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
 import { getMenuFromResponse } from "@food/utils/menuItems"
 import { extractImages, normalizeImageUrl } from "@food/utils/common"
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability"
-import RestaurantImageCarousel from "@food/components/user/home/RestaurantImageCarousel"
+import RestaurantImageCarousel, { RestaurantCarouselStateProvider, RestaurantOfferBanner } from "@food/components/user/home/RestaurantImageCarousel"
 
 // Filter options
 const filterOptions = [
@@ -885,6 +885,9 @@ export default function CategoryPage() {
                 recommendedItems: Array.isArray(restaurant.recommendedItems)
                   ? restaurant.recommendedItems
                   : [],
+                itemDiscounts: Array.isArray(restaurant.itemDiscounts) ? restaurant.itemDiscounts : [],
+                discountRules: Array.isArray(restaurant.discountRules) ? restaurant.discountRules : [],
+                discount: Number(restaurant.discount) || 0,
                 priceRange: restaurant.priceRange || null,
                 featuredDish: featuredDish,
                 featuredPrice: featuredPrice,
@@ -1532,7 +1535,8 @@ export default function CategoryPage() {
 
                 return (
                   <Link key={restaurant.id} to={isClosed ? '#' : buildRestaurantLink(restaurant)} onClick={(e) => { if (isClosed) e.preventDefault(); }} className={`h-full flex ${isClosed ? 'cursor-not-allowed' : ''}`}>
-                    <motion.div
+                    <RestaurantCarouselStateProvider>
+                      <motion.div
                       whileHover={isClosed ? {} : { scale: 1.02, y: -6 }}
                       whileTap={isClosed ? {} : { scale: 0.98 }}
                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -1541,7 +1545,7 @@ export default function CategoryPage() {
                       <Card className={`overflow-hidden gap-0 border border-gray-100 dark:border-gray-800 group bg-white dark:bg-[#1a1a1a] shadow-md transition-all duration-300 py-0 rounded-2xl h-full flex flex-col w-full ${isClosed ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-xl'} ${shouldShowGrayscale || isClosed ? 'grayscale opacity-75' : ''
                         }`}>
                         {/* Image Section */}
-                        <div className="relative h-44 sm:h-52 md:h-60 lg:h-64 xl:h-72 w-full overflow-hidden rounded-t-2xl flex-shrink-0">
+                        <div className="relative h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80 w-full overflow-hidden rounded-t-2xl flex-shrink-0">
                           
                           {isClosed && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
@@ -1554,6 +1558,7 @@ export default function CategoryPage() {
                           <RestaurantImageCarousel
                             restaurant={restaurant}
                             priority={index < 3}
+                            autoPlay
                             backendOrigin={BACKEND_ORIGIN}
                             className="h-full"
                             roundedClass="rounded-t-2xl"
@@ -1621,16 +1626,11 @@ export default function CategoryPage() {
                             </div>
                           )}
 
-                          {/* Offer Badge */}
-                          {restaurant.offer && (
-                            <div className="flex items-center gap-2 text-sm md:text-base mt-auto pt-3 border-t border-gray-50 dark:border-gray-800/50">
-                              <BadgePercent className="h-4.5 w-4.5 md:h-5 md:w-5 text-primary" strokeWidth={2} />
-                              <span className="text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">{restaurant.offer}</span>
-                            </div>
-                          )}
+                          <RestaurantOfferBanner restaurant={restaurant} />
                         </CardContent>
                       </Card>
-                    </motion.div>
+                      </motion.div>
+                    </RestaurantCarouselStateProvider>
                   </Link>
                 )
               })}

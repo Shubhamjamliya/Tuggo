@@ -1,19 +1,61 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { foodImages } from "@food/constants/images";
 
 const WEBVIEW_SESSION_CACHE_BUSTER = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const RestaurantCarouselStateContext = createContext(null);
+
+export function RestaurantCarouselStateProvider({ children }) {
+  const [activeSlide, setActiveSlide] = useState(null);
+  const value = useMemo(() => ({ activeSlide, setActiveSlide }), [activeSlide]);
+
+  return (
+    <RestaurantCarouselStateContext.Provider value={value}>
+      {children}
+    </RestaurantCarouselStateContext.Provider>
+  );
+}
+
+function resolveSlideOffer(restaurant, slide) {
+  if (!slide?.isRecommended) return null;
+
+  const specificDiscount = Array.isArray(restaurant?.itemDiscounts)
+    ? restaurant.itemDiscounts.find((discount) => String(discount.itemId) === String(slide.id))
+    : null;
+  if (specificDiscount && Number(specificDiscount.discountValue) > 0) {
+    const value = Number(specificDiscount.discountValue);
+    const isFlat = String(specificDiscount.discountType || "").toUpperCase() === "FLAT";
+    return isFlat ? `FLAT ₹${value} OFF` : `${value}% OFF`;
+  }
+
+  if (Number(slide.discountPercent) > 0) return `${Number(slide.discountPercent)}% OFF`;
+
+  const price = Number(slide.price) || 0;
+  const matchingRule = (restaurant?.discountRules || []).find((rule) => {
+    const conditionValue = Number(rule.conditionValue);
+    return (
+      (rule.conditionType === "PRICE_ABOVE" && price > conditionValue) ||
+      (rule.conditionType === "PRICE_BELOW" && price < conditionValue)
+    );
+  });
+  if (matchingRule && Number(matchingRule.discountValue) > 0) {
+    return `${Number(matchingRule.discountValue)}% OFF`;
+  }
+
+  if (Number(restaurant?.discount) > 0) return `${Number(restaurant.discount)}% OFF`;
+  return null;
+}
 
 function OfferBannerContent({ item }) {
   if (!item) return null;
   return (
     <div className="flex items-center w-full gap-2 px-3 py-1.5">
-      <span className="text-[11px] font-semibold text-black uppercase whitespace-nowrap">
-        {item.dText}
+      <span className="text-[12px] font-black text-black uppercase whitespace-nowrap">
+        {item.offerText}
       </span>
       <div className="w-[3px] h-[3px] rounded-full bg-black/60 shrink-0" />
-      <span className="font-medium text-black text-[11px] whitespace-nowrap truncate flex-1">
+      <span className="font-bold text-black text-[11px] whitespace-nowrap truncate flex-1">
         {item.name}
       </span>
       <div className="flex items-center gap-1.5 shrink-0 pl-1">
@@ -129,67 +171,32 @@ function getBannerItems(restaurant) {
     .slice(0, 5);
 }
 
-export function RestaurantOfferBanner({ restaurant, priority = false }) {
-  const bannerItems = useMemo(() => getBannerItems(restaurant), [restaurant]);
-  const [currentItemIndex, setCurrentItemIndex] = useState(0);
+export function RestaurantOfferBanner({ restaurant }) {
+  const carouselState = useContext(RestaurantCarouselStateContext);
+  const activeSlide = carouselState?.activeSlide || null;
+  const offerText = useMemo(
+    () => resolveSlideOffer(restaurant, activeSlide),
+    [restaurant, activeSlide],
+  );
 
-  useEffect(() => {
-    setCurrentItemIndex(0);
-  }, [restaurant?.id, restaurant?.slug, bannerItems.length]);
-
-  useEffect(() => {
-    if (!priority || bannerItems.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentItemIndex((previous) => (previous + 1) % bannerItems.length);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [priority, bannerItems.length]);
-
-  if (bannerItems.length > 0) {
-    return (
-      <div className="mb-2 w-full overflow-hidden lg:mb-3">
-        <div className="relative h-[28px] w-full overflow-hidden">
-          {priority && bannerItems.length > 1 ? (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentItemIndex}
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -15, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 flex w-full items-center"
-              >
-                <OfferBannerContent item={bannerItems[currentItemIndex]} />
-              </motion.div>
-            </AnimatePresence>
-          ) : (
-            <div className="absolute inset-0 flex w-full items-center">
-              <OfferBannerContent item={bannerItems[0]} />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  let maxDiscount = restaurant?.discount || 0;
-  if (Array.isArray(restaurant?.discountRules) && restaurant.discountRules.length > 0) {
-    maxDiscount = Math.max(
-      maxDiscount,
-      ...restaurant.discountRules.map((rule) => rule.discountValue || 0),
-    );
-  }
-
-  if (maxDiscount <= 0) return null;
+  if (!activeSlide || !offerText) return null;
 
   return (
-    <div className="mb-2 flex w-full items-center justify-between px-3 py-1.5 lg:mb-3">
-      <span className="text-[11px] font-semibold uppercase whitespace-nowrap text-black">
-        SPECIAL OFFER
-      </span>
-      <span className="text-[11px] font-medium whitespace-nowrap text-black">
-        UP TO {maxDiscount}% OFF
-      </span>
+    <div className="mb-2 w-full overflow-hidden lg:mb-3">
+      <div className="relative h-[30px] w-full overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${activeSlide.id || activeSlide.name}-${offerText}`}
+            initial={{ y: 12, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -12, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 flex w-full items-center"
+          >
+            <OfferBannerContent item={{ ...activeSlide, offerText }} />
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -200,12 +207,14 @@ const RestaurantImageCarousel = React.memo(
     priority = false,
     autoPlay = false,
     backendOrigin = "",
-    className = "h-48 sm:h-56 md:h-60 lg:h-64 xl:h-72",
+    className = "h-52 sm:h-60 md:h-64 lg:h-72 xl:h-80",
     roundedClass = "rounded-t-md",
     onSlideClick = null,
   }) => {
     const webviewSessionKeyRef = useRef(WEBVIEW_SESSION_CACHE_BUSTER);
     const imageElementRef = useRef(null);
+    const carouselState = useContext(RestaurantCarouselStateContext);
+    const setSyncedActiveSlide = carouselState?.setActiveSlide;
 
     const withCacheBuster = useCallback(
       (url) => {
@@ -249,6 +258,8 @@ const RestaurantImageCarousel = React.memo(
             id: item.id || item._id,
             name: item.name || "Recommended Dish",
             price: item.price || 0,
+            foodType: item.foodType,
+            discountPercent: item.discountPercent,
             isRecommended: true,
           });
         }
@@ -427,7 +438,7 @@ const RestaurantImageCarousel = React.memo(
       const interval = setInterval(() => {
         setSlideDirection(1);
         setCurrentIndex((prev) => (prev + 1) % images.length);
-      }, 5000);
+      }, 7000);
       return () => clearInterval(interval);
     }, [autoPlay, images.length]);
 
@@ -448,6 +459,10 @@ const RestaurantImageCarousel = React.memo(
     const primarySrc = images[safeIndex] || "";
     const displaySrc = primarySrc;
     const renderSrc = displaySrc || lastGoodSrc;
+
+    useEffect(() => {
+      setSyncedActiveSlide?.(currentSlide);
+    }, [setSyncedActiveSlide, currentSlide]);
 
     // Reset transient image state when restaurant or source list changes.
     useEffect(() => {
@@ -614,9 +629,21 @@ const RestaurantImageCarousel = React.memo(
           )}
         </div>
 
+        {/* Veg / non-veg marker for the currently visible dish */}
+        {currentSlide?.isRecommended && currentSlide?.foodType && (
+          <div
+            className={`absolute left-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-md border-2 bg-white/95 shadow-lg pointer-events-none ${
+              currentSlide.foodType === "Veg" ? "border-green-600" : "border-red-600"
+            }`}
+            title={currentSlide.foodType === "Veg" ? "Vegetarian" : "Non-vegetarian"}
+          >
+            <div className={`h-3 w-3 rounded-full ${currentSlide.foodType === "Veg" ? "bg-green-600" : "bg-red-600"}`} />
+          </div>
+        )}
+
         {/* Recommended Dish Floating Tag */}
         {currentSlide?.isRecommended && currentSlide?.name && (
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-[11px] font-bold shadow-lg border border-amber-400/40 pointer-events-none">
+          <div className={`absolute top-3 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-[11px] font-bold shadow-lg border border-amber-400/40 pointer-events-none ${currentSlide.foodType ? "left-12" : "left-3"}`}>
             <Sparkles className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
             <span className="truncate max-w-[140px] sm:max-w-[190px]">{currentSlide.name}</span>
             {currentSlide.price > 0 && (

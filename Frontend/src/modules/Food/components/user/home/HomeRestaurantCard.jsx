@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { memo, useMemo } from "react";
 import {
-  BadgePercent,
   Bookmark,
   Clock,
   Star,
@@ -10,6 +9,7 @@ import {
 import { Card, CardContent } from "@food/components/ui/card";
 import { Button } from "@food/components/ui/button";
 import RestaurantImageCarousel, {
+  RestaurantCarouselStateProvider,
   RestaurantOfferBanner,
 } from "@food/components/user/home/RestaurantImageCarousel";
 import { useDeferredOutletTimings } from "@food/hooks/user/useDeferredOutletTimings";
@@ -86,13 +86,14 @@ function HomeRestaurantCard({
     >
       <div className="h-full group">
         <Link to={`/user/restaurants/${restaurantSlug}`} className="h-full flex">
-          <Card
-            className={`overflow-hidden gap-0 cursor-pointer border-0 dark:border-gray-800 group bg-white dark:bg-[#1a1a1a] border-background transition-all duration-500 py-0 rounded-[28px] flex flex-col h-full w-full relative shadow-sm hover:shadow-xl ${
-              isOutOfService || !availability.isOpen
-                ? "grayscale opacity-75"
-                : ""
-            }`}
-          >
+          <RestaurantCarouselStateProvider>
+            <Card
+              className={`overflow-hidden gap-0 cursor-pointer border-0 dark:border-gray-800 group bg-white dark:bg-[#1a1a1a] border-background transition-all duration-500 py-0 rounded-[28px] flex flex-col h-full w-full relative shadow-sm hover:shadow-xl ${
+                isOutOfService || !availability.isOpen
+                  ? "grayscale opacity-75"
+                  : ""
+              }`}
+            >
             <div className="relative">
               <RestaurantImageCarousel
                 restaurant={restaurant}
@@ -182,25 +183,13 @@ function HomeRestaurantCard({
 
                 <RestaurantOfferBanner
                   restaurant={restaurant}
-                  priority={priority}
                 />
-
-                {restaurant.offer && (
-                  <div className="flex items-center gap-2 text-sm lg:text-base mt-auto transform transition-transform duration-300 group-hover:translate-x-1">
-                    <BadgePercent
-                      className="h-4 w-4 lg:h-5 lg:w-5 text-primary"
-                      strokeWidth={3}
-                    />
-                    <span className="text-primary dark:text-[#a05485] font-black uppercase text-[10px] tracking-wider">
-                      {restaurant.offer}
-                    </span>
-                  </div>
-                )}
               </CardContent>
             </div>
 
             <div className="absolute inset-0 rounded-md pointer-events-none z-0 transition-all duration-300 border border-transparent group-hover:border-primary/30 group-hover:shadow-[inset_0_0_0_1px_rgba(235,89,14,0.2)]" />
-          </Card>
+            </Card>
+          </RestaurantCarouselStateProvider>
         </Link>
       </div>
     </div>

@@ -260,7 +260,7 @@ const populateRecommendedItems = async (restaurants = []) => {
             isAvailable: { $ne: false },
             approvalStatus: { $ne: 'rejected' }
         })
-            .select('name price variants image isRecommended restaurantId')
+            .select('name price variants image foodType isRecommended restaurantId')
             .lean();
 
         for (const item of items) {
@@ -273,6 +273,7 @@ const populateRecommendedItems = async (restaurants = []) => {
                 _id: item._id,
                 name: item.name,
                 price: getFoodDisplayPrice(item),
+                foodType: item.foodType === 'Veg' ? 'Veg' : 'Non-Veg',
                 image: resolveStoredUploadPath(item.image || ''),
                 imageUrl: resolveStoredUploadPath(item.image || ''),
                 isRecommended: true
