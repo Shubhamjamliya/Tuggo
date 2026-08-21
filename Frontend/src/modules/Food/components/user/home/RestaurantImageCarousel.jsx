@@ -198,6 +198,7 @@ const RestaurantImageCarousel = React.memo(
   ({
     restaurant,
     priority = false,
+    autoPlay = false,
     backendOrigin = "",
     className = "h-48 sm:h-56 md:h-60 lg:h-64 xl:h-72",
     roundedClass = "rounded-t-md",
@@ -419,15 +420,16 @@ const RestaurantImageCarousel = React.memo(
       return () => clearInterval(interval);
     }, [priority, bannerItems.length]);
 
-    // Auto-slide for restaurant/recommended images (priority cards only)
+    // Auto-slide independently from loading priority. This allows all Home
+    // restaurant cards to rotate without eager-loading every card image.
     useEffect(() => {
-      if (!priority || images.length <= 1) return;
+      if (!autoPlay || images.length <= 1) return;
       const interval = setInterval(() => {
         setSlideDirection(1);
         setCurrentIndex((prev) => (prev + 1) % images.length);
       }, 5000);
       return () => clearInterval(interval);
-    }, [priority, images.length]);
+    }, [autoPlay, images.length]);
 
     const [loadedBySrc, setLoadedBySrc] = useState({});
     const [, setAttemptedSrcs] = useState({});

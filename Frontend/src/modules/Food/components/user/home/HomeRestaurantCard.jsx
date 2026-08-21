@@ -97,6 +97,7 @@ function HomeRestaurantCard({
               <RestaurantImageCarousel
                 restaurant={restaurant}
                 priority={priority}
+                autoPlay
                 backendOrigin={backendOrigin}
                 onSlideClick={handleSlideClick}
               />

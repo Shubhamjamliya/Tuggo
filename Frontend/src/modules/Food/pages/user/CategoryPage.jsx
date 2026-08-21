@@ -20,8 +20,9 @@ import { useProfile } from "@food/context/ProfileContext"
 import { useAppLocation } from "@food/hooks/useAppLocation"
 import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
 import { getMenuFromResponse } from "@food/utils/menuItems"
-import { normalizeImageUrl } from "@food/utils/common"
+import { extractImages, normalizeImageUrl } from "@food/utils/common"
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability"
+import RestaurantImageCarousel from "@food/components/user/home/RestaurantImageCarousel"
 
 // Filter options
 const filterOptions = [
@@ -849,21 +850,18 @@ export default function CategoryPage() {
                 ? restaurant.cuisines.join(", ")
                 : null
 
-              const coverImages = restaurant.coverImages && restaurant.coverImages.length > 0
-                ? restaurant.coverImages.map(img => normalizeImageUrl(img.url || img)).filter(Boolean)
-                : []
-
-              const fallbackImages = restaurant.menuImages && restaurant.menuImages.length > 0
-                ? restaurant.menuImages.map(img => normalizeImageUrl(img.url || img)).filter(Boolean)
-                : []
-
-              const allImages = coverImages.length > 0
-                ? coverImages
-                : (fallbackImages.length > 0
-                  ? fallbackImages
-                  : (restaurant.profileImage?.url ? [normalizeImageUrl(restaurant.profileImage.url)] : []))
-
-              const image = allImages[0] || null
+              // Keep category restaurant cards aligned with the user-home cards:
+              // recommended dishes first (handled by RestaurantImageCarousel),
+              // otherwise use the newest menu gallery image. Cover/profile images
+              // are intentionally not used by the home restaurant cards.
+              const menuImages = extractImages(
+                (Array.isArray(restaurant.menuImages)
+                  ? restaurant.menuImages
+                  : [restaurant.menuImages]
+                ).filter(Boolean),
+              )
+              const allImages = Array.from(new Set(menuImages)).reverse()
+              const image = allImages[0] || foodImages[0]
               const restaurantId = restaurant.restaurantId || restaurant._id
 
               let featuredDish = restaurant.featuredDish || null
@@ -883,7 +881,10 @@ export default function CategoryPage() {
                 deliveryTime: deliveryTime,
                 distance: distance,
                 image: image,
-                images: allImages,
+                images: allImages.length > 0 ? allImages : [foodImages[0]],
+                recommendedItems: Array.isArray(restaurant.recommendedItems)
+                  ? restaurant.recommendedItems
+                  : [],
                 priceRange: restaurant.priceRange || null,
                 featuredDish: featuredDish,
                 featuredPrice: featuredPrice,
@@ -1519,10 +1520,15 @@ export default function CategoryPage() {
 
             {/* Large Restaurant Cards */}
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 lg:gap-6 xl:gap-7 items-stretch ${showRestaurantSkeleton ? 'opacity-50' : 'opacity-100'} transition-opacity duration-300`}>
-              {filteredAllRestaurants.slice(0, visibleCount).map((restaurant) => {
+              {filteredAllRestaurants.slice(0, visibleCount).map((restaurant, index) => {
                 const isFavorite = favorites.has(restaurant.id)
                 const availability = getRestaurantAvailabilityStatus(restaurant)
                 const isClosed = !availability.isOpen
+                const hasRecommendedImage = Array.isArray(restaurant.recommendedItems) &&
+                  restaurant.recommendedItems.some((item) => {
+                    const imageUrl = item?.image || item?.imageUrl || item?.photoUrl
+                    return typeof imageUrl === "string" && imageUrl.trim().length > 0
+                  })
 
                 return (
                   <Link key={restaurant.id} to={isClosed ? '#' : buildRestaurantLink(restaurant)} onClick={(e) => { if (isClosed) e.preventDefault(); }} className={`h-full flex ${isClosed ? 'cursor-not-allowed' : ''}`}>
@@ -1545,48 +1551,16 @@ export default function CategoryPage() {
                             </div>
                           )}
 
-                          {/* Use category dish image if available, otherwise restaurant image */}
-                          {restaurant.categoryDishImage ? (
-                            <img
-                              src={restaurant.categoryDishImage}
-                              alt={restaurant.categoryDishName || restaurant.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              onError={(e) => {
-                                // Fallback to restaurant image if dish image fails
-                                if (restaurant.image) {
-                                  e.target.src = restaurant.image
-                                } else {
-                                  // Show emoji placeholder
-                                  e.target.style.display = 'none'
-                                  const placeholder = document.createElement('div')
-                                  placeholder.className = 'w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-6xl'
-                                  placeholder.textContent = '???'
-                                  e.target.parentElement.appendChild(placeholder)
-                                }
-                              }}
-                            />
-                          ) : restaurant.image ? (
-                            <img
-                              src={restaurant.image}
-                              alt={restaurant.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              onError={(e) => {
-                                // Show emoji placeholder
-                                e.target.style.display = 'none'
-                                const placeholder = document.createElement('div')
-                                placeholder.className = 'w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-6xl'
-                                placeholder.textContent = '???'
-                                e.target.parentElement.appendChild(placeholder)
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-6xl">
-                              ???
-                            </div>
-                          )}
+                          <RestaurantImageCarousel
+                            restaurant={restaurant}
+                            priority={index < 3}
+                            backendOrigin={BACKEND_ORIGIN}
+                            className="h-full"
+                            roundedClass="rounded-t-2xl"
+                          />
 
                           {/* Category Dish Badge - Top Left (shows category dish if available, otherwise featured dish) */}
-                          {(restaurant.categoryDishName || restaurant.featuredDish) && (
+                          {!hasRecommendedImage && (restaurant.categoryDishName || restaurant.featuredDish) && (
                             <div className="absolute top-3 left-3 z-10">
                               <div className="bg-gray-900/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold shadow-md">
                                 {`${restaurant.categoryDishName || restaurant.featuredDish} • ₹${restaurant.categoryDishPrice || restaurant.featuredPrice || 0}`}
