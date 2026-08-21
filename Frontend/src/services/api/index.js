@@ -1600,10 +1600,10 @@ export const deliveryAPI = {
       `/food/delivery/orders/${String(orderId)}/verify-drop-otp`,
       { otp: String(otp) }
     ),
-  /** POST /food/delivery/orders/:orderId/collect/qr - create Razorpay payment link (COD collection) */
+  /** Create an order-specific, single-use Razorpay UPI QR for collection. */
   createCollectQr: (orderId, body = {}) =>
     deliveryClient.post(
-      `/food/delivery/orders/${String(orderId)}/collect/qr`,
+      `/food/delivery/orders/${String(orderId)}/payment-qr`,
       body ?? {}
     ),
   /** GET /food/delivery/orders/:orderId/payment-status - check COD/QR payment status */

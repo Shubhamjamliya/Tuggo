@@ -83,6 +83,7 @@ const paymentSchema = new mongoose.Schema(
         qr: {
             qrId: { type: String },
             imageUrl: { type: String },
+            amount: { type: Number, min: 0 },
             paymentLinkId: { type: String },
             shortUrl: { type: String },
             status: { type: String },

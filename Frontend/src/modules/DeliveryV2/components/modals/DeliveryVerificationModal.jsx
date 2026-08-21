@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldCheck, DollarSign, CheckCircle2, 
-  QrCode, Loader2, Info, X, RefreshCw, Package
+  QrCode, Loader2, X, Package
 } from 'lucide-react';
 import { deliveryAPI } from '@food/api';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
@@ -180,11 +180,10 @@ const OtpModal = ({ order, onVerified, onClose }) => {
 
 const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
   const [showQrModal, setShowQrModal] = useState(false);
-  const [collectQrLink, setCollectQrLink] = useState(null);
+  const [collectQr, setCollectQr] = useState(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
-  const isInitialPaid = ['paid', 'captured', 'authorized'].includes(String(order.payment?.status || "").toLowerCase());
+  const isInitialPaid = ['paid', 'captured'].includes(String(order.payment?.status || "").toLowerCase());
   const [paymentStatus, setPaymentStatus] = useState(isInitialPaid ? 'paid' : 'idle');
-  const [isSyncing, setIsSyncing] = useState(false);
   const pollingRef = useRef(null);
 
   const orderId = order.order_id || order.orderId || order._id || 'ORD';
@@ -194,65 +193,57 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
     try {
       const res = await deliveryAPI.getPaymentStatus(orderId);
       const data = res?.data?.data || res?.data || {};
-      const status = String(data?.payment?.status || "").toLowerCase();
-      if (['paid', 'captured', 'authorized'].includes(status)) {
+      const status = String(data?.status || data?.payment?.status || "pending").toLowerCase();
+      if (status === 'paid') {
         setPaymentStatus('paid');
         if (pollingRef.current) clearInterval(pollingRef.current);
-        // toast.success("Payment Received Successfully!");
         setShowQrModal(false);
+        toast.success("Payment verified by Razorpay");
+      } else if (['expired', 'failed'].includes(status)) {
+        setPaymentStatus(status);
+        if (pollingRef.current) clearInterval(pollingRef.current);
+      } else {
+        setPaymentStatus('pending');
       }
-    } catch (e) {}
+    } catch (e) {
+      // A transient status-check failure must never be interpreted as payment.
+    }
   }, [orderId]);
 
-  const handleManualCheck = async () => {
-    setIsSyncing(true);
-    await checkPaymentSync();
-    setTimeout(() => setIsSyncing(false), 800);
-  };
-
   useEffect(() => {
-    if (paymentStatus === 'pending' || (amountToCollect > 0 && paymentStatus !== 'paid')) {
-      pollingRef.current = setInterval(checkPaymentSync, 5000);
-    }
-    return () => clearInterval(pollingRef.current);
-  }, [paymentStatus, amountToCollect, checkPaymentSync]);
+    if (!showQrModal || paymentStatus !== 'pending') return undefined;
+    checkPaymentSync();
+    pollingRef.current = setInterval(checkPaymentSync, 4000);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [showQrModal, paymentStatus, checkPaymentSync]);
 
   const generateQr = async () => {
     setIsGeneratingQr(true);
     try {
-      const res = await deliveryAPI.createCollectQr(orderId, {
-        name: order.userName || 'Customer',
-        phone: order.userPhone || ''
-      });
-      const link = res?.data?.data?.shortUrl || res?.data?.shortUrl || null;
-      if (link) {
-        setCollectQrLink(link);
+      const res = await deliveryAPI.createCollectQr(orderId);
+      const data = res?.data?.data || res?.data || {};
+      const imageUrl = data.image_url || data.imageUrl || null;
+      if (imageUrl) {
+        setCollectQr({ ...data, imageUrl });
         setPaymentStatus('pending');
         setShowQrModal(true);
       } else {
         toast.error("Could not generate QR code");
       }
     } catch (e) {
-      toast.error("QR Generation failed");
+      toast.error(
+        e?.response?.data?.error ||
+        e?.response?.data?.message ||
+        "QR Generation failed",
+      );
     } finally {
       setIsGeneratingQr(false);
     }
   };
 
   const isPaid = paymentStatus === 'paid';
-  const [isCashPayment, setIsCashPayment] = useState(false);
-
-  // Toggle handlers
-  const handleCashSelection = () => {
-    setIsCashPayment(true);
-    // If we were waiting for QR, we can stop the active pending UI but keep polling in background if needed
-    // However, the user said "if delivery boy clicks cash, slider enable".
-  };
-
-  const handleQrSelection = () => {
-    setIsCashPayment(false);
-    generateQr();
-  };
 
   return (
     <>
@@ -282,7 +273,7 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
              <div className="flex justify-between items-center mb-6">
                <div>
                  <p className="text-amber-700 text-[10px] font-bold uppercase tracking-widest mb-1">
-                    {isPaid ? "Amount Paid Online" : "Cash to Collect"}
+                    {isPaid ? "Amount Paid Online" : "Amount to Collect"}
                  </p>
                  <p className="text-amber-950 text-3xl sm:text-4xl font-bold">₹{amountToCollect.toFixed(2)}</p>
                </div>
@@ -292,47 +283,34 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
               {!isPaid && (
                 <div className="space-y-3">
                   <button 
-                    onClick={handleQrSelection}
+                    onClick={generateQr}
                     disabled={isGeneratingQr}
                     className={`w-full py-3.5 sm:py-4 border-2 rounded-2xl font-bold text-[11px] sm:text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
-                      !isCashPayment && paymentStatus === 'pending'
+                      paymentStatus === 'pending'
                         ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-inner'
                         : 'bg-white border-amber-200 text-amber-800'
                     }`}
                   >
                     {isGeneratingQr ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-5 h-5" />}
-                    {paymentStatus === 'pending' && !isCashPayment ? 'QR Active - Waiting...' : 'Show Payment QR'}
+                    {paymentStatus === 'pending' ? 'QR Active - Show Again' : 'Show Payment QR'}
                   </button>
 
-                  <button 
-                    onClick={handleCashSelection}
-                    className={`w-full py-3.5 sm:py-4 border-2 rounded-2xl font-bold text-[11px] sm:text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
-                      isCashPayment
-                        ? 'bg-amber-600 border-amber-600 text-white shadow-lg'
-                        : 'bg-white border-amber-200 text-amber-800'
-                    }`}
-                  >
-                    <DollarSign className="w-5 h-5" />
-                    Cash Payment
-                  </button>
+                  {['expired', 'failed'].includes(paymentStatus) && (
+                    <p className="text-xs font-semibold text-red-600">
+                      The previous QR is no longer payable. Create a new QR to continue.
+                    </p>
+                  )}
                 </div>
               )}
           </div>
 
-          {/* If the driver collects physical cash, they can directly slide this, bypassing QR. Unless cash is selected or it's paid, lock slider. */}
-            <ActionSlider 
+          <ActionSlider
             key="action-payment"
-            label={isCashPayment ? "Slide to Confirm Cash" : "Slide to Complete Order"} 
+            label={isPaid ? "Slide to Complete Order" : "Waiting for verified payment"}
             successLabel="Delivered! ✓"
-            disabled={!isPaid && !isCashPayment}
+            disabled={!isPaid}
             onConfirm={async () => {
-                try {
-                    // Pass the payment method to completion if needed
-                    await onComplete(otpString, isCashPayment ? 'cash' : 'qr');
-                } catch (e) {
-                    // Slider handles reset
-                    throw e;
-                }
+              await onComplete(otpString);
             }}
             color="bg-green-600"
           />
@@ -354,20 +332,23 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
               <h3 className="text-gray-950 font-bold text-xl mb-2">Scan to Pay</h3>
               <p className="text-gray-500 text-sm mb-8 font-medium">Order Total: ₹{amountToCollect.toFixed(2)}</p>
               
-              <div className="flex flex-col items-center gap-6 bg-gray-50 rounded-3xl border-2 border-gray-100 p-6 mb-8 w-full">
-                 <img 
-                   src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(collectQrLink)}`} 
-                   alt="Razorpay QR"
-                   className="w-44 h-44 sm:w-56 sm:h-56 mix-blend-multiply"
-                 />
-                 <button 
-                    onClick={handleManualCheck}
-                    disabled={isSyncing}
-                    className="flex gap-2 items-center bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-green-500/20 active:scale-95 transition-all"
-                 >
-                    {isSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} 
-                    Check Payment Status
-                 </button>
+              <div className="flex flex-col items-center gap-4 bg-gray-50 rounded-3xl border-2 border-gray-100 p-6 mb-8 w-full">
+                 <div className="relative aspect-square w-44 sm:w-56 overflow-hidden bg-white">
+                   <img
+                     src={collectQr?.imageUrl}
+                     alt="Razorpay UPI payment QR"
+                     className="h-full w-full object-contain"
+                     style={{
+                       transform: 'scale(3.35) translateY(-4.5%)',
+                       transformOrigin: 'center center',
+                     }}
+                   />
+                 </div>
+                 <p className={`text-xs font-bold ${paymentStatus === 'pending' ? 'text-amber-700' : 'text-red-600'}`}>
+                   {paymentStatus === 'pending'
+                     ? 'Waiting for server-verified payment…'
+                     : 'This QR has expired or failed.'}
+                 </p>
               </div>
 
               <button 

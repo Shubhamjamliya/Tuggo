@@ -311,8 +311,7 @@ export async function createCollectQrController(req, res, next) {
     try {
         const deliveryPartnerId = req.user?.userId;
         const orderId = req.params.orderId;
-        const customerInfo = req.body || {};
-        const result = await orderService.createCollectQr(orderId, deliveryPartnerId, customerInfo);
+        const result = await orderService.createCollectQr(orderId, deliveryPartnerId);
         return sendResponse(res, 200, 'QR created', result);
     } catch (err) {
         next(err);

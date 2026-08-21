@@ -164,6 +164,7 @@ export async function createInitialTransaction(order) {
             qr: {
                 qrId: String(order.payment?.qr?.qrId || ''),
                 imageUrl: String(order.payment?.qr?.imageUrl || ''),
+                amount: Number(order.payment?.qr?.amount || 0),
                 paymentLinkId: String(order.payment?.qr?.paymentLinkId || ''),
                 shortUrl: String(order.payment?.qr?.shortUrl || ''),
                 status: String(order.payment?.qr?.status || ''),

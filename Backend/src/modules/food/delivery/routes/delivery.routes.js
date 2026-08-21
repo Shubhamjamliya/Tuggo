@@ -51,6 +51,8 @@ router.patch('/orders/:orderId/reached-drop', authMiddleware, requireRoles('DELI
 router.post('/orders/:orderId/verify-drop-otp', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.verifyDropOtpDeliveryController);
 router.patch('/orders/:orderId/complete', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.completeDeliveryController);
 router.patch('/orders/:orderId/status', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.updateOrderStatusDeliveryController);
+router.post('/orders/:orderId/payment-qr', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.createCollectQrController);
+// Backward-compatible alias for already-deployed delivery clients.
 router.post('/orders/:orderId/collect/qr', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.createCollectQrController);
 router.get('/orders/:orderId/payment-status', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.getPaymentStatusController);
 

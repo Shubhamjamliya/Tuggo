@@ -48,6 +48,7 @@ const foodTransactionSchema = new mongoose.Schema({
         qr: {
             qrId: { type: String, default: '' },
             imageUrl: { type: String, default: '' },
+            amount: { type: Number, default: 0 },
             paymentLinkId: { type: String, default: '' },
             shortUrl: { type: String, default: '' },
             status: { type: String, default: '' },

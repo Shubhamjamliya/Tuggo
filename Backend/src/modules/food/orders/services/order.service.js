@@ -1558,12 +1558,8 @@ export async function updateOrderStatusDelivery(orderId, deliveryPartnerId, orde
 }
 
 // ----- COD QR collection -----
-export async function createCollectQr(
-  orderId,
-  deliveryPartnerId,
-  customerInfo = {},
-) {
-  return paymentService.createCollectQr(orderId, deliveryPartnerId, customerInfo);
+export async function createCollectQr(orderId, deliveryPartnerId) {
+  return paymentService.createCollectQr(orderId, deliveryPartnerId);
 }
 
 export async function getPaymentStatus(orderId, deliveryPartnerId) {
