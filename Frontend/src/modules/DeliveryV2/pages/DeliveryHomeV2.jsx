@@ -175,7 +175,7 @@ function BottomPopup({ isOpen, onClose, title, children }) {
  */
 export default function DeliveryHomeV2({ tab = 'feed' }) {
   const navigate = useNavigate();
-  const { isOnline, toggleOnline, riderLocation, activeOrder, tripStatus, setRiderLocation, setActiveOrder, updateTripStatus, clearActiveOrder } = useDeliveryStore();
+  const { isOnline, toggleOnline, setOnline, riderLocation, activeOrder, tripStatus, setRiderLocation, setActiveOrder, updateTripStatus, clearActiveOrder } = useDeliveryStore();
   const { isWithinRange, distanceToTarget } = useProximityCheck();
   const { acceptOrder, reachPickup, pickUpOrder, reachDrop, completeDelivery, resetTrip } = useOrderManager();
   const { newOrder, clearNewOrder, orderStatusUpdate, clearOrderStatusUpdate, claimedOrderId, clearClaimedOrderId, autoKilledOrder, clearAutoKilledOrder, adminNotification, clearAdminNotification, isConnected: isSocketConnected, emitLocation, playNotificationSound } = useDeliveryNotificationContext();
@@ -241,6 +241,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   const [currentTab, setCurrentTab] = useState(tab);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [locationError, setLocationError] = useState('');
   
   // Track URL changes (Prop changes) to update sub-page content
   useEffect(() => {
@@ -264,6 +265,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   const lastHttpSyncAt = useRef(0);
   const lastCoordRef = useRef(null);
   const lastRealGpsPosRef = useRef(null);
+  const locationErrorToastShownRef = useRef(false);
   const rollingSpeedRef = useRef([]);
   const lastAutoArrivalRef = useRef({ PICKING_UP: false, PICKED_UP: false });
 
@@ -639,6 +641,16 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   // 3. Location logic (Smart Frequency Tracking)
   useEffect(() => {
     if (!isOnline) {
+      setLocationError('');
+      locationErrorToastShownRef.current = false;
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setRiderLocation(null);
+      setLocationError('Geolocation is not supported on this device.');
+      setOnline(false);
+      deliveryAPI.updateOnlineStatus(false).catch(() => {});
       return;
     }
     
@@ -662,6 +674,8 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
       const currentRiderPos = { lat, lng, heading: resolvedHeading };
       setRiderLocation(currentRiderPos);
+      setLocationError('');
+      locationErrorToastShownRef.current = false;
       
       // Calculate Rolling Average Speed for Smart ETA
       if (speed && speed > 0) {
@@ -735,14 +749,28 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
         lastHttpSyncAt.current = now;
         deliveryAPI.updateLocation(lat, lng, true, { heading: resolvedHeading, speed: speed || 0, accuracy: pos.coords.accuracy }).catch(() => {});
       }
-    }, () => {
-      // IF GPS FAILS/DENIED: Use Indore as a fallback for testing
-      console.warn('GPS Denied - Falling back to Indore for testing');
-      const fallbackPos = { lat: 22.7196, lng: 75.8577, heading: 0 };
-      if (!riderLocation) {
-        setRiderLocation(fallbackPos);
+    }, (error) => {
+      const isTimeout = error?.code === 3;
+      const message = isTimeout
+        ? 'Unable to get your current location. Retrying GPS…'
+        : 'Location is off or unavailable. Enable precise location to go online.';
+
+      // Never retain or inject a city fallback when the real GPS position is unavailable.
+      setRiderLocation(null);
+      lastCoordRef.current = null;
+      lastRealGpsPosRef.current = null;
+      setLocationError(message);
+
+      if (!locationErrorToastShownRef.current) {
+        locationErrorToastShownRef.current = true;
+        toast.error('Location unavailable', { description: message });
       }
-      toast.error('GPS Blocked!', { description: 'Showing test location in Indore.' });
+
+      // Permission denial / unavailable GPS must make the rider ineligible for new orders.
+      if (!isTimeout) {
+        setOnline(false);
+        deliveryAPI.updateOnlineStatus(false).catch(() => {});
+      }
     }, { 
       enableHighAccuracy: true,
       maximumAge: 3000,
@@ -750,7 +778,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     });
     
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [isOnline, setRiderLocation, isSimMode]);
+  }, [isOnline, setOnline, setRiderLocation, isSimMode]);
 
   // Refresh GPS when returning from external apps (e.g. Google Maps)
   useEffect(() => {
@@ -1309,8 +1337,14 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                       
                       // Show a small loading state if needed, but since it's fast we just request
                       navigator.geolocation.getCurrentPosition(
-                        () => {
+                        (pos) => {
                             // GPS is enabled and accessible
+                            setRiderLocation({
+                              lat: pos.coords.latitude,
+                              lng: pos.coords.longitude,
+                              heading: pos.coords.heading || 0,
+                            });
+                            setLocationError('');
                             setShowPhotoModal(true);
                         },
                         (err) => {
@@ -1472,7 +1506,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
            <div className="absolute inset-0 top-[-120px]">
              {isOnline ? (
                <>
-                 <LiveMap 
+             <LiveMap 
                onMapLoad={(m) => mapRef.current = m}
                onMapClick={handleMapClick}
                onPathReceived={setSimPath}
@@ -1482,6 +1516,13 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                }}
                zoom={zoom}
              />
+
+             {locationError && !isSimMode && (
+               <div className="absolute top-[180px] left-4 right-4 z-[110] rounded-2xl border border-red-200 bg-white/95 px-4 py-3 shadow-xl backdrop-blur-md">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Location unavailable</p>
+                 <p className="mt-1 text-xs font-semibold text-gray-700">{locationError}</p>
+               </div>
+             )}
              
              {/* SIMULATION INDICATOR */}
              {isSimMode && (

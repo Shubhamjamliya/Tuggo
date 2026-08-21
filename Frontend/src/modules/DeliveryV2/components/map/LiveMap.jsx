@@ -10,7 +10,6 @@ import {
 } from '@react-google-maps/api';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
 import { zoneAPI } from '@food/api';
-import { useGoogleMapsApiKey } from '@food/utils/googleMapsApiKey';
 
 const mapContainerStyle = {
   width: '100%',
@@ -40,18 +39,19 @@ const mapOptions = {
   ]
 };
 const LIBRARIES = ['places', 'geometry'];
+const DELIVERY_GOOGLE_MAPS_API_KEY = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
+  .trim()
+  .replace(/^['"]|['"]$/g, '');
 
-export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineReceived, zoom = 12 }) => {
+const LiveMapWithApiKey = ({ googleMapsApiKey, onMapClick, onMapLoad, onPathReceived, onPolylineReceived, zoom = 12 }) => {
   const { riderLocation, activeOrder, tripStatus } = useDeliveryStore();
-  const googleMapsApiKey = useGoogleMapsApiKey();
   
   const { isLoaded, loadError } = useJsApiLoader(
     {
       id: 'delivery-live-map',
-      googleMapsApiKey: googleMapsApiKey || '__pending__',
+      googleMapsApiKey,
       libraries: LIBRARIES,
-    },
-    [googleMapsApiKey]
+    }
   );
 
   const [directions, setDirections] = useState(null);
@@ -361,14 +361,25 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
     travelMode: 'DRIVING',
   } : null;
 
-  const defaultCenter = { lat: 22.7196, lng: 75.8577 }; // Center on Indore as fallback
+  const mapCenter = parsedRiderLocation || targetLocation;
+
+  if (!mapCenter) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-gray-50 px-8 text-center">
+        <div>
+          <p className="font-black text-gray-900">Current location unavailable</p>
+          <p className="mt-2 text-sm font-medium text-gray-500">Enable precise location to view your delivery zone.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="absolute inset-0 z-0 text-gray-900 overflow-hidden flex flex-col">
       <GoogleMap
         onLoad={handleMapLoad}
         mapContainerStyle={mapContainerStyle}
-        center={parsedRiderLocation || targetLocation || defaultCenter}
+        center={mapCenter}
         zoom={zoom}
         heading={parsedRiderLocation?.heading || 0}
         tilt={45}
@@ -448,6 +459,21 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
       </GoogleMap>
     </div>
   );
+};
+
+export const LiveMap = (props) => {
+  if (!DELIVERY_GOOGLE_MAPS_API_KEY) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-gray-50 px-8 text-center">
+        <div>
+          <p className="font-black text-gray-900">Map is not configured</p>
+          <p className="mt-2 text-sm font-medium text-gray-500">Set VITE_GOOGLE_MAPS_API_KEY in the frontend environment.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <LiveMapWithApiKey {...props} googleMapsApiKey={DELIVERY_GOOGLE_MAPS_API_KEY} />;
 };
 
 export default LiveMap;
