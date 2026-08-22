@@ -437,7 +437,7 @@ export default function OrdersTable({
                 )}
                 {visibleColumns.actions && (
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                    <div className="flex items-center justify-center gap-1.5 flex-nowrap">
                       {order.orderStatus === "Pending" && onAcceptOrder && (
                         <button
                           onClick={() => onAcceptOrder(order)}
