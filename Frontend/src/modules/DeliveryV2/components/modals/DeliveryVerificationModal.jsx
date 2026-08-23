@@ -182,12 +182,16 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
   const [showQrModal, setShowQrModal] = useState(false);
   const [collectQr, setCollectQr] = useState(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
+  const [isCompletingCash, setIsCompletingCash] = useState(false);
   const isInitialPaid = ['paid', 'captured'].includes(String(order.payment?.status || "").toLowerCase());
-  const [paymentStatus, setPaymentStatus] = useState(isInitialPaid ? 'paid' : 'idle');
+  const initialPaymentMethod = String(order.payment?.method || order.paymentMethod || '').toLowerCase();
+  const [paymentStatus, setPaymentStatus] = useState(
+    isInitialPaid ? 'paid' : (initialPaymentMethod === 'razorpay_qr' ? 'pending' : 'idle'),
+  );
   const pollingRef = useRef(null);
 
   const orderId = order.order_id || order.orderId || order._id || 'ORD';
-  const amountToCollect = order.pricing?.total || order.amountToCollect || 0;
+  const amountToCollect = Number(order.pricing?.total || order.amountToCollect || 0);
 
   const checkPaymentSync = useCallback(async () => {
     try {
@@ -244,6 +248,20 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
   };
 
   const isPaid = paymentStatus === 'paid';
+  const qrFlowStarted = Boolean(collectQr) || paymentStatus === 'pending';
+
+  const confirmCashCollected = async () => {
+    if (qrFlowStarted || isCompletingCash) return;
+    setIsCompletingCash(true);
+    try {
+      await onComplete(otpString);
+      toast.success('Cash collection recorded');
+    } catch {
+      // The completion handler already displays the server error.
+    } finally {
+      setIsCompletingCash(false);
+    }
+  };
 
   return (
     <>
@@ -282,9 +300,28 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
 
               {!isPaid && (
                 <div className="space-y-3">
+                  <button
+                    onClick={confirmCashCollected}
+                    disabled={isCompletingCash || isGeneratingQr || qrFlowStarted}
+                    className="w-full py-3.5 sm:py-4 rounded-2xl bg-green-600 text-white font-bold text-[11px] sm:text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCompletingCash ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <DollarSign className="w-5 h-5" />
+                    )}
+                    {isCompletingCash ? 'Recording Cash…' : 'Cash Collected'}
+                  </button>
+
+                  <div className="flex items-center gap-3 px-2">
+                    <div className="h-px flex-1 bg-amber-200" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">or</span>
+                    <div className="h-px flex-1 bg-amber-200" />
+                  </div>
+
                   <button 
                     onClick={generateQr}
-                    disabled={isGeneratingQr}
+                    disabled={isGeneratingQr || isCompletingCash}
                     className={`w-full py-3.5 sm:py-4 border-2 rounded-2xl font-bold text-[11px] sm:text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
                       paymentStatus === 'pending'
                         ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-inner'
@@ -298,6 +335,12 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
                   {['expired', 'failed'].includes(paymentStatus) && (
                     <p className="text-xs font-semibold text-red-600">
                       The previous QR is no longer payable. Create a new QR to continue.
+                    </p>
+                  )}
+
+                  {qrFlowStarted && (
+                    <p className="text-xs font-semibold text-amber-700">
+                      QR collection is active. Cash collection is disabled to prevent duplicate payment.
                     </p>
                   )}
                 </div>

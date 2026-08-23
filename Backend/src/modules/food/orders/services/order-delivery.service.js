@@ -1111,9 +1111,12 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
   // 2. Financial Context Resolution
   const tx = await FoodTransaction.findOne({ orderId: order._id }).lean();
   const prevPayStatus = String(tx?.payment?.status || order?.payment?.status || 'cod_pending');
-  const payMethod = String(tx?.payment?.method || order?.payment?.method || order?.paymentMethod || 'cash');
-
-  const finalPayMethod = payMethod;
+  const payMethod = String(
+    tx?.payment?.method || order?.payment?.method || order?.paymentMethod || 'cash',
+  ).toLowerCase();
+  const finalPayMethod = ['cash', 'cod', 'cash_on_delivery'].includes(payMethod)
+    ? 'cash'
+    : payMethod;
 
   // 3. Server-side Payment Verification (Blocking)
   // The request body cannot select a payment method or claim that payment happened.
@@ -1121,7 +1124,19 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
   if (finalPayMethod === 'razorpay_qr') {
     const syncedPayment = await syncRazorpayQrPayment(order);
     verifiedPaymentStatus = String(syncedPayment?.status || '').toLowerCase();
+  } else if (finalPayMethod === 'cash') {
+    // Record cash first, before changing the order to delivered. The endpoint is
+    // authenticated, restricted to the assigned rider, and OTP-gated above.
+    await foodTransactionService.updateTransactionStatus(order._id, 'cod_marked_paid_on_delivery', {
+      status: 'captured',
+      paymentMethod: 'cash',
+      recordedByRole: 'DELIVERY_PARTNER',
+      recordedById: deliveryPartnerId,
+      note: 'Rider confirmed cash collection after customer handover OTP verification.',
+    });
+    verifiedPaymentStatus = 'paid';
   }
+  // Both paths must reach a server-recorded paid state before fulfilment.
   if (verifiedPaymentStatus !== 'paid') {
     throw new ValidationError(
       'Payment has not been verified by the server. Complete payment before finishing delivery.',
@@ -1161,13 +1176,15 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
       ? 'cod_marked_paid_on_delivery' 
       : (finalPayMethod === 'razorpay_qr' ? 'cod_collect_qr_settled' : 'payment_snapshot_sync');
 
-  await foodTransactionService.updateTransactionStatus(order._id, ledgerKind, {
-    status: 'captured', // This marks payment as 'paid'
-    paymentMethod: finalPayMethod,
-    recordedByRole: 'DELIVERY_PARTNER',
-    recordedById: deliveryPartnerId,
-    note: `Rider finalized payment as ${finalPayMethod}. Order is now delivered.`,
-  });
+  if (finalPayMethod !== 'cash') {
+    await foodTransactionService.updateTransactionStatus(order._id, ledgerKind, {
+      status: 'captured', // This marks payment as 'paid'
+      paymentMethod: finalPayMethod,
+      recordedByRole: 'DELIVERY_PARTNER',
+      recordedById: deliveryPartnerId,
+      note: `Rider finalized payment as ${finalPayMethod}. Order is now delivered.`,
+    });
+  }
 
   emitOrderUpdate(order, deliveryPartnerId);
   
