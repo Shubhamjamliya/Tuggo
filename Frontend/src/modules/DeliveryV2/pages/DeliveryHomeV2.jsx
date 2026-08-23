@@ -140,6 +140,11 @@ function normalizeDeliveryActiveOrder(rawOrder) {
     orderId: rawOrder.orderId || rawOrder.order_id || rawOrder._id || rawOrder.orderMongoId,
     restaurantLocation,
     customerLocation,
+    items: Array.isArray(rawOrder.items)
+      ? rawOrder.items
+      : Array.isArray(rawOrder.orderItems)
+        ? rawOrder.orderItems
+        : [],
   };
 }
 
@@ -377,15 +382,30 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
           const nextPoint = simPath[simIndex + 1];
 
           if (currentPoint && nextPoint) {
+            const currentLat = Number(currentPoint.lat);
+            const currentLng = Number(currentPoint.lng);
+            const nextLat = Number(nextPoint.lat);
+            const nextLng = Number(nextPoint.lng);
+            if (![currentLat, currentLng, nextLat, nextLng].every(Number.isFinite)) {
+              console.error('[SimAuto] Invalid route coordinates', { currentPoint, nextPoint });
+              setIsSimMode(false);
+              toast.error('Simulation stopped', { description: 'The route contains invalid coordinates.' });
+              return 0;
+            }
+
             // Linear Interpolation (LERP)
-            const lat = currentPoint.lat + (nextPoint.lat - currentPoint.lat) * nextProgress;
-            const lng = currentPoint.lng + (nextPoint.lng - currentPoint.lng) * nextProgress;
-            const heading = calculateHeading(currentPoint.lat, currentPoint.lng, nextPoint.lat, nextPoint.lng);
+            const lat = currentLat + (nextLat - currentLat) * nextProgress;
+            const lng = currentLng + (nextLng - currentLng) * nextProgress;
+            const heading = calculateHeading(currentLat, currentLng, nextLat, nextLng);
 
             setRiderLocation({ lat, lng, heading });
 
             if (mapRef.current) {
-              mapRef.current.panTo({ lat, lng });
+              try {
+                mapRef.current.panTo({ lat, lng });
+              } catch (error) {
+                console.warn('[SimAuto] Map pan skipped:', error);
+              }
             }
 
             // Sync with backend every 2.5 seconds during simulation so customer sees it
@@ -1310,6 +1330,61 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     }
   };
 
+  const handleSimulationToggle = useCallback(() => {
+    if (isSimMode) {
+      setIsSimMode(false);
+      setSimIndex(0);
+      setSimProgress(0);
+      return;
+    }
+
+    if (!activeOrder) {
+      toast.error('Simulation needs an active order');
+      return;
+    }
+
+    const parsePoint = (raw) => {
+      if (!raw) return null;
+      const latValue = typeof raw.lat === 'function' ? raw.lat() : raw.lat ?? raw.latitude;
+      const lngValue = typeof raw.lng === 'function' ? raw.lng() : raw.lng ?? raw.longitude;
+      const lat = Number(latValue);
+      const lng = Number(lngValue);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+    };
+
+    const target = tripStatus === 'PICKED_UP' || tripStatus === 'REACHED_DROP'
+      ? parsePoint(activeOrder.customerLocation)
+      : parsePoint(activeOrder.restaurantLocation);
+
+    if (!target) {
+      toast.error('Simulation unavailable', { description: 'Order location is missing or invalid.' });
+      return;
+    }
+
+    const currentRider = parsePoint(useDeliveryStore.getState().riderLocation);
+    const riderPoint = currentRider || { lat: target.lat + 0.001, lng: target.lng + 0.001 };
+    const existingPath = (Array.isArray(simPath) ? simPath : []).map(parsePoint).filter(Boolean);
+
+    setRiderLocation({ ...riderPoint, heading: 0 });
+    if (existingPath.length >= 2) {
+      setSimPath(existingPath);
+    } else {
+      const steps = 60;
+      setSimPath(Array.from({ length: steps + 1 }, (_, index) => {
+        const progress = index / steps;
+        return {
+          lat: riderPoint.lat + (target.lat - riderPoint.lat) * progress,
+          lng: riderPoint.lng + (target.lng - riderPoint.lng) * progress,
+        };
+      }));
+    }
+
+    setSimIndex(0);
+    setSimProgress(0);
+    setIsSimMode(true);
+    toast.warning('Simulation Mode Active');
+  }, [activeOrder, isSimMode, simPath, setRiderLocation, tripStatus]);
+
   return (
     <div className="relative h-screen w-full bg-white text-gray-900 overflow-hidden flex flex-col">
       {/* â”€â”€â”€ 1. TOP HEADER (Dynamic Theme Gradient) â”€â”€â”€ */}
@@ -1370,7 +1445,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
               {/* DEV SIMULATION TOGGLE */}
               {import.meta.env.DEV && (
                  <button 
-                   onClick={() => setIsSimMode(!isSimMode)}
+                   onClick={handleSimulationToggle}
                    className={`px-3 h-8 rounded-lg text-[9px] font-black border transition-all ${isSimMode ? 'bg-orange-500 border-orange-400 text-white animate-pulse' : 'bg-white/10 border-white/20 text-white/40'}`}
                  >
                    SIM
@@ -1536,7 +1611,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                         <span className="text-white text-[11px] font-medium">Following actual road path...</span>
                      </div>
                   </div>
-                  <button onClick={() => setIsSimMode(false)} className="bg-white/10 text-white/50 hover:text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-white/10">Stop</button>
+                  <button onClick={handleSimulationToggle} className="bg-white/10 text-white/50 hover:text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-white/10">Stop</button>
                </div>
              )}
 
@@ -1546,48 +1621,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                    <button onClick={() => setZoom(z => Math.max(8, z - 1))} className="p-3 hover:bg-gray-50 text-gray-900 active:scale-90 transition-all" aria-label="Zoom out"><Minus className="w-5 h-5 stroke-[2.75]" /></button>
                 </div>
                 <button 
-                  onClick={() => {
-                    const nextSimState = !isSimMode;
-                    setIsSimMode(nextSimState);
-
-                    if (nextSimState) {
-                      toast.warning('Simulation Mode Active');
-
-                      const parsePoint = (raw) => {
-                        if (!raw) return null;
-                        const lat = Number(raw.lat ?? raw.latitude);
-                        const lng = Number(raw.lng ?? raw.longitude);
-                        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-                        return { lat, lng };
-                      };
-
-                      const target =
-                        tripStatus === 'PICKED_UP' || tripStatus === 'REACHED_DROP'
-                          ? parsePoint(activeOrder?.customerLocation)
-                          : parsePoint(activeOrder?.restaurantLocation);
-
-                      const currentRider = useDeliveryStore.getState().riderLocation;
-                      const riderPoint = parsePoint(currentRider) || (target
-                        ? { lat: target.lat + 0.001, lng: target.lng + 0.001 }
-                        : null);
-
-                      if (riderPoint) {
-                        setRiderLocation({ lat: riderPoint.lat, lng: riderPoint.lng, heading: 0 });
-                      }
-
-                      if (riderPoint && target && (!simPath || simPath.length < 2)) {
-                        const steps = 60;
-                        const fallbackPath = Array.from({ length: steps + 1 }, (_, i) => {
-                          const t = i / steps;
-                          return {
-                            lat: riderPoint.lat + (target.lat - riderPoint.lat) * t,
-                            lng: riderPoint.lng + (target.lng - riderPoint.lng) * t,
-                          };
-                        });
-                        setSimPath(fallbackPath);
-                      }
-                    }
-                  }}
+                  onClick={handleSimulationToggle}
                   className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center border border-gray-100 transition-all ${isSimMode ? 'bg-orange-500 text-white' : 'bg-white text-green-500'}`}
                 >
                   <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${isSimMode ? 'border-white' : 'border-green-500'}`}>
@@ -1777,7 +1811,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                               </div>
                            </div>
 
-                           {activeOrder?.items && activeOrder.items.length > 0 && (
+                           {Array.isArray(activeOrder?.items) && activeOrder.items.length > 0 && (
                              <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Order Items</p>
                                 <p className="text-sm font-bold text-gray-800 line-clamp-2 leading-snug">

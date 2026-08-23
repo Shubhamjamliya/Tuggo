@@ -48,7 +48,8 @@ export const HistoryV2 = () => {
         
         const response = await deliveryAPI.getTripHistory(params);
         if (response.data?.success) {
-          setTrips(response.data.data.trips || []);
+          const fetchedTrips = response.data?.data?.trips;
+          setTrips(Array.isArray(fetchedTrips) ? fetchedTrips : []);
         }
       } catch (error) {
         toast.error("Failed to load history");
@@ -66,7 +67,10 @@ export const HistoryV2 = () => {
            setBonusLoading(true);
            try {
               const res = await deliveryAPI.getWalletTransactions({ type: 'bonus', limit: 50 });
-              if (res.data?.success) setBonusTransactions(res.data.data.transactions || []);
+              if (res.data?.success) {
+                const transactions = res.data?.data?.transactions;
+                setBonusTransactions(Array.isArray(transactions) ? transactions : []);
+              }
            } catch (e) { toast.error("Failed to load bonuses"); }
            finally { setBonusLoading(false); }
         };
@@ -105,7 +109,8 @@ export const HistoryV2 = () => {
   }, [trips]);
 
   const extractItems = (trip) => {
-    const items = trip.items || trip.orderItems || [];
+    const rawItems = trip.items || trip.orderItems;
+    const items = Array.isArray(rawItems) ? rawItems : [];
     if (items.length === 0) return 'Standard Delivery';
     const first = items[0];
     const qty = first.quantity || first.qty || 1;

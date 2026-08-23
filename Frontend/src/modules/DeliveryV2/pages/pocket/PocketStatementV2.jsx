@@ -57,8 +57,10 @@ export const PocketStatementV2 = () => {
           deliveryAPI.getWalletTransactions({ type: 'bonus', limit: 1000 })
         ]);
         
-        setOrders(tripRes?.data?.data?.trips || []);
-        setBonusTransactions(walletRes?.data?.data?.transactions || []);
+        const trips = tripRes?.data?.data?.trips;
+        const transactions = walletRes?.data?.data?.transactions;
+        setOrders(Array.isArray(trips) ? trips : []);
+        setBonusTransactions(Array.isArray(transactions) ? transactions : []);
       } catch (error) {
         toast.error('Error loading pocket statement');
       } finally {
@@ -81,7 +83,7 @@ export const PocketStatementV2 = () => {
         trip.payout ||
         trip.estimatedEarnings?.totalEarning ||
         0;
-      totalEarning += earning;
+      totalEarning += Number(earning) || 0;
     });
 
     bonusTransactions.forEach((b) => {
@@ -89,7 +91,7 @@ export const PocketStatementV2 = () => {
       if (!baseDate) return;
       const d = new Date(baseDate);
       if (d >= weekRange.start && d <= weekRange.end) {
-        totalBonus += b.amount || 0;
+        totalBonus += Number(b.amount) || 0;
       }
     });
 
@@ -101,17 +103,18 @@ export const PocketStatementV2 = () => {
   }, [orders, bonusTransactions, weekRange]);
 
   const getOrderAmounts = (trip) => {
-    const earning =
+    const earning = Number(
       trip.deliveryEarning ||
       trip.deliveryPayout ||
       trip.payout ||
       trip.estimatedEarnings?.totalEarning ||
-      0;
+      0
+    ) || 0;
 
     const orderId = trip.orderId || trip.id || trip._id;
     const bonusForOrder = bonusTransactions
       .filter((b) => b.orderId === orderId)
-      .reduce((sum, b) => sum + (b.amount || 0), 0);
+      .reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
 
     return {
       earning,
@@ -208,7 +211,7 @@ export const PocketStatementV2 = () => {
                                }`}></div>
                                <div>
                                   <p className="text-gray-900 text-sm font-bold mb-0.5">
-                                     Order #{orderId?.slice(-6) || '...'}
+                                     Order #{orderId != null ? String(orderId).slice(-6) : '...'}
                                   </p>
                                   <p className="text-gray-400 text-[11px] font-bold mb-1 uppercase tracking-tight">{dateText}</p>
                                   {trip.restaurantName && (

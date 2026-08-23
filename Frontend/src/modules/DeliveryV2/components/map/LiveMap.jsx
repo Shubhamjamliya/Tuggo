@@ -254,10 +254,13 @@ const LiveMapWithApiKey = ({ googleMapsApiKey, onMapClick, onMapLoad, onPathRece
     (async () => {
       try {
         const response = await zoneAPI.getPublicZones();
-        if (response?.data?.success && response.data.data?.zones) {
-          const formattedZones = response.data.data.zones.map(zone => ({
+        const rawZones = response?.data?.data?.zones;
+        if (response?.data?.success && Array.isArray(rawZones)) {
+          const formattedZones = rawZones.map(zone => ({
             ...zone,
-            paths: (zone.coordinates || []).map(coord => ({ lat: coord.latitude, lng: coord.longitude }))
+            paths: (Array.isArray(zone.coordinates) ? zone.coordinates : [])
+              .map(coord => ({ lat: Number(coord.latitude), lng: Number(coord.longitude) }))
+              .filter(coord => Number.isFinite(coord.lat) && Number.isFinite(coord.lng))
           })).filter(z => z.paths.length >= 3);
           setZones(formattedZones);
         }
@@ -304,17 +307,21 @@ const LiveMapWithApiKey = ({ googleMapsApiKey, onMapClick, onMapLoad, onPathRece
   }, [map, parsedRiderLocation, restaurantPoint, customerPoint]);
 
   const { remainingPath, traveledPath } = useMemo(() => {
-    if (!directions || !parsedRiderLocation || !window.google?.maps) return { remainingPath: [], traveledPath: [] };
-    
-    const fullPath = directions.routes[0].overview_path;
+    const maps = window.google?.maps;
+    const spherical = maps?.geometry?.spherical;
+    const fullPath = directions?.routes?.[0]?.overview_path;
+    if (!parsedRiderLocation || !maps || !spherical || !Array.isArray(fullPath)) {
+      return { remainingPath: [], traveledPath: [] };
+    }
+
     if (!fullPath || fullPath.length === 0) return { remainingPath: [], traveledPath: [] };
 
     let closestIndex = 0;
     let minDistance = Infinity;
-    const riderLatLng = new window.google.maps.LatLng(parsedRiderLocation.lat, parsedRiderLocation.lng);
+    const riderLatLng = new maps.LatLng(parsedRiderLocation.lat, parsedRiderLocation.lng);
 
     for (let i = 0; i < fullPath.length; i++) {
-      const distance = window.google.maps.geometry.spherical.computeDistanceBetween(riderLatLng, fullPath[i]);
+      const distance = spherical.computeDistanceBetween(riderLatLng, fullPath[i]);
       if (distance < minDistance) {
         minDistance = distance;
         closestIndex = i;
@@ -323,9 +330,9 @@ const LiveMapWithApiKey = ({ googleMapsApiKey, onMapClick, onMapLoad, onPathRece
 
     let startIndex = closestIndex;
     if (closestIndex < fullPath.length - 1) {
-      const distToCurrent = window.google.maps.geometry.spherical.computeDistanceBetween(riderLatLng, fullPath[closestIndex]);
-      const distToNext = window.google.maps.geometry.spherical.computeDistanceBetween(riderLatLng, fullPath[closestIndex + 1]);
-      const segmentLen = window.google.maps.geometry.spherical.computeDistanceBetween(fullPath[closestIndex], fullPath[closestIndex + 1]);
+      const distToCurrent = spherical.computeDistanceBetween(riderLatLng, fullPath[closestIndex]);
+      const distToNext = spherical.computeDistanceBetween(riderLatLng, fullPath[closestIndex + 1]);
+      const segmentLen = spherical.computeDistanceBetween(fullPath[closestIndex], fullPath[closestIndex + 1]);
       
       if (distToNext < segmentLen && distToNext < distToCurrent) {
         startIndex = closestIndex + 1;
