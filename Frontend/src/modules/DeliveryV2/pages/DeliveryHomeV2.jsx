@@ -1345,16 +1345,38 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
     const parsePoint = (raw) => {
       if (!raw) return null;
-      const latValue = typeof raw.lat === 'function' ? raw.lat() : raw.lat ?? raw.latitude;
-      const lngValue = typeof raw.lng === 'function' ? raw.lng() : raw.lng ?? raw.longitude;
+
+      const locationCandidate = raw.location && typeof raw.location === 'object'
+        ? raw.location
+        : raw;
+      const coordinates = Array.isArray(locationCandidate.coordinates)
+        ? locationCandidate.coordinates
+        : null;
+      if (coordinates?.length >= 2) {
+        const lat = Number(coordinates[1]);
+        const lng = Number(coordinates[0]);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+      }
+
+      const latValue = typeof locationCandidate.lat === 'function'
+        ? locationCandidate.lat()
+        : locationCandidate.lat ?? locationCandidate.latitude;
+      const lngValue = typeof locationCandidate.lng === 'function'
+        ? locationCandidate.lng()
+        : locationCandidate.lng ?? locationCandidate.longitude;
       const lat = Number(latValue);
       const lng = Number(lngValue);
       return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
     };
 
     const target = tripStatus === 'PICKED_UP' || tripStatus === 'REACHED_DROP'
-      ? parsePoint(activeOrder.customerLocation)
-      : parsePoint(activeOrder.restaurantLocation);
+      ? parsePoint(activeOrder.customerLocation) ||
+        parsePoint(activeOrder.deliveryAddress) ||
+        parsePoint(activeOrder.customer_address) ||
+        parsePoint(activeOrder.user)
+      : parsePoint(activeOrder.restaurantLocation) ||
+        parsePoint(activeOrder.restaurantId) ||
+        parsePoint(activeOrder.restaurant);
 
     if (!target) {
       toast.error('Simulation unavailable', { description: 'Order location is missing or invalid.' });

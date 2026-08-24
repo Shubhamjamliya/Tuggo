@@ -9,6 +9,7 @@ import {
   OverlayView
 } from '@react-google-maps/api';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
+import { calculateHeading } from '@/modules/DeliveryV2/utils/geo';
 import { zoneAPI } from '@food/api';
 
 const mapContainerStyle = {
