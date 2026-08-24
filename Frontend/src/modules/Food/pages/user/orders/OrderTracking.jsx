@@ -365,7 +365,8 @@ const transformOrderForTracking = (apiOrder, previousOrder = null, explicitResta
       name: item.name,
       variantName: item.variantName || '',
       quantity: item.quantity,
-      price: item.price
+      price: item.price,
+      originalPrice: item.originalPrice ?? item.price
     })) || previousOrder?.items || [],
     total: apiOrder?.pricing?.total || previousOrder?.total || 0,
     // Backend canonical field is orderStatus; keep legacy `status` for UI compatibility.

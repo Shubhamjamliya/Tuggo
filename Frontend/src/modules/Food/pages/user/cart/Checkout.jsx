@@ -63,6 +63,7 @@ export default function Checkout() {
           id: item.id,
           name: item.name,
           price: item.price,
+          originalPrice: item.originalPrice ?? item.price,
           quantity: item.quantity,
           image: item.image
         })),

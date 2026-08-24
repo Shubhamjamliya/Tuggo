@@ -20,30 +20,51 @@ export function RestaurantCarouselStateProvider({ children }) {
 function resolveSlideOffer(restaurant, slide) {
   if (!slide?.isRecommended) return null;
 
+  const originalPrice = Number(slide.price) || 0;
+  if (originalPrice <= 0) return null;
+
+  const buildResult = (discountValue, isFlat, offerText) => {
+    const value = Number(discountValue) || 0;
+    if (value <= 0) return null;
+
+    const discountedPrice = isFlat
+      ? Math.max(0, originalPrice - value)
+      : Math.max(0, originalPrice * (1 - value / 100));
+
+    if (discountedPrice >= originalPrice) return null;
+    return { offerText, originalPrice, discountedPrice };
+  };
+
   const specificDiscount = Array.isArray(restaurant?.itemDiscounts)
     ? restaurant.itemDiscounts.find((discount) => String(discount.itemId) === String(slide.id))
     : null;
   if (specificDiscount && Number(specificDiscount.discountValue) > 0) {
     const value = Number(specificDiscount.discountValue);
     const isFlat = String(specificDiscount.discountType || "").toUpperCase() === "FLAT";
-    return isFlat ? `FLAT ₹${value} OFF` : `${value}% OFF`;
+    return buildResult(value, isFlat, isFlat ? `FLAT ₹${value} OFF` : `${value}% OFF`);
   }
 
-  if (Number(slide.discountPercent) > 0) return `${Number(slide.discountPercent)}% OFF`;
+  if (Number(slide.discountPercent) > 0) {
+    const value = Number(slide.discountPercent);
+    return buildResult(value, false, `${value}% OFF`);
+  }
 
-  const price = Number(slide.price) || 0;
   const matchingRule = (restaurant?.discountRules || []).find((rule) => {
     const conditionValue = Number(rule.conditionValue);
     return (
-      (rule.conditionType === "PRICE_ABOVE" && price > conditionValue) ||
-      (rule.conditionType === "PRICE_BELOW" && price < conditionValue)
+      (rule.conditionType === "PRICE_ABOVE" && originalPrice > conditionValue) ||
+      (rule.conditionType === "PRICE_BELOW" && originalPrice < conditionValue)
     );
   });
   if (matchingRule && Number(matchingRule.discountValue) > 0) {
-    return `${Number(matchingRule.discountValue)}% OFF`;
+    const value = Number(matchingRule.discountValue);
+    return buildResult(value, false, `${value}% OFF`);
   }
 
-  if (Number(restaurant?.discount) > 0) return `${Number(restaurant.discount)}% OFF`;
+  if (Number(restaurant?.discount) > 0) {
+    const value = Number(restaurant.discount);
+    return buildResult(value, false, `${value}% OFF`);
+  }
   return null;
 }
 
@@ -59,7 +80,7 @@ function OfferBannerContent({ item }) {
         {item.name}
       </span>
       <div className="flex items-center gap-1.5 shrink-0 pl-1">
-        {item.discountedPrice && item.discountedPrice < item.price ? (
+        {Number.isFinite(item.discountedPrice) && item.discountedPrice < item.price ? (
           <>
             <span className="text-[10px] text-black/50 line-through">₹{Math.round(item.price)}</span>
             <span className="font-semibold text-black text-[11px]">₹{Math.round(item.discountedPrice)}</span>
@@ -174,26 +195,33 @@ function getBannerItems(restaurant) {
 export function RestaurantOfferBanner({ restaurant }) {
   const carouselState = useContext(RestaurantCarouselStateContext);
   const activeSlide = carouselState?.activeSlide || null;
-  const offerText = useMemo(
+  const offerDetails = useMemo(
     () => resolveSlideOffer(restaurant, activeSlide),
     [restaurant, activeSlide],
   );
 
-  if (!activeSlide || !offerText) return null;
+  if (!activeSlide || !offerDetails) return null;
+
+  const offerItem = {
+    ...activeSlide,
+    price: offerDetails.originalPrice,
+    discountedPrice: offerDetails.discountedPrice,
+    offerText: offerDetails.offerText,
+  };
 
   return (
     <div className="mb-2 w-full overflow-hidden lg:mb-3">
       <div className="relative h-[30px] w-full overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
-            key={`${activeSlide.id || activeSlide.name}-${offerText}`}
+            key={`${activeSlide.id || activeSlide.name}-${offerDetails.offerText}`}
             initial={{ y: 12, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -12, opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="absolute inset-0 flex w-full items-center"
           >
-            <OfferBannerContent item={{ ...activeSlide, offerText }} />
+            <OfferBannerContent item={offerItem} />
           </motion.div>
         </AnimatePresence>
       </div>

@@ -1382,6 +1382,7 @@ export default function Cart() {
           itemId: item.itemId || item.id,
           name: item.name,
           price: item.price,
+          originalPrice: item.originalPrice ?? item.price,
           variantId: item.variantId || undefined,
           variantName: item.variantName || undefined,
           variantPrice: item.variantPrice || item.price,
@@ -1450,6 +1451,7 @@ export default function Cart() {
         itemId: item.itemId || item.id,
         name: item.name,
         price: item.price,
+        originalPrice: item.originalPrice ?? item.price,
         variantId: item.variantId || undefined,
         variantName: item.variantName || undefined,
         variantPrice: item.variantPrice || item.price,
@@ -1515,6 +1517,7 @@ export default function Cart() {
           itemId: item.itemId || item.id,
           name: item.name,
           price: item.price,
+          originalPrice: item.originalPrice ?? item.price,
           variantId: item.variantId || undefined,
           variantName: item.variantName || undefined,
           variantPrice: item.variantPrice || item.price,
@@ -1600,6 +1603,7 @@ export default function Cart() {
         itemId: item.itemId || item.id,
         name: item.name,
         price: item.price,
+        originalPrice: item.originalPrice ?? item.price,
         variantId: item.variantId || undefined,
         variantName: item.variantName || undefined,
         variantPrice: item.variantPrice || item.price,
@@ -2186,12 +2190,17 @@ export default function Cart() {
                 <div className="space-y-3 md:space-y-4">
                   <div className="space-y-6">
                     {cart.map((item, index) => {
-                      let displayPrice = item.originalPrice || item.price || 0;
-                      let originalDisplayPrice = displayPrice;
+                      const storedPrice = Number(item.price) || 0;
+                      let originalDisplayPrice = Math.max(
+                        storedPrice,
+                        Number(item.originalPrice) || 0,
+                      );
+                      let displayPrice = storedPrice;
                       let bestDiscountAmount = 0;
 
-                      // 1. Check item specific discount
-                      if (restaurantData?.itemDiscounts && restaurantData.itemDiscounts.length > 0) {
+                      // Older locally stored cart entries may not have originalPrice yet.
+                      // Recalculate only for those entries; new entries already carry both prices.
+                      if (originalDisplayPrice <= storedPrice && restaurantData?.itemDiscounts?.length > 0) {
                         const itemDiscountRule = restaurantData.itemDiscounts.find(
                           (rule) => String(rule.itemId) === String(item.itemId || item.id)
                         );
@@ -2207,8 +2216,23 @@ export default function Cart() {
                         }
                       }
 
-                      // 2. Check global discount
-                      if (restaurantData?.discount > 0) {
+                      if (originalDisplayPrice <= storedPrice) {
+                        const matchingRule = (restaurantData?.discountRules || []).find((rule) => {
+                          const conditionValue = Number(rule.conditionValue);
+                          return (
+                            (rule.conditionType === 'PRICE_ABOVE' && originalDisplayPrice > conditionValue) ||
+                            (rule.conditionType === 'PRICE_BELOW' && originalDisplayPrice < conditionValue)
+                          );
+                        });
+                        if (matchingRule) {
+                          bestDiscountAmount = Math.max(
+                            bestDiscountAmount,
+                            originalDisplayPrice * ((Number(matchingRule.discountValue) || 0) / 100),
+                          );
+                        }
+                      }
+
+                      if (originalDisplayPrice <= storedPrice && restaurantData?.discount > 0) {
                         const globalDiscountVal = Number(restaurantData.discount);
                         const globalDiscountAmount = originalDisplayPrice * (globalDiscountVal / 100);
                         if (globalDiscountAmount > bestDiscountAmount) {
@@ -2216,7 +2240,7 @@ export default function Cart() {
                         }
                       }
 
-                      if (bestDiscountAmount > 0) {
+                      if (originalDisplayPrice <= storedPrice && bestDiscountAmount > 0) {
                         displayPrice = Math.max(0, originalDisplayPrice - bestDiscountAmount);
                       }
 
@@ -2270,14 +2294,18 @@ export default function Cart() {
                               </button>
                             </div>
                             <div className="flex flex-col items-end text-right">
-                              <p className="text-sm md:text-base font-black text-gray-900 dark:text-gray-100">
-                                {RUPEE_SYMBOL}{(displayPrice * (item.quantity || 1)).toFixed(0)}
-                              </p>
-                              {originalDisplayPrice > displayPrice && (
-                                <div className="flex flex-col items-end gap-1 mt-0.5">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {originalDisplayPrice > displayPrice && (
                                   <p className="text-xs md:text-sm text-gray-400 line-through">
                                     {RUPEE_SYMBOL}{(originalDisplayPrice * (item.quantity || 1)).toFixed(0)}
                                   </p>
+                                )}
+                                <p className="text-sm md:text-base font-black text-gray-900 dark:text-gray-100">
+                                  {RUPEE_SYMBOL}{(displayPrice * (item.quantity || 1)).toFixed(0)}
+                                </p>
+                              </div>
+                              {originalDisplayPrice > displayPrice && (
+                                <div className="mt-1 flex flex-col items-end">
                                   <span className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-1 py-0.5 rounded uppercase">
                                     {Math.round(((originalDisplayPrice - displayPrice) / originalDisplayPrice) * 100)}% OFF
                                   </span>

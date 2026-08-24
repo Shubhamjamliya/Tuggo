@@ -260,17 +260,38 @@ export default function OrderInvoice() {
                   </tr>
                 </thead>
                 <tbody>
-                  {order.items.map((item, index) => (
-                    <tr key={item.id} className="border-b border-gray-300 last:border-b-0">
+                  {order.items.map((item, index) => {
+                    const discountedUnitPrice = Number(item.price) || 0
+                    const originalUnitPrice = Math.max(
+                      discountedUnitPrice,
+                      Number(item.originalPrice) || 0,
+                    )
+                    const hasItemDiscount = originalUnitPrice > discountedUnitPrice
+
+                    return (
+                    <tr key={item.id || item.itemId || index} className="border-b border-gray-300 last:border-b-0">
                       <td className="px-3 py-2 border-r border-gray-400 text-center text-gray-800">{index + 1}</td>
                       <td className="px-3 py-2 border-r border-gray-400 font-medium text-gray-900">
                         {item.name} {item.variantName ? `(${item.variantName})` : ""}
                       </td>
                       <td className="px-3 py-2 border-r border-gray-400 text-center font-bold text-gray-800">{item.quantity}</td>
-                      <td className="px-3 py-2 border-r border-gray-400 text-right text-gray-800">₹{item.price.toFixed(2)}</td>
-                      <td className="px-3 py-2 text-right font-bold text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</td>
+                      <td className="px-3 py-2 border-r border-gray-400 text-right text-gray-800">
+                        {hasItemDiscount && (
+                          <span className="mr-1 text-[10px] text-gray-400 line-through">₹{originalUnitPrice.toFixed(2)}</span>
+                        )}
+                        <span className={hasItemDiscount ? "font-bold text-green-700" : ""}>₹{discountedUnitPrice.toFixed(2)}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right font-bold text-gray-900">
+                        {hasItemDiscount && (
+                          <span className="mr-1 text-[10px] font-normal text-gray-400 line-through">
+                            ₹{(originalUnitPrice * item.quantity).toFixed(2)}
+                          </span>
+                        )}
+                        ₹{(discountedUnitPrice * item.quantity).toFixed(2)}
+                      </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                   
                   {/* Totals */}
                   <tr className="border-t-2 border-gray-400 bg-gray-50">

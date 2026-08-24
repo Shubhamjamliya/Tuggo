@@ -2228,14 +2228,14 @@ function RestaurantDetailsContent() {
 
                 return (
                   <div className="flex flex-col gap-0.5 mt-0.5">
+                    {isStartingFrom && <span className="text-[11px] font-medium text-gray-500">Starting from</span>}
                     <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-gray-500 line-through">₹{priceNum}</span>
                       <span className="font-bold text-gray-900 dark:text-white text-[15px]">
-                        {isStartingFrom ? <span className="text-[11px] font-medium text-gray-500 mr-1">Starting from</span> : ''}
                         ₹{discountedPrice}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-[1px]">
-                      <span className="text-[11px] text-gray-500 line-through">₹{priceNum}</span>
                       <span className="text-[9px] font-bold text-green-600 bg-green-50 border border-green-200 px-1 py-[1px] rounded uppercase flex items-center">
                         <Tag size={8} className="mr-[2px]" />
                         {discountLabel}
@@ -3702,13 +3702,15 @@ function RestaurantDetailsContent() {
                           {(() => {
                             const variant = getVariantForDish(selectedItem, selectedVariantId);
                             const basePrice = hasFoodVariants(selectedItem) ? (variant?.price || selectedItem.price) : selectedItem.price;
+                            const priceNum = Number(basePrice) || 0;
+                            const { discountAmount } = calculateBestDiscount(selectedItem, priceNum);
+                            const discountedPrice = Math.max(0, priceNum - discountAmount);
 
-                            if (restaurant?.discount > 0) {
-                              const discountedPrice = basePrice * (1 - restaurant.discount / 100);
+                            if (discountAmount > 0) {
                               return (
                                 <>
                                   <span className="text-sm line-through text-red-200">
-                                    {RUPEE_SYMBOL}{Math.round(basePrice)}
+                                    {RUPEE_SYMBOL}{Math.round(priceNum)}
                                   </span>
                                   <span className="text-base font-bold">
                                     {hasFoodVariants(selectedItem) ? `${variant?.name || "Default"} · ` : ""}{RUPEE_SYMBOL}{Math.round(discountedPrice)}

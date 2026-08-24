@@ -336,13 +336,25 @@ export default function UserOrderDetails() {
       // Items table
       let yPos = 120;
       if (items && items.length > 0) {
-        const tableData = items.map((item, index) => [
-          index + 1,
-          item.variantName ? `${item.name || 'Item'} (${item.variantName})` : (item.name || 'Item'),
-          String(item.quantity || item.qty || 1),
-          `Rs. ${Number(item.price || 0).toFixed(2)}`,
-          `Rs. ${Number((item.price || 0) * (item.quantity || item.qty || 1)).toFixed(2)}`
-        ]);
+        const tableData = items.map((item, index) => {
+          const discountedPrice = Number(item.price) || 0;
+          const originalPrice = Math.max(discountedPrice, Number(item.originalPrice) || 0);
+          const quantity = item.quantity || item.qty || 1;
+          const unitPrice = originalPrice > discountedPrice
+            ? `Rs. ${originalPrice.toFixed(2)} -> Rs. ${discountedPrice.toFixed(2)}`
+            : `Rs. ${discountedPrice.toFixed(2)}`;
+          const lineTotal = originalPrice > discountedPrice
+            ? `Rs. ${(originalPrice * quantity).toFixed(2)} -> Rs. ${(discountedPrice * quantity).toFixed(2)}`
+            : `Rs. ${(discountedPrice * quantity).toFixed(2)}`;
+
+          return [
+            index + 1,
+            item.variantName ? `${item.name || 'Item'} (${item.variantName})` : (item.name || 'Item'),
+            String(quantity),
+            unitPrice,
+            lineTotal
+          ];
+        });
 
         autoTable(doc, {
           startY: yPos,
@@ -458,6 +470,7 @@ export default function UserOrderDetails() {
           id: itemId,
           name: item.name || item.foodName || "Item",
           price: Number(item.price) || 0,
+          originalPrice: Math.max(Number(item.price) || 0, Number(item.originalPrice) || 0),
           image: item.image || "",
           restaurant: restaurantName,
           restaurantId: restaurantObj._id || restaurantObj.restaurantId || currentOrder?.restaurantId,
@@ -581,7 +594,12 @@ export default function UserOrderDetails() {
           <div className="border-t border-dashed border-gray-200 dark:border-gray-800 my-3" />
 
           {/* Items */}
-          {items.map((item, idx) => (
+          {items.map((item, idx) => {
+            const discountedPrice = Number(item.price) || 0
+            const originalPrice = Math.max(discountedPrice, Number(item.originalPrice) || 0)
+            const hasItemDiscount = originalPrice > discountedPrice
+
+            return (
             <div key={idx} className="flex justify-between items-start mt-4 first:mt-0">
               <div className="flex items-center gap-3">
                 {item.image && (
@@ -611,11 +629,19 @@ export default function UserOrderDetails() {
                   </div>
                 </div>
               </div>
-              <span className="text-sm text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
-                ₹{(item.price || 0).toFixed(2)}
-              </span>
+              <div className="flex items-center gap-1.5 text-sm whitespace-nowrap">
+                {hasItemDiscount && (
+                  <span className="text-xs text-gray-400 dark:text-gray-500 line-through">
+                    ₹{originalPrice.toFixed(2)}
+                  </span>
+                )}
+                <span className={`font-medium ${hasItemDiscount ? "text-green-600" : "text-gray-800 dark:text-gray-200"}`}>
+                  ₹{discountedPrice.toFixed(2)}
+                </span>
+              </div>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Bill Summary Card */}

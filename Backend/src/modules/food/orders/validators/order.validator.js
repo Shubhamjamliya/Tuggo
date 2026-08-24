@@ -8,6 +8,7 @@ const orderItemSchema = z.object({
     variantName: z.string().optional(),
     variantPrice: z.coerce.number().min(0).optional(),
     price: z.coerce.number().min(0),
+    originalPrice: z.coerce.number().min(0).optional(),
     quantity: z.coerce.number().int().min(1),
     isVeg: z.boolean().optional().default(true),
     image: z.string().optional(),
