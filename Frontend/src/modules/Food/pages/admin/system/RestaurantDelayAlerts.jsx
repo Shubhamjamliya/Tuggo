@@ -50,7 +50,10 @@ export default function RestaurantDelayAlerts() {
     if (!name) return toast.error('Enter a name for this device');
     setRegistering(true);
     try {
-      const token = await registerWebPushForCurrentModule(window.location.pathname, { allowAdmin: true });
+      const token = await registerWebPushForCurrentModule(window.location.pathname, {
+        allowAdmin: true,
+        throwOnError: true,
+      });
       if (!token) throw new Error('Notification permission was not granted or Firebase is not configured.');
       const isNativeApp = Boolean(window.flutter_inappwebview?.callHandler);
       const response = await adminAPI.registerRestaurantDelayAlertDevice({

@@ -33,6 +33,14 @@ async function resolveGoogleMapsKey() {
 export const getPublicEnvController = async (_req, res, next) => {
     try {
         const googleMapsKey = await resolveGoogleMapsKey();
+        const firebaseApiKey = sanitize(config.firebaseWebApiKey);
+        const firebaseAuthDomain = sanitize(config.firebaseWebAuthDomain);
+        const firebaseProjectId = sanitize(config.firebaseProjectId);
+        const firebaseStorageBucket = sanitize(config.firebaseWebStorageBucket);
+        const firebaseMessagingSenderId = sanitize(config.firebaseWebMessagingSenderId);
+        const firebaseAppId = sanitize(config.firebaseWebAppId);
+        const firebaseMeasurementId = sanitize(config.firebaseWebMeasurementId);
+        const firebaseVapidKey = sanitize(config.firebaseWebVapidKey);
 
         return res.status(200).json({
             success: true,
@@ -40,22 +48,22 @@ export const getPublicEnvController = async (_req, res, next) => {
             data: {
                 VITE_GOOGLE_MAPS_API_KEY: googleMapsKey || '',
                 GOOGLE_MAPS_API_KEY: googleMapsKey || '',
-                VITE_FIREBASE_API_KEY: sanitize(process.env.VITE_FIREBASE_API_KEY) || '',
-                VITE_FIREBASE_AUTH_DOMAIN: sanitize(process.env.VITE_FIREBASE_AUTH_DOMAIN) || '',
-                VITE_FIREBASE_PROJECT_ID: sanitize(process.env.VITE_FIREBASE_PROJECT_ID) || '',
-                VITE_FIREBASE_STORAGE_BUCKET: sanitize(process.env.VITE_FIREBASE_STORAGE_BUCKET) || '',
-                VITE_FIREBASE_MESSAGING_SENDER_ID: sanitize(process.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || '',
-                VITE_FIREBASE_APP_ID: sanitize(process.env.VITE_FIREBASE_APP_ID) || '',
-                VITE_FIREBASE_MEASUREMENT_ID: sanitize(process.env.VITE_FIREBASE_MEASUREMENT_ID) || '',
-                VITE_FIREBASE_VAPID_KEY: sanitize(process.env.VITE_FIREBASE_VAPID_KEY) || '',
-                FIREBASE_API_KEY: sanitize(process.env.VITE_FIREBASE_API_KEY) || '',
-                FIREBASE_AUTH_DOMAIN: sanitize(process.env.VITE_FIREBASE_AUTH_DOMAIN) || '',
-                FIREBASE_PROJECT_ID: sanitize(process.env.VITE_FIREBASE_PROJECT_ID) || '',
-                FIREBASE_STORAGE_BUCKET: sanitize(process.env.VITE_FIREBASE_STORAGE_BUCKET) || '',
-                FIREBASE_MESSAGING_SENDER_ID: sanitize(process.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || '',
-                FIREBASE_APP_ID: sanitize(process.env.VITE_FIREBASE_APP_ID) || '',
-                FIREBASE_MEASUREMENT_ID: sanitize(process.env.VITE_FIREBASE_MEASUREMENT_ID) || '',
-                FIREBASE_VAPID_KEY: sanitize(process.env.VITE_FIREBASE_VAPID_KEY) || '',
+                VITE_FIREBASE_API_KEY: firebaseApiKey,
+                VITE_FIREBASE_AUTH_DOMAIN: firebaseAuthDomain,
+                VITE_FIREBASE_PROJECT_ID: firebaseProjectId,
+                VITE_FIREBASE_STORAGE_BUCKET: firebaseStorageBucket,
+                VITE_FIREBASE_MESSAGING_SENDER_ID: firebaseMessagingSenderId,
+                VITE_FIREBASE_APP_ID: firebaseAppId,
+                VITE_FIREBASE_MEASUREMENT_ID: firebaseMeasurementId,
+                VITE_FIREBASE_VAPID_KEY: firebaseVapidKey,
+                FIREBASE_API_KEY: firebaseApiKey,
+                FIREBASE_AUTH_DOMAIN: firebaseAuthDomain,
+                FIREBASE_PROJECT_ID: firebaseProjectId,
+                FIREBASE_STORAGE_BUCKET: firebaseStorageBucket,
+                FIREBASE_MESSAGING_SENDER_ID: firebaseMessagingSenderId,
+                FIREBASE_APP_ID: firebaseAppId,
+                FIREBASE_MEASUREMENT_ID: firebaseMeasurementId,
+                FIREBASE_VAPID_KEY: firebaseVapidKey,
                 NODE_ENV: config.nodeEnv || 'development'
             }
         });

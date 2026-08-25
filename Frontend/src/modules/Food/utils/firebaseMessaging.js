@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { userAPI, restaurantAPI, deliveryAPI, adminAPI } from "@food/api";
+import apiClient from "@/services/api/axios.js";
 import { initializeApp, getApp, getApps } from "firebase/app";
 import fallbackNotificationSound from "@food/assets/audio/alert.mp3";
 import pushNotificationSoundPath from "@food/assets/audio/zomato_sms.mp3";
@@ -443,25 +444,43 @@ async function getFirebasePublicEnv() {
   if (publicEnvPromise) return publicEnvPromise;
 
   publicEnvPromise = (async () => {
+    const buildConfig = {
+      apiKey: sanitize(import.meta.env.VITE_FIREBASE_API_KEY),
+      authDomain: sanitize(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+      projectId: sanitize(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+      appId: sanitize(import.meta.env.VITE_FIREBASE_APP_ID),
+      messagingSenderId: sanitize(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+      storageBucket: sanitize(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
+      measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
+      vapidKey: sanitize(import.meta.env.VITE_FIREBASE_VAPID_KEY),
+    };
+
+    let runtimeConfig = {};
     try {
-      return {
-        apiKey: sanitize(import.meta.env.VITE_FIREBASE_API_KEY) || DEFAULT_FIREBASE_CONFIG.apiKey,
-        authDomain: sanitize(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || DEFAULT_FIREBASE_CONFIG.authDomain,
-        projectId: sanitize(import.meta.env.VITE_FIREBASE_PROJECT_ID) || DEFAULT_FIREBASE_CONFIG.projectId,
-        appId: sanitize(import.meta.env.VITE_FIREBASE_APP_ID) || DEFAULT_FIREBASE_CONFIG.appId,
-        messagingSenderId:
-          sanitize(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || DEFAULT_FIREBASE_CONFIG.messagingSenderId,
-        storageBucket: sanitize(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
-        measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
-        vapidKey: sanitize(import.meta.env.VITE_FIREBASE_VAPID_KEY),
+      const response = await apiClient.get("/food/public/env", { timeout: 15000 });
+      const data = response?.data?.data || response?.data || {};
+      runtimeConfig = {
+        apiKey: sanitize(data.VITE_FIREBASE_API_KEY || data.FIREBASE_API_KEY),
+        authDomain: sanitize(data.VITE_FIREBASE_AUTH_DOMAIN || data.FIREBASE_AUTH_DOMAIN),
+        projectId: sanitize(data.VITE_FIREBASE_PROJECT_ID || data.FIREBASE_PROJECT_ID),
+        appId: sanitize(data.VITE_FIREBASE_APP_ID || data.FIREBASE_APP_ID),
+        messagingSenderId: sanitize(
+          data.VITE_FIREBASE_MESSAGING_SENDER_ID || data.FIREBASE_MESSAGING_SENDER_ID,
+        ),
+        storageBucket: sanitize(data.VITE_FIREBASE_STORAGE_BUCKET || data.FIREBASE_STORAGE_BUCKET),
+        measurementId: sanitize(data.VITE_FIREBASE_MEASUREMENT_ID || data.FIREBASE_MEASUREMENT_ID),
+        vapidKey: sanitize(data.VITE_FIREBASE_VAPID_KEY || data.FIREBASE_VAPID_KEY),
       };
     } catch {
-      return {
-        ...DEFAULT_FIREBASE_CONFIG,
-        storageBucket: sanitize(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
-        measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
-        vapidKey: sanitize(import.meta.env.VITE_FIREBASE_VAPID_KEY),
-      };
+      // Build-time values still work when the runtime endpoint is unavailable.
+    }
+
+    try {
+      return Object.keys(DEFAULT_FIREBASE_CONFIG).concat(["storageBucket", "measurementId", "vapidKey"])
+        .reduce((config, key) => {
+          config[key] = buildConfig[key] || runtimeConfig[key] || DEFAULT_FIREBASE_CONFIG[key] || "";
+          return config;
+        }, {});
     } finally {
       publicEnvPromise = null;
     }
@@ -886,14 +905,12 @@ export async function registerWebPushForCurrentModule(pathname = window.location
     registrationInFlight = (async () => {
       const firebasePublicEnv = await getFirebasePublicEnv();
       if (!firebasePublicEnv?.vapidKey) {
-        console.warn("FCM web registration skipped: FIREBASE_VAPID_KEY is missing in env setup.");
-        return;
+        throw new Error("Firebase Web Push VAPID key is missing on the server.");
       }
 
       const app = getMessagingFirebaseApp(firebasePublicEnv);
       if (!app) {
-        console.warn("FCM web registration skipped: Firebase public web config is incomplete.");
-        return;
+        throw new Error("Firebase public web configuration is incomplete on the server.");
       }
 
       const permission =
@@ -902,13 +919,12 @@ export async function registerWebPushForCurrentModule(pathname = window.location
           : Notification.permission;
 
       if (permission !== "granted") {
-        console.warn("FCM web registration skipped: Notification permission not granted.", permission);
-        return;
+        throw new Error("Notification permission is blocked for this site. Enable it in browser settings.");
       }
 
       const { getMessaging, getToken, isSupported } = await import("firebase/messaging");
       const supported = await isSupported().catch(() => false);
-      if (!supported) return;
+      if (!supported) throw new Error("Firebase notifications are not supported in this browser mode.");
 
       let registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
       
@@ -947,6 +963,7 @@ export async function registerWebPushForCurrentModule(pathname = window.location
     })()
     .catch((e) => {
       console.error("FCM web registration failed:", e);
+      if (options?.throwOnError === true) throw e;
     })
     .finally(() => {
       registrationInFlight = null;
@@ -957,6 +974,10 @@ export async function registerWebPushForCurrentModule(pathname = window.location
 
   // Flutter WebView fallback: register native token when browser web push isn't available.
   // This keeps restaurant/delivery FCM alerts working even when Web Push APIs are limited.
-  return registerNativeWebViewFcmToken(moduleName);
+  const nativeToken = await registerNativeWebViewFcmToken(moduleName);
+  if (!nativeToken && options?.throwOnError === true) {
+    throw new Error("Push notifications are not supported in this browser mode. On iPhone, install Tuggo using Add to Home Screen first.");
+  }
+  return nativeToken;
 }
 
