@@ -934,7 +934,10 @@ export async function registerWebPushForCurrentModule(pathname = window.location
       const supported = await isSupported().catch(() => false);
       if (!supported) throw new Error("Firebase notifications are not supported in this browser mode.");
 
-      let registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+      let registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+        updateViaCache: "none",
+      });
+      await registration.update().catch(() => {});
       
       // Wait for the service worker to be ready/active before subscribing
       registration = await navigator.serviceWorker.ready;

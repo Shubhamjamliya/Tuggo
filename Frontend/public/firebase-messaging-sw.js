@@ -90,7 +90,6 @@ async function hasVisibleClientForTarget(payload = {}) {
 }
 
 async function handleColdStartPush(payload = {}) {
-  const visibleClient = await hasVisibleClientForTarget(payload);
   const title =
     payload?.notification?.title ||
     payload?.data?.title ||
@@ -102,19 +101,20 @@ async function handleColdStartPush(payload = {}) {
     payload?.data?.imageUrl ||
     undefined;
 
-  if (!visibleClient) {
-    await self.registration.showNotification(title, {
-      body,
-      icon: payload?.notification?.icon || "/logo.png?v=2",
-      image,
-      tag: getNotificationKey(payload),
-      renotify: true,
-      silent: false,
-      requireInteraction: true,
-      vibrate: [200, 100, 200, 100, 300],
-      data: payload?.data || {},
-    });
-  }
+  // Do not rely on WindowClient.visibilityState here. Android/iOS browsers can
+  // briefly report a minimized client as visible while waking a cold worker,
+  // which previously suppressed the only system notification for the push.
+  await self.registration.showNotification(title, {
+    body,
+    icon: payload?.notification?.icon || "/logo.png?v=2",
+    image,
+    tag: getNotificationKey(payload),
+    renotify: true,
+    silent: false,
+    requireInteraction: true,
+    vibrate: [200, 100, 200, 100, 300],
+    data: payload?.data || {},
+  });
 
   await notifyOpenClients(payload);
 }
