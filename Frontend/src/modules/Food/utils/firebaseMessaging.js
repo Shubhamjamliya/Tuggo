@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { userAPI, restaurantAPI, deliveryAPI, adminAPI } from "@food/api";
 import apiClient from "@/services/api/axios.js";
+import { getModuleToken } from "@food/utils/auth";
 import { initializeApp, getApp, getApps } from "firebase/app";
 import fallbackNotificationSound from "@food/assets/audio/alert.mp3";
 import pushNotificationSoundPath from "@food/assets/audio/zomato_sms.mp3";
@@ -892,8 +893,13 @@ export async function registerWebPushForCurrentModule(pathname = window.location
   const moduleName = normalizeModuleFromPath(pathname);
   if (moduleName === "admin" && options?.allowAdmin !== true) return false;
 
-  const accessToken = localStorage.getItem(`${moduleName}_accessToken`);
-  if (!accessToken) return false;
+  const accessToken = getModuleToken(moduleName);
+  if (!accessToken) {
+    if (options?.throwOnError === true) {
+      throw new Error("Your admin session token is unavailable. Sign out, sign in again, and retry.");
+    }
+    return false;
+  }
 
   initPushNotificationClient();
 
@@ -942,7 +948,9 @@ export async function registerWebPushForCurrentModule(pathname = window.location
         serviceWorkerRegistration: registration,
       });
 
-      if (!token) return;
+      if (!token) {
+        throw new Error("Firebase could not create a push token for this browser. Try Chrome on Android; on iPhone use the installed Home Screen app.");
+      }
       pushDebugLog(PUSH_DEBUG_PREFIX, "FCM token resolved", {
         moduleName,
         tokenPreview: `${token.slice(0, 12)}...`,
