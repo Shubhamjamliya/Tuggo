@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 import { API_BASE_URL } from '@food/api/config';
 import { isValidSocketOrigin, resolveSocketOrigin } from '@food/utils/socketOrigin';
 import { restaurantAPI } from '@food/api';
-import alertSound from '@food/assets/audio/alert.mp3';
+import alertSound from '@food/assets/audio/restaurant-order-ring.wav';
 import { dispatchNotificationInboxRefresh } from '@food/hooks/useNotificationInbox';
 import { RestaurantNotificationContext } from '../context/RestaurantNotificationContext';
 import { isModuleAuthenticated } from '@food/utils/auth';
@@ -128,7 +128,7 @@ export const useRestaurantNotifications = () => {
   // Track order IDs that have been cancelled so REST polling doesn't resurrect them
   const cancelledOrderIdsRef = useRef(new Set());
   const CONNECT_ERROR_LOG_THROTTLE_MS = 10000;
-  const ALERT_LOOP_INTERVAL_MS = 4500;
+  const ALERT_LOOP_INTERVAL_MS = 6000;
   const ALERT_LOOP_MAX_MS = 120000;
   const ALERT_DEDUPE_MS = 15000;
   const BROWSER_NOTIFICATION_DEDUPE_MS = 20000;
@@ -228,6 +228,10 @@ export const useRestaurantNotifications = () => {
       alertLoopTimerRef.current = null;
     }
     alertLoopStartedAtRef.current = 0;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   };
 
   const removeOrderFromQueue = useCallback((orderIdToRemove) => {
@@ -902,25 +906,14 @@ export const useRestaurantNotifications = () => {
         return;
       }
 
-      // if (audioRef.current) {
-      //   audioRef.current.muted = false;
-      //   audioRef.current.volume = 1;
-      //   audioRef.current.currentTime = 0;
-      //   audioRef.current.play().catch(error => {
-      //     // Don't log autoplay policy errors as they're expected
-      //     if (!error.message?.includes('user didn\'t interact') && !error.name?.includes('NotAllowedError')) {
-      //       debugWarn('Error playing notification sound:', error);
-      //       // Fallback: try one-shot audio instance (more reliable in background tabs on some browsers)
-      //       try {
-      //         const fallbackAudio = new Audio(resolveAudioSource(alertSound, `restaurant-alert-${Date.now()}`));
-      //         fallbackAudio.volume = 1;
-      //         fallbackAudio.play().catch(() => {});
-      //       } catch (fallbackError) {
-      //         debugWarn('Fallback audio playback failed:', fallbackError);
-      //       }
-      //     }
-      //   });
-      // }
+      const isDesktopView = typeof window !== 'undefined' &&
+        window.matchMedia('(min-width: 768px)').matches;
+      if (!isDesktopView || !audioRef.current) return;
+
+      audioRef.current.muted = false;
+      audioRef.current.volume = 1;
+      audioRef.current.currentTime = 0;
+      await audioRef.current.play();
     } catch (error) {
       // Don't log autoplay policy errors
       if (!error.message?.includes('user didn\'t interact') && !error.name?.includes('NotAllowedError')) {
