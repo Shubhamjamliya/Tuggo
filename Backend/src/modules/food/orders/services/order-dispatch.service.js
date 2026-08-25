@@ -5,6 +5,7 @@ import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model
 import { FoodDeliveryCashDeposit } from '../../delivery/models/foodDeliveryCashDeposit.model.js';
 import { FoodDeliveryCashLimit } from '../../admin/models/deliveryCashLimit.model.js';
 import { FoodFeeSettings } from '../../admin/models/feeSettings.model.js';
+import { getDeliveryMultiOrderSettings, ACTIVE_DELIVERY_ORDER_STATUSES } from '../../delivery/services/deliveryMultiOrderSettings.service.js';
 import { FoodZone } from '../../admin/models/zone.model.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { logger } from '../../../../utils/logger.js';
@@ -42,20 +43,19 @@ function isPointInPolygon(lat, lng, polygon) {
   return inside;
 }
 
-async function getBusyDeliveryPartnerIds() {
-  const busyPartners = await FoodOrder.distinct('dispatch.deliveryPartnerId', {
+async function getCapacityFullDeliveryPartnerIds() {
+  const settings = await getDeliveryMultiOrderSettings();
+  const effectiveLimit = settings.enabled ? settings.maxConcurrentOrders : 1;
+  const activeCounts = await FoodOrder.aggregate([
+    { $match: {
     'dispatch.status': 'accepted',
     'dispatch.deliveryPartnerId': { $ne: null },
-    orderStatus: {
-      $in: ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up', 'reached_drop'],
-    },
-  });
-
-  return new Set(
-    busyPartners
-      .filter(Boolean)
-      .map((id) => String(id)),
-  );
+      orderStatus: { $in: ACTIVE_DELIVERY_ORDER_STATUSES },
+    } },
+    { $group: { _id: '$dispatch.deliveryPartnerId', count: { $sum: 1 } } },
+    { $match: { count: { $gte: effectiveLimit } } },
+  ]);
+  return new Set(activeCounts.map((row) => String(row._id)));
 }
 
 function upsertPartnerOffer(order, entry) {
@@ -122,7 +122,7 @@ async function listNearbyOnlineDeliveryPartners(
   }
 
   const [rLng, rLat] = restaurant.location.coordinates;
-  const busyIds = await getBusyDeliveryPartnerIds();
+  const capacityFullIds = await getCapacityFullDeliveryPartnerIds();
   const allOnline = await FoodDeliveryPartner.find({
     availabilityStatus: 'online',
     status: 'approved',
@@ -134,7 +134,7 @@ async function listNearbyOnlineDeliveryPartners(
   const zoneEligible = [];
 
   for (const p of allOnline) {
-    if (busyIds.has(String(p._id))) continue;
+    if (capacityFullIds.has(String(p._id))) continue;
 
     const hasCoords = p.lastLat != null && p.lastLng != null;
 

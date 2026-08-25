@@ -40,10 +40,12 @@ router.get('/support-tickets/:id', authMiddleware, requireRoles('DELIVERY_PARTNE
 
 // ----- Orders -----
 router.get('/orders/current', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.getCurrentTripDeliveryController);
+router.get('/orders/active', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.getActiveOrdersDeliveryController);
 router.get('/orders/available', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.listOrdersAvailableDeliveryController);
 router.get('/orders/:orderId', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.getOrderByIdDeliveryController);
 router.patch('/orders/:orderId/accept', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.acceptOrderDeliveryController);
 router.patch('/orders/:orderId/reject', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.rejectOrderDeliveryController);
+router.patch('/orders/:orderId/pass', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.passOrderOfferDeliveryController);
 router.patch('/orders/:orderId/reached-pickup', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.confirmReachedPickupDeliveryController);
 router.post('/orders/:orderId/request-pickup-otp', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.requestPickupOtpController);
 router.patch('/orders/:orderId/confirm-pickup', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.confirmPickupDeliveryController);

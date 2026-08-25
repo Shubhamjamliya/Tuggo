@@ -10,7 +10,7 @@ import { toast } from 'sonner';
  */
 export const useOrderManager = () => {
   const { 
-    activeOrder, tripStatus, updateTripStatus, clearActiveOrder, setActiveOrder, riderLocation 
+    activeOrder, tripStatus, updateTripStatus, clearActiveOrder, removeAcceptedOrder, setActiveOrder, riderLocation
   } = useDeliveryStore();
 
   const resolveOrderId = (orderLike = activeOrder) => getOrderAcceptId(orderLike);
@@ -231,6 +231,8 @@ export const useOrderManager = () => {
   };
 
   const resetTrip = () => {
+    const completedOrderId = resolveOrderId();
+    if (completedOrderId) removeAcceptedOrder(completedOrderId);
     clearActiveOrder();
   };
 

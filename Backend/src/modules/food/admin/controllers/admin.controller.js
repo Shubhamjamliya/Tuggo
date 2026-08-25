@@ -12,8 +12,38 @@ import { validateReferralSettingsUpsertDto } from '../validators/referralSetting
 import { topupUserWalletByAdmin } from '../../user/services/userWallet.service.js';
 import { invalidateCache } from '../../../../middleware/cache.js';
 import { FoodBusinessSettings } from '../models/businessSettings.model.js';
+import {
+    getDeliveryMultiOrderSettings,
+    updateDeliveryMultiOrderSettings,
+} from '../../delivery/services/deliveryMultiOrderSettings.service.js';
 import { sendRestaurantOnboardingEmail } from '../../../../utils/email.js';
 import { upsertOutletTimingsForRestaurant } from '../../restaurant/services/outletTimings.service.js';
+
+export async function getDeliveryMultiOrderSettingsController(req, res, next) {
+    try {
+        const data = await getDeliveryMultiOrderSettings();
+        res.status(200).json({ success: true, message: 'Multiple order settings fetched', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateDeliveryMultiOrderSettingsController(req, res, next) {
+    try {
+        const enabled = req.body?.enabled;
+        const maxConcurrentOrders = Number(req.body?.maxConcurrentOrders);
+        if (typeof enabled !== 'boolean') {
+            return res.status(400).json({ success: false, message: 'enabled must be a boolean' });
+        }
+        if (!Number.isInteger(maxConcurrentOrders) || maxConcurrentOrders < 1 || maxConcurrentOrders > 5) {
+            return res.status(400).json({ success: false, message: 'Maximum simultaneous orders must be between 1 and 5' });
+        }
+        const data = await updateDeliveryMultiOrderSettings({ enabled, maxConcurrentOrders });
+        res.status(200).json({ success: true, message: 'Multiple order settings updated', data });
+    } catch (error) {
+        next(error);
+    }
+}
 
 // ----- Customers / Users -----
 export async function getCustomers(req, res, next) {

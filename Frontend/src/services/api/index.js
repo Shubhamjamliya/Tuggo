@@ -554,6 +554,8 @@ export const adminAPI = {
   /** Delivery settings and emergency help */
   getDeliveryCashLimit: () => adminClient.get("/food/admin/delivery-cash-limit"),
   updateDeliveryCashLimit: (body = {}) => adminClient.patch("/food/admin/delivery-cash-limit", body),
+  getDeliveryMultiOrderSettings: () => adminClient.get("/food/admin/delivery-multi-order-settings"),
+  updateDeliveryMultiOrderSettings: (body = {}) => adminClient.patch("/food/admin/delivery-multi-order-settings", body),
   getEmergencyHelp: () => adminClient.get("/food/admin/delivery-emergency-help"),
   createOrUpdateEmergencyHelp: (body = {}) => adminClient.put("/food/admin/delivery-emergency-help", body),
   getCashLimitSettlements: (params = {}) => adminClient.get("/food/admin/delivery/cash-limit-settlements", { params }),
@@ -1551,6 +1553,7 @@ export const deliveryAPI = {
   })(),
   /** GET /food/delivery/current - fallback for some UI hooks */
   getCurrentDelivery: () => deliveryClient.get("/food/delivery/orders/current"),
+  getActiveOrders: () => deliveryClient.get("/food/delivery/orders/active"),
   acceptOrder: (orderId, body = {}) =>
     deliveryClient.patch(
       `/food/delivery/orders/${String(orderId)}/accept`,
@@ -1606,6 +1609,8 @@ export const deliveryAPI = {
       `/food/delivery/orders/${String(orderId)}/payment-qr`,
       body ?? {}
     ),
+  passOrder: (orderId) =>
+    deliveryClient.patch(`/food/delivery/orders/${String(orderId)}/pass`, {}),
   /** GET /food/delivery/orders/:orderId/payment-status - check COD/QR payment status */
   getPaymentStatus: (orderId) =>
     deliveryClient.get(`/food/delivery/orders/${String(orderId)}/payment-status`),

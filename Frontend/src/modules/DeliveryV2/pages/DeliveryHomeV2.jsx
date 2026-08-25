@@ -31,11 +31,12 @@ import ActionSlider from '@/modules/DeliveryV2/components/ui/ActionSlider';
 import PocketV2 from '@/modules/DeliveryV2/pages/PocketV2';
 import HistoryV2 from '@/modules/DeliveryV2/pages/HistoryV2';
 import ProfileV2 from '@/modules/DeliveryV2/pages/ProfileV2';
+import OrdersV2 from '@/modules/DeliveryV2/pages/OrdersV2';
 
 // Icons
 import { 
   Bell, HelpCircle, AlertTriangle, 
-  Wallet, History, User as UserIcon, LayoutGrid,
+  Wallet, User as UserIcon, LayoutGrid,
   Plus, Minus, Navigation2, Navigation, Target, Play, CheckCircle2, Clock, ChevronDown,
   Contact, Package, Phone, MapPin
 } from 'lucide-react';
@@ -148,6 +149,16 @@ function normalizeDeliveryActiveOrder(rawOrder) {
   };
 }
 
+function getTripStatusForOrder(order) {
+  const backendStatus = String(order?.deliveryStatus || order?.orderState?.status || order?.orderStatus || order?.status || '').toLowerCase();
+  const currentPhase = String(order?.deliveryState?.currentPhase || '').toLowerCase();
+  if (['delivered', 'completed'].includes(backendStatus)) return 'COMPLETED';
+  if (currentPhase === 'at_drop' || backendStatus === 'reached_drop') return 'REACHED_DROP';
+  if (['picked_up', 'delivering'].includes(backendStatus)) return 'PICKED_UP';
+  if (currentPhase === 'at_pickup' || backendStatus === 'reached_pickup') return 'REACHED_PICKUP';
+  return 'PICKING_UP';
+}
+
 /** Minimal bottom-sheet popup (Restored from legacy FeedNavbar) */
 function BottomPopup({ isOpen, onClose, title, children }) {
   if (!isOpen) return null;
@@ -180,7 +191,7 @@ function BottomPopup({ isOpen, onClose, title, children }) {
  */
 export default function DeliveryHomeV2({ tab = 'feed' }) {
   const navigate = useNavigate();
-  const { isOnline, toggleOnline, setOnline, riderLocation, activeOrder, tripStatus, setRiderLocation, setActiveOrder, updateTripStatus, clearActiveOrder } = useDeliveryStore();
+  const { isOnline, toggleOnline, setOnline, riderLocation, activeOrder, acceptedOrders, orderCapacity, tripStatus, setRiderLocation, setActiveOrder, setAcceptedOrders, removeAcceptedOrder, setOrderCapacity, updateTripStatus, clearActiveOrder } = useDeliveryStore();
   const { isWithinRange, distanceToTarget } = useProximityCheck();
   const { acceptOrder, reachPickup, pickUpOrder, reachDrop, completeDelivery, resetTrip } = useOrderManager();
   const { newOrder, clearNewOrder, orderStatusUpdate, clearOrderStatusUpdate, claimedOrderId, clearClaimedOrderId, autoKilledOrder, clearAutoKilledOrder, adminNotification, clearAdminNotification, isConnected: isSocketConnected, emitLocation, playNotificationSound } = useDeliveryNotificationContext();
@@ -593,28 +604,17 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   useEffect(() => {
     const syncWithServer = async () => {
       try {
-        const response = await deliveryAPI.getCurrentDelivery();
-        const rawData = response?.data?.data?.activeOrder || response?.data?.data;
-        const serverData = (rawData && (rawData._id || rawData.orderId)) ? rawData : null;
-        
-        if (serverData) {
-          setActiveOrder(normalizeDeliveryActiveOrder(serverData));
-          
-          const backendStatus = serverData.deliveryStatus || serverData.orderState?.status || serverData.orderStatus || serverData.status;
-          const currentPhase = serverData.deliveryState?.currentPhase;
-
-          if (['delivered', 'completed', 'DELIVERED'].includes(backendStatus)) {
-            updateTripStatus('COMPLETED');
-          } else if (currentPhase === 'at_drop' || ['reached_drop', 'REACHED_DROP'].includes(backendStatus)) {
-            updateTripStatus('REACHED_DROP');
-          } else if (['picked_up', 'PICKED_UP', 'delivering'].includes(backendStatus)) {
-            updateTripStatus('PICKED_UP');
-          } else if (currentPhase === 'at_pickup' || ['reached_pickup', 'REACHED_PICKUP'].includes(backendStatus)) {
-            updateTripStatus('REACHED_PICKUP');
-          } else if (['confirmed', 'preparing', 'ready_for_pickup'].includes(backendStatus)) {
-            updateTripStatus('PICKING_UP');
-          }
+        const response = await deliveryAPI.getActiveOrders();
+        const payload = response?.data?.data || {};
+        const orders = (Array.isArray(payload.activeOrders) ? payload.activeOrders : []).map(normalizeDeliveryActiveOrder);
+        setAcceptedOrders(orders);
+        setOrderCapacity(payload.capacity || {});
+        if (orders.length > 0) {
+          const selected = orders[0];
+          setActiveOrder(selected);
+          updateTripStatus(getTripStatusForOrder(selected));
         } else {
+          setAcceptedOrders([]);
           clearActiveOrder();
         }
       } catch (err) { 
@@ -1037,30 +1037,6 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     });
   }, [incomingOrder, isModalMinimized, incomingOrders.length, selectedIncomingId]);
 
-  const dismissCurrentIncomingOrder = useCallback(() => {
-    if (!incomingOrder) {
-      setIncomingOrders([]);
-      setSelectedIncomingId(null);
-      lockedIncomingOrderIdRef.current = null;
-      clearNewOrder();
-      return;
-    }
-
-    setIncomingOrders((prev) => {
-      const next = removeIncomingOrderFromQueue(prev, incomingOrder);
-      syncSelectionAfterQueueChange(next);
-      return next;
-    });
-    clearNewOrder();
-  }, [incomingOrder, clearNewOrder, syncSelectionAfterQueueChange]);
-
-  const clearAllIncomingOrders = useCallback(() => {
-    setIncomingOrders([]);
-    setSelectedIncomingId(null);
-    lockedIncomingOrderIdRef.current = null;
-    clearNewOrder();
-  }, [clearNewOrder]);
-
   const removeClaimedOrderFromQueue = useCallback(
     (claimedRef, { notify = true } = {}) => {
       const claimedTarget = {
@@ -1109,12 +1085,6 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   }, [selectedIncomingId]);
 
   useEffect(() => {
-    if (activeOrder && incomingOrders.length > 0) {
-      clearAllIncomingOrders();
-    }
-  }, [activeOrder, incomingOrders.length, clearAllIncomingOrders]);
-
-  useEffect(() => {
     if (!claimedOrderId?.orderId && !claimedOrderId?.orderMongoId) return;
 
     const token = localStorage.getItem('delivery_accessToken') || '';
@@ -1149,39 +1119,17 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
   useEffect(() => {
     if (!isOnline) return;
-    if (currentTab !== 'feed') return;
-    if (activeOrder) return;
+    if (currentTab !== 'feed' && currentTab !== 'orders') return;
 
     let cancelled = false;
 
     const hydrateAvailableOrder = async () => {
       try {
-        const currentResponse = await deliveryAPI.getCurrentDelivery();
-        const currentPayload =
-          currentResponse?.data?.data?.activeOrder ||
-          currentResponse?.data?.data ||
-          null;
-
-        if (!cancelled && currentPayload && (currentPayload._id || currentPayload.orderId)) {
-          setActiveOrder(normalizeDeliveryActiveOrder(currentPayload));
-
-          // Sync status with server
-          const backendStatus = String(currentPayload.deliveryStatus || currentPayload.orderState?.status || currentPayload.orderStatus || currentPayload.status || "").toLowerCase();
-          const currentPhase = currentPayload.deliveryState?.currentPhase;
-
-          if (['delivered', 'completed'].includes(backendStatus)) {
-            updateTripStatus('COMPLETED');
-          } else if (currentPhase === 'at_drop' || backendStatus === 'reached_drop') {
-            updateTripStatus('REACHED_DROP');
-          } else if (['picked_up', 'delivering'].includes(backendStatus)) {
-            updateTripStatus('PICKED_UP');
-          } else if (currentPhase === 'at_pickup' || backendStatus === 'reached_pickup') {
-            updateTripStatus('REACHED_PICKUP');
-          } else if (['confirmed', 'preparing', 'ready_for_pickup'].includes(backendStatus)) {
-             // Only set to PICKING_UP if we aren't already further ahead
-             if (tripStatus === 'IDLE') updateTripStatus('PICKING_UP');
-          }
-          return;
+        const activeResponse = await deliveryAPI.getActiveOrders();
+        const activePayload = activeResponse?.data?.data || {};
+        if (!cancelled) {
+          setAcceptedOrders((Array.isArray(activePayload.activeOrders) ? activePayload.activeOrders : []).map(normalizeDeliveryActiveOrder));
+          setOrderCapacity(activePayload.capacity || {});
         }
 
         const availableResponse = await deliveryAPI.getOrders({ limit: 20, page: 1 });
@@ -1244,14 +1192,19 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       cancelled = true;
       window.clearInterval(poller);
     };
-  }, [activeOrder, currentTab, isOnline, isSocketConnected, setActiveOrder, tripStatus, updateTripStatus]);
+  }, [currentTab, isOnline, isSocketConnected, setAcceptedOrders, setOrderCapacity]);
 
   useEffect(() => {
     if (!orderStatusUpdate) return;
 
-    if (orderStatusUpdate.status === 'cancelled') {
+    if (String(orderStatusUpdate.status || '').toLowerCase().includes('cancel')) {
       toast.error('Order cancelled');
-      resetTrip();
+      const cancelledId = getOrderMongoId(orderStatusUpdate) || getOrderAcceptId(orderStatusUpdate);
+      if (!cancelledId || isSameOrder(activeOrder, orderStatusUpdate)) {
+        resetTrip();
+      } else {
+        removeAcceptedOrder(cancelledId);
+      }
       clearOrderStatusUpdate();
       return;
     }
@@ -1262,11 +1215,21 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     ) {
       const payload = orderStatusUpdate;
       if (payload && (payload._id || payload.orderId || payload.orderMongoId)) {
-        setActiveOrder(normalizeDeliveryActiveOrder(payload));
+        const normalizedPayload = normalizeDeliveryActiveOrder(payload);
+        if (!activeOrder || isSameOrder(activeOrder, normalizedPayload)) {
+          setActiveOrder(normalizedPayload);
+        } else {
+          const exists = acceptedOrders.some((order) => isSameOrder(order, normalizedPayload));
+          setAcceptedOrders(exists
+            ? acceptedOrders.map((order) => isSameOrder(order, normalizedPayload) ? normalizedPayload : order)
+            : [...acceptedOrders, normalizedPayload]);
+        }
         const backendStatus = String(
           payload.deliveryStatus || payload.orderStatus || payload.status || '',
         ).toLowerCase();
-        if (['delivered', 'completed'].includes(backendStatus)) {
+        if (activeOrder && !isSameOrder(activeOrder, normalizedPayload)) {
+          // A background order update must not change the selected order's workflow.
+        } else if (['delivered', 'completed'].includes(backendStatus)) {
           updateTripStatus('COMPLETED');
         } else if (['picked_up', 'delivering'].includes(backendStatus)) {
           updateTripStatus('PICKED_UP');
@@ -1279,7 +1242,42 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     }
 
     clearOrderStatusUpdate();
-  }, [orderStatusUpdate, resetTrip, clearOrderStatusUpdate, setActiveOrder, updateTripStatus]);
+  }, [orderStatusUpdate, resetTrip, clearOrderStatusUpdate, activeOrder, acceptedOrders, removeAcceptedOrder, setAcceptedOrders, setActiveOrder, updateTripStatus]);
+
+  const refreshAcceptedOrders = useCallback(async () => {
+    const response = await deliveryAPI.getActiveOrders();
+    const payload = response?.data?.data || {};
+    const orders = (Array.isArray(payload.activeOrders) ? payload.activeOrders : []).map(normalizeDeliveryActiveOrder);
+    setAcceptedOrders(orders);
+    setOrderCapacity(payload.capacity || {});
+    return orders;
+  }, [setAcceptedOrders, setOrderCapacity]);
+
+  const handleAcceptOffer = useCallback(async (order) => {
+    await acceptOrder(order);
+    removeClaimedOrderFromQueue(order, { notify: false });
+    await refreshAcceptedOrders();
+  }, [acceptOrder, refreshAcceptedOrders, removeClaimedOrderFromQueue]);
+
+  const handlePassOffer = useCallback(async (order) => {
+    const orderId = getOrderMongoId(order) || getOrderAcceptId(order);
+    if (!orderId) return;
+    try {
+      await deliveryAPI.passOrder(orderId);
+      removeClaimedOrderFromQueue(order, { notify: false });
+      toast.success('Order passed');
+    } catch (error) {
+      removeClaimedOrderFromQueue(order, { notify: false });
+      toast.error(error?.response?.data?.message || 'This offer is no longer available');
+    }
+  }, [removeClaimedOrderFromQueue]);
+
+  const handleOpenAcceptedOrder = useCallback((order) => {
+    const normalized = normalizeDeliveryActiveOrder(order);
+    setActiveOrder(normalized);
+    updateTripStatus(getTripStatusForOrder(normalized));
+    navigate('/food/delivery/feed');
+  }, [navigate, setActiveOrder, updateTripStatus]);
 
   // Handle auto-killed order reasoning
   useEffect(() => {
@@ -1410,7 +1408,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   return (
     <div className="relative h-screen w-full bg-white text-gray-900 overflow-hidden flex flex-col">
       {/* â”€â”€â”€ 1. TOP HEADER (Dynamic Theme Gradient) â”€â”€â”€ */}
-      {currentTab !== 'history' && currentTab !== 'profile' && currentTab !== 'pocket' && (
+      {currentTab !== 'history' && currentTab !== 'profile' && currentTab !== 'pocket' && currentTab !== 'orders' && (
       <div 
         className="absolute top-0 inset-x-0 backdrop-blur-2xl shadow-2xl z-[200] safe-top pb-2 border-b border-white/10"
         style={{ backgroundColor: 'var(--dv-primary)' }}
@@ -1598,7 +1596,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       />
 
       {/* â”€â”€â”€ 2. MAIN CONTENT â”€â”€â”€ */}
-      <div className={`flex-1 relative overflow-y-auto ${currentTab === 'history' || currentTab === 'profile' || currentTab === 'pocket' ? 'pt-0' : 'pt-[120px]'} no-scrollbar`}>
+      <div className={`flex-1 relative overflow-y-auto ${currentTab === 'history' || currentTab === 'profile' || currentTab === 'pocket' || currentTab === 'orders' ? 'pt-0' : 'pt-[120px]'} no-scrollbar`}>
          {currentTab === 'feed' ? (
            <div className="absolute inset-0 top-[-120px]">
              {isOnline ? (
@@ -1705,6 +1703,15 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
            <PocketV2 />
          ) : currentTab === 'history' ? (
            <HistoryV2 />
+         ) : currentTab === 'orders' ? (
+           <OrdersV2
+             incomingOrders={incomingOrders}
+             acceptedOrders={acceptedOrders}
+             capacity={orderCapacity}
+             onAccept={handleAcceptOffer}
+             onPass={handlePassOffer}
+             onOpen={handleOpenAcceptedOrder}
+           />
          ) : (
            <ProfileV2 />
          )}
@@ -1713,7 +1720,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       </div>
 
       {/* OVERLAYS (Persistent if active) - Outside flex container to avoid clipping and z-index issues */}
-      {(currentTab === 'feed' || activeOrder || incomingOrder || showVerification || isModalMinimized) && (
+      {currentTab === 'feed' && (
         <AnimatePresence>
           {!isModalMinimized && (
             <motion.div
@@ -1725,7 +1732,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
               className="fixed inset-x-0 top-0 bottom-[92px] z-[300] pointer-events-none flex items-end"
             >
               <div className="w-full pointer-events-auto relative">
-                {incomingOrder && (
+                {incomingOrder && orderCapacity.canAcceptMore !== false && (
                   <NewOrderModal 
                     key={getOrderMongoId(incomingOrder) || getOrderAcceptId(incomingOrder)}
                     order={incomingOrder}
@@ -1758,8 +1765,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                       }
 
                       try {
-                        await acceptOrder(acceptTarget);
-                        clearAllIncomingOrders();
+                        await handleAcceptOffer(acceptTarget);
                       } catch (err) {
                         const msg = String(err?.response?.data?.message || err?.message || '');
                         const isTaken = msg.toLowerCase().includes('already accepted') || 
@@ -1770,7 +1776,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                         }
                       }
                     }}
-                    onReject={dismissCurrentIncomingOrder}
+                    onReject={() => handlePassOffer(incomingOrder)}
                     onMinimize={() => setIsModalMinimized(true)}
                   />
                 )}
@@ -2050,8 +2056,8 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
          <button onClick={() => navigate('/food/delivery/pocket')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'pocket' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
             <Wallet className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Pocket</span>
          </button>
-         <button onClick={() => navigate('/food/delivery/history')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'history' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
-            <History className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Trip History</span>
+         <button onClick={() => navigate('/food/delivery/orders')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'orders' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
+            <Package className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Orders</span>
          </button>
          <button onClick={() => navigate('/food/delivery/profile')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'profile' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
             <UserIcon className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Profile</span>

@@ -157,6 +157,10 @@ router.patch('/business-settings', upload.fields([
 router.get('/delivery-cash-limit', adminController.getDeliveryCashLimit);
 router.patch('/delivery-cash-limit', adminController.updateDeliveryCashLimit);
 
+// ----- Delivery Multiple Orders -----
+router.get('/delivery-multi-order-settings', adminController.getDeliveryMultiOrderSettingsController);
+router.patch('/delivery-multi-order-settings', adminController.updateDeliveryMultiOrderSettingsController);
+
 // ----- Delivery Emergency Help -----
 router.get('/delivery-emergency-help', adminController.getEmergencyHelp);
 router.put('/delivery-emergency-help', adminController.createOrUpdateEmergencyHelp);

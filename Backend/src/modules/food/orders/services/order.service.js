@@ -1501,6 +1501,10 @@ export async function getCurrentTripDelivery(deliveryPartnerId) {
   return deliveryService.getCurrentTripDelivery(deliveryPartnerId);
 }
 
+export async function getActiveOrdersDelivery(deliveryPartnerId) {
+  return deliveryService.getActiveOrdersDelivery(deliveryPartnerId);
+}
+
 // ----- Delivery: available, accept, reject, status -----
 export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
   return deliveryService.listOrdersAvailableDelivery(deliveryPartnerId, query);
@@ -1512,6 +1516,10 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
 
 export async function rejectOrderDelivery(orderId, deliveryPartnerId) {
   return deliveryService.rejectOrderDelivery(orderId, deliveryPartnerId);
+}
+
+export async function passOrderOfferDelivery(orderId, deliveryPartnerId) {
+  return deliveryService.passOrderOfferDelivery(orderId, deliveryPartnerId);
 }
 
 export async function confirmReachedPickupDelivery(orderId, deliveryPartnerId) {

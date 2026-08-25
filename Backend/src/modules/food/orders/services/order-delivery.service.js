@@ -6,6 +6,12 @@ import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model
 import { FoodDeliveryCashDeposit } from '../../delivery/models/foodDeliveryCashDeposit.model.js';
 import { FoodDeliveryCashLimit } from '../../admin/models/deliveryCashLimit.model.js';
 import {
+  ACTIVE_DELIVERY_ORDER_STATUSES,
+  acquireDeliveryAcceptanceLock,
+  getDeliveryPartnerOrderCapacity,
+  releaseDeliveryAcceptanceLock,
+} from '../../delivery/services/deliveryMultiOrderSettings.service.js';
+import {
   ValidationError,
   ForbiddenError,
   NotFoundError,
@@ -237,7 +243,7 @@ export async function getCurrentTripDelivery(deliveryPartnerId) {
     'dispatch.deliveryPartnerId': partnerId,
     'dispatch.status': 'accepted',
     orderStatus: {
-      $in: ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up'],
+      $in: ACTIVE_DELIVERY_ORDER_STATUSES,
     },
   })
     .populate({
@@ -259,6 +265,43 @@ export async function getCurrentTripDelivery(deliveryPartnerId) {
     out.transactionStatus = tx.status || out.transactionStatus;
   }
   return out;
+}
+
+export async function getActiveOrdersDelivery(deliveryPartnerId) {
+  if (!deliveryPartnerId) throw new ValidationError('Delivery partner ID required');
+  const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
+  const orders = await FoodOrder.find({
+    'dispatch.deliveryPartnerId': partnerId,
+    'dispatch.status': 'accepted',
+    orderStatus: { $in: ACTIVE_DELIVERY_ORDER_STATUSES },
+  })
+    .populate({
+      path: 'restaurantId',
+      select: 'restaurantName name phone location addressLine1 area city state profileImage',
+    })
+    .populate({ path: 'userId', select: 'name phone' })
+    .sort({ 'dispatch.acceptedAt': 1, createdAt: 1 })
+    .lean();
+
+  const orderIds = orders.map((order) => order._id);
+  const transactions = orderIds.length
+    ? await FoodTransaction.find({ orderId: { $in: orderIds } }).lean()
+    : [];
+  const transactionByOrder = new Map(transactions.map((tx) => [String(tx.orderId), tx]));
+  const activeOrders = orders.map((order) => {
+    const out = sanitizeOrderForExternal(order);
+    const tx = transactionByOrder.get(String(order._id));
+    if (tx) {
+      out.paymentMethod = tx.payment?.method || tx.paymentMethod || out.paymentMethod;
+      out.payment = tx.payment || out.payment;
+      out.pricing = tx.pricing || out.pricing;
+      out.amounts = tx.amounts || out.amounts;
+      out.transactionStatus = tx.status || out.transactionStatus;
+    }
+    return out;
+  });
+  const capacity = await getDeliveryPartnerOrderCapacity(deliveryPartnerId);
+  return { activeOrders, capacity };
 }
 
 export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
@@ -289,6 +332,9 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
     $or: [
       {
         'dispatch.status': 'unassigned',
+        'dispatch.offeredTo': {
+          $elemMatch: { partnerId: new mongoose.Types.ObjectId(deliveryPartnerId), action: 'offered' },
+        },
         orderStatus: { $in: ['confirmed', 'preparing', 'ready_for_pickup'] },
       },
       activeOwnOrderFilter,
@@ -354,9 +400,11 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
     `[DeliveryPopupServer] available-orders summary rider=${deliveryPartnerId} returned=${enriched.length} total=${total} page=${page} limit=${limit}`,
   );
 
+  const orderCapacity = await getDeliveryPartnerOrderCapacity(deliveryPartnerId);
   return {
     ...buildPaginatedResult({ docs: enriched, total, page, limit }),
     cashLimit,
+    orderCapacity,
   };
 }
 
@@ -370,6 +418,13 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
     .select('pricing payment dispatch orderStatus')
     .lean();
   if (!existingOrder) throw new NotFoundError('Order not found');
+  if (
+    existingOrder.dispatch?.status === 'accepted' &&
+    String(existingOrder.dispatch?.deliveryPartnerId || '') === String(deliveryPartnerId)
+  ) {
+    const acceptedOrder = await FoodOrder.findOne(identity).populate('restaurantId userId');
+    return acceptedOrder ? sanitizeOrderForExternal(acceptedOrder) : null;
+  }
 
   const paymentMethod = String(existingOrder?.payment?.method || 'cash').toLowerCase();
   const isCashOrder = paymentMethod === 'cash';
@@ -402,43 +457,58 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
     at: now,
   };
 
-  const order = await FoodOrder.findOneAndUpdate(
-    {
-      ...identity,
-      orderStatus: { $in: acceptedStatuses },
-      $or: [
-        {
-          'dispatch.status': 'unassigned',
-          'dispatch.offeredTo': {
-            $elemMatch: {
-              partnerId: partnerId,
-              $or: [
-                { action: 'offered' },
-                { action: { $exists: false } },
-                { action: null },
-              ],
+  const acceptanceLockToken = await acquireDeliveryAcceptanceLock(partnerId);
+  if (!acceptanceLockToken) {
+    throw new ValidationError('Another order acceptance is being processed. Please try again.');
+  }
+
+  let order;
+  try {
+    const capacity = await getDeliveryPartnerOrderCapacity(deliveryPartnerId);
+    if (!capacity.canAcceptMore) {
+      throw new ValidationError(`Maximum active order limit reached (${capacity.effectiveLimit})`);
+    }
+
+    order = await FoodOrder.findOneAndUpdate(
+      {
+        ...identity,
+        orderStatus: { $in: acceptedStatuses },
+        $or: [
+          {
+            'dispatch.status': 'unassigned',
+            'dispatch.offeredTo': {
+              $elemMatch: {
+                partnerId: partnerId,
+                $or: [
+                  { action: 'offered' },
+                  { action: { $exists: false } },
+                  { action: null },
+                ],
+              },
             },
           },
-        },
-        {
-          'dispatch.status': 'assigned',
+          {
+            'dispatch.status': 'assigned',
+            'dispatch.deliveryPartnerId': partnerId,
+          },
+        ],
+      },
+      {
+        $set: {
           'dispatch.deliveryPartnerId': partnerId,
+          'dispatch.status': 'accepted',
+          'dispatch.assignedAt': now,
+          'dispatch.acceptedAt': now,
         },
-      ],
-    },
-    {
-      $set: {
-        'dispatch.deliveryPartnerId': partnerId,
-        'dispatch.status': 'accepted',
-        'dispatch.assignedAt': now,
-        'dispatch.acceptedAt': now,
+        $push: {
+          statusHistory: statusHistoryEntry,
+        },
       },
-      $push: {
-        statusHistory: statusHistoryEntry,
-      },
-    },
-    { new: true },
-  ).populate('restaurantId userId');
+      { new: true },
+    ).populate('restaurantId userId');
+  } finally {
+    await releaseDeliveryAcceptanceLock(partnerId, acceptanceLockToken);
+  }
 
   if (!order) {
     const existing = await FoodOrder.findOne(identity)
@@ -625,6 +695,45 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
   });
 
   return responseOrder;
+}
+
+export async function passOrderOfferDelivery(orderId, deliveryPartnerId) {
+  const identity = buildOrderIdentityFilter(orderId);
+  if (!identity) throw new ValidationError('Order id required');
+  const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
+  const order = await FoodOrder.findOneAndUpdate(
+    {
+      ...identity,
+      'dispatch.status': { $ne: 'accepted' },
+      orderStatus: { $in: ['confirmed', 'preparing', 'ready_for_pickup'] },
+      'dispatch.offeredTo': {
+        $elemMatch: { partnerId, action: 'offered' },
+      },
+    },
+    { $set: { 'dispatch.offeredTo.$[offer].action': 'rejected', 'dispatch.offeredTo.$[offer].at': new Date() } },
+    { new: false, arrayFilters: [{ 'offer.partnerId': partnerId, 'offer.action': 'offered' }] },
+  ).lean();
+  if (!order) {
+    const existing = await FoodOrder.findOne(identity).select('dispatch').lean();
+    if (!existing) throw new NotFoundError('Order not found');
+    throw new ValidationError('Offer is no longer available');
+  }
+  if (
+    order.dispatch?.status === 'assigned' &&
+    String(order.dispatch?.deliveryPartnerId || '') === String(deliveryPartnerId)
+  ) {
+    await FoodOrder.updateOne(
+      { _id: order._id, 'dispatch.status': 'assigned', 'dispatch.deliveryPartnerId': partnerId },
+      {
+        $set: { 'dispatch.status': 'unassigned' },
+        $unset: { 'dispatch.deliveryPartnerId': '', 'dispatch.assignedAt': '' },
+      },
+    );
+    void dispatchService.tryAutoAssign(order._id, {
+      attempt: Math.max(1, Number(order.dispatch?.dispatchAttempt || 1)),
+    }).catch((error) => logger.error(`SmartDispatch: Auto-assign after pass failed: ${error.message}`));
+  }
+  return { orderId: String(order._id), passed: true };
 }
 
 export async function rejectOrderDelivery(orderId, deliveryPartnerId, reason = '') {

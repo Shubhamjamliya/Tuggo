@@ -307,6 +307,26 @@ export async function getCurrentTripDeliveryController(req, res, next) {
     }
 }
 
+export async function getActiveOrdersDeliveryController(req, res, next) {
+    try {
+        const deliveryPartnerId = req.user?.userId;
+        const result = await orderService.getActiveOrdersDelivery(deliveryPartnerId);
+        return sendResponse(res, 200, 'Active orders retrieved', result);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function passOrderOfferDeliveryController(req, res, next) {
+    try {
+        const deliveryPartnerId = req.user?.userId;
+        const result = await orderService.passOrderOfferDelivery(req.params.orderId, deliveryPartnerId);
+        return sendResponse(res, 200, 'Order offer passed', result);
+    } catch (err) {
+        next(err);
+    }
+}
+
 export async function createCollectQrController(req, res, next) {
     try {
         const deliveryPartnerId = req.user?.userId;
