@@ -53,6 +53,7 @@ export default function RestaurantDelayAlerts() {
       const token = await registerWebPushForCurrentModule(window.location.pathname, {
         allowAdmin: true,
         throwOnError: true,
+        forceTokenRefresh: true,
       });
       if (!token) throw new Error('Notification permission was not granted or Firebase is not configured.');
       const isNativeApp = Boolean(window.flutter_inappwebview?.callHandler);

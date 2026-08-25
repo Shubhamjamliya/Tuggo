@@ -930,7 +930,7 @@ export async function registerWebPushForCurrentModule(pathname = window.location
         throw new Error("Notification permission is blocked for this site. Enable it in browser settings.");
       }
 
-      const { getMessaging, getToken, isSupported } = await import("firebase/messaging");
+      const { deleteToken, getMessaging, getToken, isSupported } = await import("firebase/messaging");
       const supported = await isSupported().catch(() => false);
       if (!supported) throw new Error("Firebase notifications are not supported in this browser mode.");
 
@@ -947,6 +947,11 @@ export async function registerWebPushForCurrentModule(pathname = window.location
         moduleName,
       });
       const messaging = getMessaging(app);
+
+      if (options?.forceTokenRefresh === true) {
+        await deleteToken(messaging).catch(() => false);
+        clearCachedFcmToken(moduleName);
+      }
 
       const token = await getToken(messaging, {
         vapidKey: firebasePublicEnv.vapidKey,

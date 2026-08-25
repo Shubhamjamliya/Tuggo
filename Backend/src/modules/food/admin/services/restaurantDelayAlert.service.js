@@ -63,6 +63,8 @@ export async function registerRestaurantDelayAlertDevice(adminId, payload = {}) 
     item.token === token ||
     (deviceId && item.deviceId === deviceId && String(item.adminId) === String(adminId)),
   );
+  const previousToken = device && device.token !== token ? String(device.token || '') : '';
+  const previousPlatform = device?.platform || platform;
   if (device) {
     device.name = name;
     device.platform = platform;
@@ -85,10 +87,16 @@ export async function registerRestaurantDelayAlertDevice(adminId, payload = {}) 
     });
     device = settings.devices[settings.devices.length - 1];
   }
-  await Promise.all([
-    settings.save(),
-    upsertFirebaseDeviceToken({ ownerType: 'ADMIN', ownerId: adminId, token, platform }),
-  ]);
+  await settings.save();
+  if (previousToken) {
+    await removeFirebaseDeviceToken({
+      ownerType: 'ADMIN',
+      ownerId: adminId,
+      token: previousToken,
+      platform: previousPlatform,
+    });
+  }
+  await upsertFirebaseDeviceToken({ ownerType: 'ADMIN', ownerId: adminId, token, platform });
   return { settings: serializeSettings(settings), deviceId: String(device._id) };
 }
 
