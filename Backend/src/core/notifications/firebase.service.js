@@ -252,7 +252,11 @@ const shouldRemoveTokenFromError = (errorJson, response) => {
     return status === 404 || message.includes('UNREGISTERED') || message.includes('INVALID_ARGUMENT');
 };
 
-const getOwnerModel = (ownerType) => OWNER_MODELS[String(ownerType || '').toUpperCase()] || null;
+const getOwnerModel = (ownerType) => {
+    const normalized = String(ownerType || '').toUpperCase();
+    if (['ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'].includes(normalized)) return FoodAdmin;
+    return OWNER_MODELS[normalized] || null;
+};
 
 const getTokenFieldForPlatform = (platform) => OWNER_TOKEN_FIELDS[platform === 'mobile' ? 'mobile' : 'web'];
 

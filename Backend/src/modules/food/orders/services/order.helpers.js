@@ -315,6 +315,8 @@ export async function notifyRestaurantNewOrder(orderDoc) {
         },
       },
     );
+    const { scheduleRestaurantResponseDelayAlert } = await import('../../admin/services/restaurantDelayAlert.service.js');
+    await scheduleRestaurantResponseDelayAlert(orderDoc);
   } catch {
     // Do not block order/payment flow if notification fails.
   }

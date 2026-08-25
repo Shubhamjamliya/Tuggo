@@ -133,6 +133,7 @@ const DiningManagement = lazy(() => import("@food/pages/admin/system/DiningManag
 const DiningList = lazy(() => import("@food/pages/admin/system/DiningList"));
 const DiningRequests = lazy(() => import("@food/pages/admin/system/DiningRequests"));
 const EnvManagements = lazy(() => import("@food/pages/admin/system/EnvManagements"));
+const RestaurantDelayAlerts = lazy(() => import("@food/pages/admin/system/RestaurantDelayAlerts"));
 const EditRestaurant = lazy(() => import("@food/pages/admin/restaurant/EditRestaurant"));
 const AdminLogin = lazy(() => import("@food/pages/admin/auth/AdminLogin"));
 const AdminSignup = lazy(() => import("@food/pages/admin/auth/AdminSignup"));
@@ -300,6 +301,7 @@ export default function AdminRouter() {
             <Route path="app-web-settings" element={<AppWebSettings />} />
             <Route path="notifications" element={<AdminNotifications />} />
             <Route path="broadcast-notification" element={<NotificationBroadcast />} />
+            <Route path="restaurant-delay-alerts" element={<RestaurantDelayAlerts />} />
             <Route path="notification-channels" element={<NotificationChannels />} />
             <Route path="landing-page-settings/admin" element={<LandingPageSettings type="admin" />} />
             <Route path="landing-page-settings/react" element={<LandingPageSettings type="react" />} />

@@ -38,6 +38,15 @@ export const processOrderJob = async (job) => {
         }
     }
 
+    if (action === 'RESTAURANT_RESPONSE_DELAY_ALERT') {
+        try {
+            const { processRestaurantResponseDelayAlert } = await import('../../modules/food/admin/services/restaurantDelayAlert.service.js');
+            await processRestaurantResponseDelayAlert(orderMongoId, data.configuredDelayMinutes);
+        } catch (err) {
+            logger.error(`[BullMQ:order] RESTAURANT_RESPONSE_DELAY_ALERT failed: ${err.message}`);
+        }
+    }
+
 
 
     return { processed: true, action, jobId: job.id };

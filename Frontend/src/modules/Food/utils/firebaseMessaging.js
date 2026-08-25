@@ -526,6 +526,10 @@ async function saveTokenByModule(moduleName, token, platform = "web") {
   }
   if (moduleName === "user") {
     await userAPI.saveFcmToken(token, { platform });
+    return;
+  }
+  if (moduleName === "admin") {
+    await adminAPI.saveFcmToken(token, platform);
   }
 }
 
@@ -576,12 +580,16 @@ async function registerNativeWebViewFcmToken(moduleName) {
     setSavedToken(moduleName, normalizedToken);
   }
 
-  await savePushDeviceByModule(moduleName, {
-    fcmToken: normalizedToken || undefined,
-    voipToken: normalizedVoipToken || undefined,
-    pushPlatform: "mobile",
-    devicePlatform,
-  });
+  if (moduleName === 'admin') {
+    if (normalizedToken) await saveTokenByModule(moduleName, normalizedToken, 'mobile');
+  } else {
+    await savePushDeviceByModule(moduleName, {
+      fcmToken: normalizedToken || undefined,
+      voipToken: normalizedVoipToken || undefined,
+      pushPlatform: "mobile",
+      devicePlatform,
+    });
+  }
 
   pushDebugLog(PUSH_DEBUG_PREFIX, "Registered native WebView push device", {
     moduleName,
@@ -591,6 +599,7 @@ async function registerNativeWebViewFcmToken(moduleName) {
     tokenPreview: normalizedToken ? `${normalizedToken.slice(0, 12)}...` : "",
     hasVoipToken: Boolean(normalizedVoipToken),
   });
+  return normalizedToken || null;
 }
 
 // options.fromSwRelay = true means the service worker already showed the system
@@ -860,9 +869,9 @@ async function attachForegroundListener(firebaseAppInstance) {
   foregroundListenerAttached = true;
 }
 
-export async function registerWebPushForCurrentModule(pathname = window.location.pathname) {
+export async function registerWebPushForCurrentModule(pathname = window.location.pathname, options = {}) {
   const moduleName = normalizeModuleFromPath(pathname);
-  if (moduleName === "admin") return false;
+  if (moduleName === "admin" && options?.allowAdmin !== true) return false;
 
   const accessToken = localStorage.getItem(`${moduleName}_accessToken`);
   if (!accessToken) return false;
@@ -934,6 +943,7 @@ export async function registerWebPushForCurrentModule(pathname = window.location
       }
       
       await attachForegroundListener(app);
+      return token;
     })()
     .catch((e) => {
       console.error("FCM web registration failed:", e);
@@ -947,7 +957,6 @@ export async function registerWebPushForCurrentModule(pathname = window.location
 
   // Flutter WebView fallback: register native token when browser web push isn't available.
   // This keeps restaurant/delivery FCM alerts working even when Web Push APIs are limited.
-  await registerNativeWebViewFcmToken(moduleName);
-  return null;
+  return registerNativeWebViewFcmToken(moduleName);
 }
 

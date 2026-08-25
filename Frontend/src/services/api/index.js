@@ -133,6 +133,7 @@ function createSaveFcmTokenOnce(client) {
 const saveUserFcmTokenOnce = createSaveFcmTokenOnce(userClient);
 const saveRestaurantFcmTokenOnce = createSaveFcmTokenOnce(restaurantClient);
 const saveDeliveryFcmTokenOnce = createSaveFcmTokenOnce(deliveryClient);
+const saveAdminFcmTokenOnce = createSaveFcmTokenOnce(adminClient);
 
 function createSavePushDevice(client) {
   return (payload = {}) => client.post("/fcm-tokens/device/save", payload ?? {});
@@ -227,6 +228,7 @@ export const notificationAPI = {
 
 /** Admin API - new backend only (GET /auth/me, PATCH /auth/admin/profile, POST /auth/admin/change-password) */
 export const adminAPI = {
+  saveFcmToken: saveAdminFcmTokenOnce,
   // Sub Admins
   getSubAdmins: (params = {}) => adminClient.get("/food/admin/sub-admins", { params }),
   createSubAdmin: (body) => adminClient.post("/food/admin/sub-admins", body),
@@ -556,6 +558,11 @@ export const adminAPI = {
   updateDeliveryCashLimit: (body = {}) => adminClient.patch("/food/admin/delivery-cash-limit", body),
   getDeliveryMultiOrderSettings: () => adminClient.get("/food/admin/delivery-multi-order-settings"),
   updateDeliveryMultiOrderSettings: (body = {}) => adminClient.patch("/food/admin/delivery-multi-order-settings", body),
+  getRestaurantDelayAlertSettings: () => adminClient.get("/food/admin/restaurant-delay-alerts"),
+  updateRestaurantDelayAlertSettings: (body = {}) => adminClient.patch("/food/admin/restaurant-delay-alerts", body),
+  registerRestaurantDelayAlertDevice: (body = {}) => adminClient.post("/food/admin/restaurant-delay-alerts/devices", body),
+  removeRestaurantDelayAlertDevice: (deviceId) => adminClient.delete(`/food/admin/restaurant-delay-alerts/devices/${String(deviceId)}`),
+  testRestaurantDelayAlertDevice: (deviceId) => adminClient.post(`/food/admin/restaurant-delay-alerts/devices/${String(deviceId)}/test`, {}),
   getEmergencyHelp: () => adminClient.get("/food/admin/delivery-emergency-help"),
   createOrUpdateEmergencyHelp: (body = {}) => adminClient.put("/food/admin/delivery-emergency-help", body),
   getCashLimitSettlements: (params = {}) => adminClient.get("/food/admin/delivery/cash-limit-settlements", { params }),

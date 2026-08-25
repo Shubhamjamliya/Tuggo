@@ -27,7 +27,11 @@ let cachedApnsClientMode = null;
 
 const sanitizeString = (value) => String(value ?? '').trim().replace(/^["']|["']$/g, '');
 
-const getOwnerModel = (ownerType) => OWNER_MODELS[String(ownerType || '').trim().toUpperCase()] || null;
+const getOwnerModel = (ownerType) => {
+    const normalized = String(ownerType || '').trim().toUpperCase();
+    if (['ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'].includes(normalized)) return FoodAdmin;
+    return OWNER_MODELS[normalized] || null;
+};
 
 const normalizeTokenList = (tokens = []) => {
     const normalized = [...new Set((Array.isArray(tokens) ? tokens : [tokens]).map(sanitizeString).filter(Boolean))];

@@ -11,6 +11,7 @@ import * as orderController from '../../orders/controllers/order.controller.js';
 import { getAdminPageController, upsertAdminPageController } from '../controllers/pageContent.controller.js';
 import * as liveMonitorController from '../controllers/liveMonitor.controller.js';
 import * as appIntroAdController from '../controllers/appIntroAd.controller.js';
+import * as restaurantDelayAlertController from '../controllers/restaurantDelayAlert.controller.js';
 import { upload } from '../../../../middleware/upload.js';
 import menuBulkRoutes from './menuBulk.routes.js';
 
@@ -160,6 +161,13 @@ router.patch('/delivery-cash-limit', adminController.updateDeliveryCashLimit);
 // ----- Delivery Multiple Orders -----
 router.get('/delivery-multi-order-settings', adminController.getDeliveryMultiOrderSettingsController);
 router.patch('/delivery-multi-order-settings', adminController.updateDeliveryMultiOrderSettingsController);
+
+// ----- Restaurant Response Delay Alerts -----
+router.get('/restaurant-delay-alerts', restaurantDelayAlertController.getSettings);
+router.patch('/restaurant-delay-alerts', restaurantDelayAlertController.updateSettings);
+router.post('/restaurant-delay-alerts/devices', restaurantDelayAlertController.registerDevice);
+router.delete('/restaurant-delay-alerts/devices/:deviceId', restaurantDelayAlertController.removeDevice);
+router.post('/restaurant-delay-alerts/devices/:deviceId/test', restaurantDelayAlertController.testDevice);
 
 // ----- Delivery Emergency Help -----
 router.get('/delivery-emergency-help', adminController.getEmergencyHelp);
