@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { adminAPI } from '@food/api';
 import { toast } from 'sonner';
+import { Switch } from '@food/components/ui/switch';
 
 export default function DeliveryMultiOrders() {
   const [enabled, setEnabled] = useState(false);
@@ -54,22 +55,24 @@ export default function DeliveryMultiOrders() {
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
+        <div className={`flex items-center justify-between gap-4 rounded-xl border p-4 transition-colors ${enabled ? 'border-green-200 bg-green-50/60' : 'border-gray-200 bg-gray-50'}`}>
+          <div className="min-w-0">
             <h2 className="font-semibold text-gray-900">Allow multiple orders</h2>
             <p className="text-sm text-gray-500 mt-1">
               When off, every delivery partner can have only one active order.
             </p>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            onClick={() => setEnabled((value) => !value)}
-            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${enabled ? 'bg-green-600' : 'bg-gray-300'}`}
-          >
-            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-          </button>
+          <div className="flex shrink-0 items-center gap-3">
+            <span className={`min-w-8 text-right text-xs font-bold ${enabled ? 'text-green-700' : 'text-gray-500'}`}>
+              {enabled ? 'ON' : 'OFF'}
+            </span>
+            <Switch
+              checked={enabled}
+              onCheckedChange={setEnabled}
+              aria-label="Allow multiple orders"
+              className="h-7 w-12 border-0 bg-gray-300 shadow-inner data-[state=checked]:bg-green-600 [&_[data-slot=switch-thumb]]:h-5 [&_[data-slot=switch-thumb]]:w-5 [&_[data-slot=switch-thumb]]:bg-white data-[state=checked]:[&_[data-slot=switch-thumb]]:translate-x-6 data-[state=unchecked]:[&_[data-slot=switch-thumb]]:translate-x-1"
+            />
+          </div>
         </div>
 
         <div>
