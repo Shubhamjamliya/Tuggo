@@ -108,15 +108,19 @@ export async function removeRestaurantDelayAlertDevice(deviceId) {
   return serializeSettings(settings);
 }
 
-export async function testRestaurantDelayAlertDevice(deviceId) {
+export async function testRestaurantDelayAlertDevice(deviceId, delaySeconds = 0) {
   if (!mongoose.Types.ObjectId.isValid(deviceId)) throw new ValidationError('Invalid device id.');
   const settings = await getSettingsDocument();
   const device = settings.devices.id(deviceId);
   if (!device || !device.isActive) throw new ValidationError('Active device not found.');
+  const safeDelaySeconds = Math.min(10, Math.max(0, Math.trunc(Number(delaySeconds) || 0)));
+  if (safeDelaySeconds > 0) {
+    await new Promise((resolve) => setTimeout(resolve, safeDelaySeconds * 1000));
+  }
   const response = await sendPushNotification([device.token], {
     title: 'Restaurant delay alert test',
     body: `Test notification sent to ${device.name}.`,
-    dataOnly: true,
+    dataOnly: false,
     data: { type: 'restaurant_delay_alert_test', link: '/admin/food/restaurant-delay-alerts' },
   });
   if (!response.successCount) throw new ValidationError(response.results?.[0]?.error || 'Test notification could not be delivered.');
@@ -153,7 +157,7 @@ export async function processRestaurantResponseDelayAlert(orderMongoId, configur
   const response = await sendPushNotification(devices.map((device) => device.token), {
     title: 'Restaurant is not responding',
     body: `${restaurantName} has not responded to order #${order.order_id || order._id} within ${Number(configuredDelayMinutes || settings.delayMinutes)} minutes.`,
-    dataOnly: true,
+    dataOnly: false,
     data: {
       type: 'restaurant_response_delay',
       orderId: String(order._id),

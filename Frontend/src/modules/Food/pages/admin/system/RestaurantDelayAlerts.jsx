@@ -102,8 +102,9 @@ export default function RestaurantDelayAlerts() {
 
   const testDevice = async (id) => {
     setTestingId(id);
+    toast.info('Test will arrive in 5 seconds. Minimize this app now.');
     try {
-      await adminAPI.testRestaurantDelayAlertDevice(id);
+      await adminAPI.testRestaurantDelayAlertDevice(id, { delaySeconds: 5 });
       toast.success('Test notification sent');
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Test notification failed');

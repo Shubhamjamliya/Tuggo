@@ -562,7 +562,7 @@ export const adminAPI = {
   updateRestaurantDelayAlertSettings: (body = {}) => adminClient.patch("/food/admin/restaurant-delay-alerts", body),
   registerRestaurantDelayAlertDevice: (body = {}) => adminClient.post("/food/admin/restaurant-delay-alerts/devices", body),
   removeRestaurantDelayAlertDevice: (deviceId) => adminClient.delete(`/food/admin/restaurant-delay-alerts/devices/${String(deviceId)}`),
-  testRestaurantDelayAlertDevice: (deviceId) => adminClient.post(`/food/admin/restaurant-delay-alerts/devices/${String(deviceId)}/test`, {}),
+  testRestaurantDelayAlertDevice: (deviceId, body = {}) => adminClient.post(`/food/admin/restaurant-delay-alerts/devices/${String(deviceId)}/test`, body),
   getEmergencyHelp: () => adminClient.get("/food/admin/delivery-emergency-help"),
   createOrUpdateEmergencyHelp: (body = {}) => adminClient.put("/food/admin/delivery-emergency-help", body),
   getCashLimitSettlements: (params = {}) => adminClient.get("/food/admin/delivery/cash-limit-settlements", { params }),

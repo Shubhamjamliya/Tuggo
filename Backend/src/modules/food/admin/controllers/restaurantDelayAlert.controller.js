@@ -27,6 +27,13 @@ export async function removeDevice(req, res, next) {
 }
 
 export async function testDevice(req, res, next) {
-  try { return sendResponse(res, 200, 'Test notification sent', await service.testRestaurantDelayAlertDevice(req.params.deviceId)); }
+  try {
+    return sendResponse(
+      res,
+      200,
+      'Test notification sent',
+      await service.testRestaurantDelayAlertDevice(req.params.deviceId, req.body?.delaySeconds),
+    );
+  }
   catch (error) { next(error); }
 }
