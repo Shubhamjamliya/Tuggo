@@ -33,9 +33,11 @@ const pushDebugLog = (prefix, message, data = {}) => {};
 const pushDebugWarn = (prefix, message, data = {}) => {};
 
 function normalizeModuleFromPath(pathname = window.location.pathname) {
+  // Admin routes can contain words such as "restaurant" and "delivery" in
+  // their settings URLs, so admin must be resolved before those modules.
+  if (pathname.includes("/admin")) return "admin";
   if (pathname.includes("/restaurant") && !pathname.includes("/restaurants")) return "restaurant";
   if (pathname.includes("/delivery")) return "delivery";
-  if (pathname.includes("/admin")) return "admin";
   return "user";
 }
 
@@ -896,7 +898,7 @@ export async function registerWebPushForCurrentModule(pathname = window.location
   const accessToken = getModuleToken(moduleName);
   if (!accessToken) {
     if (options?.throwOnError === true) {
-      throw new Error("Your admin session token is unavailable. Sign out, sign in again, and retry.");
+      throw new Error(`Your ${moduleName} session token is unavailable. Sign out, sign in again, and retry.`);
     }
     return false;
   }
