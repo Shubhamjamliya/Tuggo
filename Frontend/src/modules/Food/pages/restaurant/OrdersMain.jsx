@@ -23,7 +23,7 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-import notificationSound from "@food/assets/audio/alert.mp3";
+import notificationSound from "@food/assets/audio/restaurant-order-ring.wav";
 import { restaurantAPI, diningAPI } from "@food/api";
 import { useAuthStore } from "@/core/auth/auth.store";
 import { useRestaurantNotifications } from "@food/hooks/useRestaurantNotifications";
