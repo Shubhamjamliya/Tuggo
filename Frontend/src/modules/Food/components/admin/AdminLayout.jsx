@@ -42,11 +42,11 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="h-screen bg-neutral-200 flex overflow-hidden">
+    <div className="h-[100dvh] bg-neutral-200 flex overflow-hidden">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-gray-900/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-gray-900/50 z-[60] lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
