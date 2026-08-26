@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import AdminLayout from "./AdminLayout";
@@ -140,6 +140,21 @@ const AdminSignup = lazy(() => import("@food/pages/admin/auth/AdminSignup"));
 const AdminForgotPassword = lazy(() => import("@food/pages/admin/auth/AdminForgotPassword"));
 
 export default function AdminRouter() {
+  useEffect(() => {
+    const manifestLink = document.querySelector('link[rel="manifest"]');
+    const appTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    const previousManifest = manifestLink?.getAttribute("href") || "/manifest.json";
+    const previousTitle = appTitle?.getAttribute("content") || "Tuggo";
+
+    manifestLink?.setAttribute("href", "/admin-manifest.json?v=1");
+    appTitle?.setAttribute("content", "Tuggo Admin");
+
+    return () => {
+      manifestLink?.setAttribute("href", previousManifest);
+      appTitle?.setAttribute("content", previousTitle);
+    };
+  }, []);
+
   return (
     <Suspense fallback={<Loader />}>
       <Routes>

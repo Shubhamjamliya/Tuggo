@@ -1,0 +1,23 @@
+{
+  "id": "/admin/",
+  "name": "Tuggo Admin",
+  "short_name": "Tuggo Admin",
+  "description": "Tuggo administration panel",
+  "start_url": "/admin/food",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
