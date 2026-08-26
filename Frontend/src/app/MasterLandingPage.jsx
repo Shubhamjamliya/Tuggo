@@ -160,6 +160,17 @@ export default function MasterLandingPage() {
         }
       `}</style>
 
+      <button
+        type="button"
+        onClick={() => navigate("/admin/food/restaurant-delay-alerts")}
+        className="fixed right-4 z-[100] inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#1C1C1C]/95 px-4 py-3 text-sm font-bold text-white shadow-2xl backdrop-blur-md transition active:scale-95 md:right-6 md:px-5"
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
+        aria-label="Open admin restaurant delay alerts"
+      >
+        <ShieldCheck className="h-5 w-5 text-orange-400" />
+        Admin Delay Alerts
+      </button>
+
       {/* 1. HERO SECTION (SLIDER) */}
       <section className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-[#0a0a0a]">
 
