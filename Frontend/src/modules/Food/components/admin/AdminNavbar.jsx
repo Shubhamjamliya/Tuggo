@@ -266,25 +266,28 @@ export default function AdminNavbar({ onMenuClick }) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white border-b border-neutral-200 shadow-sm">
-        <div className="flex items-center justify-between px-6 py-3">
+      <header
+        className="sticky top-0 z-50 shrink-0 bg-white border-b border-neutral-200 shadow-sm"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="flex min-w-0 items-center justify-between gap-2 px-3 py-2 sm:px-6 sm:py-3">
           {/* Left: Logo and Mobile Menu */}
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-1 sm:gap-3">
             <button
               onClick={onMenuClick}
-              className="lg:hidden p-2 rounded-md text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors"
+              className="lg:hidden shrink-0 p-2 rounded-md text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors"
               aria-label="Toggle menu"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-6 h-6" />
             </button>
             {/* Logo and Company Name */}
-            <div className="flex items-center cursor-pointer" onClick={() => navigate('/admin')}>
-              <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+            <div className="flex min-w-0 items-center cursor-pointer" onClick={() => navigate('/admin')}>
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-white flex items-center justify-center overflow-hidden sm:h-12 sm:w-12">
                 {businessSettings?.logo?.url ? (
                   <img
                     src={businessSettings.logo.url}
                     alt={businessSettings.companyName || "Company"}
-                    className="w-10 h-10 object-contain"
+                    className="h-9 w-9 object-contain sm:h-10 sm:w-10"
                     loading="lazy"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
@@ -296,14 +299,14 @@ export default function AdminNavbar({ onMenuClick }) {
                   </span>
                 )}
               </div>
-              <span className="text-red-600 font-extrabold text-xl ml-1 tracking-tight">
+              <span className="hidden max-w-40 truncate text-red-600 font-extrabold text-xl ml-1 tracking-tight sm:block">
                 {businessSettings?.companyName || "Tuggo Food Delivery"}
               </span>
             </div>
           </div>
 
           {/* Center: Search Bar */}
-          <div className="flex-1 flex justify-center max-w-md mx-8">
+          <div className="hidden flex-1 justify-center max-w-md mx-4 md:flex xl:mx-8">
             <button
               onClick={() => setSearchOpen(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 text-neutral-600 cursor-pointer hover:bg-neutral-200 transition-colors w-full border border-neutral-200"
@@ -317,12 +320,20 @@ export default function AdminNavbar({ onMenuClick }) {
           </div>
 
           {/* Right: User Profile */}
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2 md:gap-3">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 text-neutral-700 md:hidden"
+              aria-label="Search"
+            >
+              <Search className="h-5 w-5" />
+            </button>
             <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="relative h-11 w-11 rounded-full border border-neutral-200 bg-neutral-50 text-neutral-700 flex items-center justify-center hover:bg-neutral-100 transition-colors"
+                  className="relative h-10 w-10 rounded-full border border-neutral-200 bg-neutral-50 text-neutral-700 flex items-center justify-center hover:bg-neutral-100 transition-colors sm:h-11 sm:w-11"
                   aria-label="Notifications"
                 >
                   <Bell className="w-5 h-5" />
@@ -333,7 +344,7 @@ export default function AdminNavbar({ onMenuClick }) {
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-96 p-0 mt-2 border border-neutral-200 shadow-2xl rounded-2xl overflow-hidden" align="end">
+              <PopoverContent className="w-[calc(100vw-2rem)] sm:w-96 p-0 mt-2 border border-neutral-200 shadow-2xl rounded-2xl overflow-hidden" align="end">
                 <div className="bg-white">
                   <div className="px-4 py-3 border-b border-neutral-200 flex items-center justify-between">
                     <div>
@@ -391,6 +402,10 @@ export default function AdminNavbar({ onMenuClick }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-2 pl-3 border-l border-neutral-200 cursor-pointer hover:bg-neutral-100 rounded-md px-2 py-1 transition-colors">
+
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-neutral-700 md:hidden">
+                    <User className="h-5 w-5" />
+                  </div>
 
                   <div className="hidden md:block">
                     <p className="text-sm font-medium text-neutral-900">

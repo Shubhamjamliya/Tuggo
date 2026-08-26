@@ -264,6 +264,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
   }
 
   const [isCollapsed, setIsCollapsed] = useState(() => getInitialStates().isCollapsed)
+  const isVisuallyCollapsed = isCollapsed && !isOpen
   const [expandedSections, setExpandedSections] = useState(() => {
     const initialState = getInitialStates().expandedSections
     if (Object.keys(initialState || {}).length > 0) return initialState
@@ -503,17 +504,17 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
               isActive(item.path)
                 ? "bg-white/10 text-white border border-white/15"
                 : "text-neutral-100 hover:bg-white/5 hover:text-white",
-            isCollapsed && "justify-center px-2"
+            isVisuallyCollapsed && "justify-center px-2"
           )}
           style={{ animationDelay: `${index * 0.05}s` }}
-          title={isCollapsed ? item.label : undefined}
+          title={isVisuallyCollapsed ? item.label : undefined}
         >
           <Icon className={cn(
             "shrink-0 transition-all duration-300 text-left",
             isInSection ? "w-4 h-4" : "w-4 h-4",
             isActive(item.path) ? "text-white scale-110" : "text-neutral-300"
           )} />
-          {!isCollapsed && (
+          {!isVisuallyCollapsed && (
             <div className="flex-1 flex items-center justify-between overflow-hidden">
               <span className="text-left font-bold">
                 {item.label}
@@ -525,7 +526,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
               )}
             </div>
           )}
-          {isCollapsed && getBadgeCount(item.label, item.path) > 0 && (
+          {isVisuallyCollapsed && getBadgeCount(item.label, item.path) > 0 && (
             <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-neutral-950 animate-pulse" />
           )}
         </Link>
@@ -537,7 +538,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       const sectionKey = item.label.toLowerCase().replace(/\s+/g, "")
       const isExpanded = expandedSections[sectionKey] || false
 
-      if (isCollapsed) {
+      if (isVisuallyCollapsed) {
         return (
           <div key={item.path || item.label || index} className="menu-item-animate" style={{ animationDelay: `${index * 0.05}s` }}>
             <button
@@ -696,14 +697,19 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       `}</style>
       <div
         className={cn(
-          "border-r border-neutral-700/30 h-screen fixed left-0 top-0 z-50 flex flex-col overflow-hidden",
+          "border-r border-neutral-700/30 fixed left-0 top-0 z-[70] flex h-[100dvh] flex-col overflow-hidden",
           "transform transition-all duration-300 ease-in-out",
           "lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
-          isCollapsed ? "w-20" : "w-80",
+          "w-[min(20rem,calc(100vw-1.5rem))]",
+          isVisuallyCollapsed ? "lg:w-20" : "lg:w-80",
           "bg-[#576574]"
         )}
-        style={{ backgroundColor: 'var(--ad-primary, #576574)' }}
+        style={{
+          backgroundColor: 'var(--ad-primary, #576574)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
       >
         {/* Header with Logo and Brand */}
         <div
@@ -711,7 +717,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           style={{ backgroundColor: 'var(--ad-primary-strong, #4a5664)' }}
         >
           <div className="flex items-center justify-between mb-3">
-            {!isCollapsed && (
+            {!isVisuallyCollapsed && (
               <div className="flex items-center gap-2 animate-[slideIn_0.3s_ease-out]">
                 <div className="w-24 h-12 rounded-lg flex items-center justify-center shadow-black/20">
                   {logoUrl ? (
@@ -734,7 +740,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                 </div>
               </div>
             )}
-            {isCollapsed && (
+            {isVisuallyCollapsed && (
               <div className="w-full flex items-center justify-center">
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shadow-lg shadow-black/20 ring-1 ring-white/10">
                   {logoUrl ? (
@@ -756,10 +762,10 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleCollapse}
-                className="text-neutral-300 hover:text-white transition-all duration-200 hover:scale-110 p-1.5 rounded-lg hover:bg-white/5"
-                title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                className="hidden lg:inline-flex text-neutral-300 hover:text-white transition-all duration-200 hover:scale-110 p-1.5 rounded-lg hover:bg-white/5"
+                title={isVisuallyCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
-                {isCollapsed ? (
+                {isVisuallyCollapsed ? (
                   <ChevronRight className="w-4 h-4" />
                 ) : (
                   <ChevronLeft className="w-4 h-4" />
@@ -775,7 +781,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           </div>
 
           {/* Admin Panel Label */}
-          {!isCollapsed && (
+          {!isVisuallyCollapsed && (
             <div className="mb-3 animate-[slideIn_0.4s_ease-out_0.1s_both]">
               <h2 className="text-sm font-semibold text-neutral-300 uppercase tracking-wider text-left">
                 Admin Panel
@@ -784,7 +790,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           )}
 
           {/* Search Bar */}
-          {!isCollapsed && (
+          {!isVisuallyCollapsed && (
             <div className="relative animate-[slideIn_0.4s_ease-out_0.2s_both]">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4 z-10 transition-colors duration-200" />
               <Input
