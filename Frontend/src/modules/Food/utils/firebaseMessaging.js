@@ -5,6 +5,7 @@ import { getModuleToken } from "@food/utils/auth";
 import { initializeApp, getApp, getApps } from "firebase/app";
 import fallbackNotificationSound from "@food/assets/audio/alert.mp3";
 import pushNotificationSoundPath from "@food/assets/audio/zomato_sms.mp3";
+import restaurantOrderSound from "@food/assets/audio/restaurant-order-ring.wav";
 
 const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "",
@@ -46,9 +47,13 @@ function isRecord(value) {
 }
 
 function getPushSoundSources(moduleName = normalizeModuleFromPath()) {
-  // Delivery and restaurant should always use the alert tone for FCM pushes.
-  if (moduleName === "delivery" || moduleName === "restaurant") {
+  // Delivery uses its dedicated alert tone. Restaurant order sound is owned by
+  // useRestaurantNotifications/OrdersMain so it can stop exactly on accept/reject.
+  if (moduleName === "delivery") {
     return [fallbackNotificationSound];
+  }
+  if (moduleName === "restaurant") {
+    return [restaurantOrderSound];
   }
   return [pushNotificationSoundPath, fallbackNotificationSound];
 }
@@ -657,7 +662,12 @@ function showForegroundNotification(payload = {}, options = {}) {
     payload?.data?.imageUrl ||
     undefined;
 
-  playPushSound(payload);
+  // Do not start the legacy generic FCM sound inside the restaurant panel.
+  // The restaurant order popup/socket owns its ringtone lifecycle; otherwise a
+  // delayed foreground push can start the old tone after Accept/Reject.
+  if (moduleName !== "restaurant") {
+    playPushSound(payload);
+  }
 
   const payloadOrderId =
     payload?.data?.orderMongoId ||

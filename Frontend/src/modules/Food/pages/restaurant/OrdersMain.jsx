@@ -1230,6 +1230,13 @@ export default function OrdersMain() {
   const popupOrderRef = useRef(null);
   const cancelDismissRef = useRef(null);
 
+  const stopPopupOrderSound = () => {
+    if (!audioRef.current) return;
+    audioRef.current.pause();
+    audioRef.current.loop = false;
+    audioRef.current.currentTime = 0;
+  };
+
   // Pending counts for tabs
   const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
@@ -1602,6 +1609,7 @@ export default function OrdersMain() {
 
       setShowNewOrderPopup(false);
       setPopupOrder(null);
+      stopPopupOrderSound();
       clearNewOrder();
       setCountdown(180);
       setPrepTime(11);
@@ -1682,10 +1690,7 @@ export default function OrdersMain() {
 
     return () => {
       desktopMediaQuery.removeEventListener("change", handleDesktopViewChange);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
+      stopPopupOrderSound();
     };
   }, []);
 
@@ -2030,6 +2035,7 @@ export default function OrdersMain() {
 
     setShowNewOrderPopup(false);
     setPopupOrder(null);
+    stopPopupOrderSound();
     clearNewOrder();
     setCountdown(180);
     setPrepTime(11);
@@ -2065,10 +2071,7 @@ export default function OrdersMain() {
       }
     }
 
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
+    stopPopupOrderSound();
     setShowRejectPopup(false);
     setShowNewOrderPopup(false);
     setPopupOrder(null);
