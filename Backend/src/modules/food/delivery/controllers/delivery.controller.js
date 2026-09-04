@@ -275,3 +275,15 @@ export const getDeliveryReferralStatsController = async (req, res, next) => {
     }
 };
 
+export const updateDriverLocationBatchController = async (req, res, next) => {
+    try {
+        const deliveryPartnerId = req.user?.userId;
+        const { processDriverLocationBatch } = await import('../services/deliveryTracking.service.js');
+        const result = await processDriverLocationBatch(deliveryPartnerId, req.body);
+        return sendResponse(res, 200, 'Location processed successfully', result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+

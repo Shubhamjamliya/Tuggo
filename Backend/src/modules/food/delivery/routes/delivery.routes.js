@@ -3,7 +3,29 @@ import { upload } from '../../../../middleware/upload.js';
 import { authMiddleware } from '../../../../core/auth/auth.middleware.js';
 import { requireRoles } from '../../../../core/roles/role.middleware.js';
 import * as orderController from '../../orders/controllers/order.controller.js';
-import { registerDeliveryPartnerController, updateDeliveryPartnerProfileController, updateDeliveryPartnerBankDetailsController, listSupportTicketsController, createSupportTicketController, getSupportTicketByIdController, updateDeliveryPartnerDetailsController, updateDeliveryPartnerProfilePhotoBase64Controller, updateAvailabilityController, getWalletController, createWithdrawalRequestController, createCashDepositOrderController, verifyCashDepositPaymentController, getEarningsController, getTripHistoryController, getPocketDetailsController, getEmergencyHelpController, getCashLimitController, getDeliveryReferralStatsController, getActiveEarningAddonsController } from '../controllers/delivery.controller.js';
+import { 
+    registerDeliveryPartnerController, 
+    updateDeliveryPartnerProfileController, 
+    updateDeliveryPartnerBankDetailsController, 
+    listSupportTicketsController, 
+    createSupportTicketController, 
+    getSupportTicketByIdController, 
+    updateDeliveryPartnerDetailsController, 
+    updateDeliveryPartnerProfilePhotoBase64Controller, 
+    updateAvailabilityController, 
+    getWalletController, 
+    createWithdrawalRequestController, 
+    createCashDepositOrderController, 
+    verifyCashDepositPaymentController, 
+    getEarningsController, 
+    getTripHistoryController, 
+    getPocketDetailsController, 
+    getEmergencyHelpController, 
+    getCashLimitController, 
+    getDeliveryReferralStatsController, 
+    getActiveEarningAddonsController,
+    updateDriverLocationBatchController
+} from '../controllers/delivery.controller.js';
 import { deleteDeliveryAccountController } from '../controllers/deleteAccount.controller.js';
 
 const router = express.Router();
@@ -33,6 +55,9 @@ router.post('/profile/photo-base64', authMiddleware, requireRoles('DELIVERY_PART
 router.patch('/profile/bank-details', authMiddleware, requireRoles('DELIVERY_PARTNER'), uploadFields, updateDeliveryPartnerBankDetailsController);
 
 router.patch('/availability', authMiddleware, requireRoles('DELIVERY_PARTNER'), updateAvailabilityController);
+
+// Location batch updates (Supports single fix, background updates, and offline backlogs)
+router.post('/location', authMiddleware, requireRoles('DELIVERY_PARTNER'), updateDriverLocationBatchController);
 
 router.get('/support-tickets', authMiddleware, requireRoles('DELIVERY_PARTNER'), listSupportTicketsController);
 router.post('/support-tickets', authMiddleware, requireRoles('DELIVERY_PARTNER'), createSupportTicketController);
@@ -69,6 +94,7 @@ router.post('/wallet/deposit/order', authMiddleware, requireRoles('DELIVERY_PART
 router.post('/wallet/deposit/verify', authMiddleware, requireRoles('DELIVERY_PARTNER'), verifyCashDepositPaymentController);
 router.get('/earnings', authMiddleware, requireRoles('DELIVERY_PARTNER'), getEarningsController);
 router.get('/trip-history', authMiddleware, requireRoles('DELIVERY_PARTNER'), getTripHistoryController);
+router.getPocketDetailsController = getPocketDetailsController;
 router.get('/pocket-details', authMiddleware, requireRoles('DELIVERY_PARTNER'), getPocketDetailsController);
 router.get('/emergency-help', authMiddleware, requireRoles('DELIVERY_PARTNER'), getEmergencyHelpController);
 router.get('/cash-limit', authMiddleware, requireRoles('DELIVERY_PARTNER'), getCashLimitController);
@@ -78,4 +104,3 @@ router.get('/referrals/stats', authMiddleware, requireRoles('DELIVERY_PARTNER'),
 router.delete('/account', authMiddleware, requireRoles('DELIVERY_PARTNER'), deleteDeliveryAccountController);
 
 export default router;
-
