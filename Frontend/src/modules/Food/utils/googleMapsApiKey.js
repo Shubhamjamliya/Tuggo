@@ -4,10 +4,7 @@
  */
 
 import { useEffect, useState } from "react";
-import apiClient from "@/services/api/axios.js";
-
 let cachedApiKey = null;
-let fetchPromise = null;
 
 function sanitizeApiKey(value) {
   if (!value) return "";
@@ -18,46 +15,16 @@ function getBuildTimeKey() {
   return sanitizeApiKey(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
 }
 
-async function fetchRuntimeKey() {
-  try {
-    const response = await apiClient.get("/food/public/env", {
-      timeout: 15000,
-    });
-    const payload = response?.data?.data || response?.data || {};
-    return (
-      sanitizeApiKey(payload.VITE_GOOGLE_MAPS_API_KEY) ||
-      sanitizeApiKey(payload.GOOGLE_MAPS_API_KEY)
-    );
-  } catch {
-    return "";
-  }
-}
-
 /**
  * Resolve Google Maps API key (cached).
- * Priority: in-memory cache → build-time Vite env → public backend endpoint.
+ * Directly uses build-time Vite env (import.meta.env.VITE_GOOGLE_MAPS_API_KEY).
  */
 export async function getGoogleMapsApiKey() {
   if (cachedApiKey) return cachedApiKey;
 
   const buildKey = getBuildTimeKey();
-  if (buildKey) {
-    cachedApiKey = buildKey;
-    return cachedApiKey;
-  }
-
-  if (!fetchPromise) {
-    fetchPromise = fetchRuntimeKey()
-      .then((key) => {
-        cachedApiKey = key || "";
-        return cachedApiKey;
-      })
-      .finally(() => {
-        fetchPromise = null;
-      });
-  }
-
-  return fetchPromise;
+  cachedApiKey = buildKey || "";
+  return cachedApiKey;
 }
 
 /** Sync peek — only returns build-time key; prefer async getGoogleMapsApiKey(). */

@@ -215,11 +215,11 @@ export const initSocket = async (server) => {
             const speed = Number.isFinite(Number(data.speed)) ? Number(data.speed) : 0;
             const accuracy = Number.isFinite(Number(data.accuracy)) ? Number(data.accuracy) : null;
 
-            // Throttle: max one broadcast per 5s per orderId
-            // (aligned with frontend 10s emit — reduces server→client events by ~60%)
+            // Throttle: max one broadcast per 10s per orderId
+            // (reduces server→client events and network consumption)
             const now = Date.now();
             const lastTS = _lastLocationBroadcast[data.orderId] || 0;
-            if (now - lastTS < 5000) return;
+            if (now - lastTS < 10000) return;
             _lastLocationBroadcast[data.orderId] = now;
 
             // ── MINIFIED tracking payload (sent to users watching the map) ──

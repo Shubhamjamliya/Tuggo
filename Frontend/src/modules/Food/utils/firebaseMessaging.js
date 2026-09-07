@@ -447,54 +447,17 @@ export async function enablePushNotificationSound() {
     return true;
   }
 }
-
 async function getFirebasePublicEnv() {
-  if (publicEnvPromise) return publicEnvPromise;
-
-  publicEnvPromise = (async () => {
-    const buildConfig = {
-      apiKey: sanitize(import.meta.env.VITE_FIREBASE_API_KEY),
-      authDomain: sanitize(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
-      projectId: sanitize(import.meta.env.VITE_FIREBASE_PROJECT_ID),
-      appId: sanitize(import.meta.env.VITE_FIREBASE_APP_ID),
-      messagingSenderId: sanitize(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
-      storageBucket: sanitize(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
-      measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
-      vapidKey: sanitize(import.meta.env.VITE_FIREBASE_VAPID_KEY),
-    };
-
-    let runtimeConfig = {};
-    try {
-      const response = await apiClient.get("/food/public/env", { timeout: 15000 });
-      const data = response?.data?.data || response?.data || {};
-      runtimeConfig = {
-        apiKey: sanitize(data.VITE_FIREBASE_API_KEY || data.FIREBASE_API_KEY),
-        authDomain: sanitize(data.VITE_FIREBASE_AUTH_DOMAIN || data.FIREBASE_AUTH_DOMAIN),
-        projectId: sanitize(data.VITE_FIREBASE_PROJECT_ID || data.FIREBASE_PROJECT_ID),
-        appId: sanitize(data.VITE_FIREBASE_APP_ID || data.FIREBASE_APP_ID),
-        messagingSenderId: sanitize(
-          data.VITE_FIREBASE_MESSAGING_SENDER_ID || data.FIREBASE_MESSAGING_SENDER_ID,
-        ),
-        storageBucket: sanitize(data.VITE_FIREBASE_STORAGE_BUCKET || data.FIREBASE_STORAGE_BUCKET),
-        measurementId: sanitize(data.VITE_FIREBASE_MEASUREMENT_ID || data.FIREBASE_MEASUREMENT_ID),
-        vapidKey: sanitize(data.VITE_FIREBASE_VAPID_KEY || data.FIREBASE_VAPID_KEY),
-      };
-    } catch {
-      // Build-time values still work when the runtime endpoint is unavailable.
-    }
-
-    try {
-      return Object.keys(DEFAULT_FIREBASE_CONFIG).concat(["storageBucket", "measurementId", "vapidKey"])
-        .reduce((config, key) => {
-          config[key] = buildConfig[key] || runtimeConfig[key] || DEFAULT_FIREBASE_CONFIG[key] || "";
-          return config;
-        }, {});
-    } finally {
-      publicEnvPromise = null;
-    }
-  })();
-
-  return publicEnvPromise;
+  return {
+    apiKey: sanitize(import.meta.env.VITE_FIREBASE_API_KEY),
+    authDomain: sanitize(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+    projectId: sanitize(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+    appId: sanitize(import.meta.env.VITE_FIREBASE_APP_ID),
+    messagingSenderId: sanitize(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+    storageBucket: sanitize(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
+    measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
+    vapidKey: sanitize(import.meta.env.VITE_FIREBASE_VAPID_KEY),
+  };
 }
 
 function getMessagingFirebaseApp(config) {
@@ -944,7 +907,19 @@ export async function registerWebPushForCurrentModule(pathname = window.location
       const supported = await isSupported().catch(() => false);
       if (!supported) throw new Error("Firebase notifications are not supported in this browser mode.");
 
-      let registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+      const swParams = new URLSearchParams();
+      if (firebasePublicEnv.apiKey) swParams.set("apiKey", firebasePublicEnv.apiKey);
+      if (firebasePublicEnv.authDomain) swParams.set("authDomain", firebasePublicEnv.authDomain);
+      if (firebasePublicEnv.projectId) swParams.set("projectId", firebasePublicEnv.projectId);
+      if (firebasePublicEnv.appId) swParams.set("appId", firebasePublicEnv.appId);
+      if (firebasePublicEnv.messagingSenderId) swParams.set("messagingSenderId", firebasePublicEnv.messagingSenderId);
+      if (firebasePublicEnv.storageBucket) swParams.set("storageBucket", firebasePublicEnv.storageBucket);
+      if (firebasePublicEnv.measurementId) swParams.set("measurementId", firebasePublicEnv.measurementId);
+
+      const swQuery = swParams.toString();
+      const swUrl = swQuery ? `/firebase-messaging-sw.js?${swQuery}` : "/firebase-messaging-sw.js";
+
+      let registration = await navigator.serviceWorker.register(swUrl, {
         updateViaCache: "none",
       });
       await registration.update().catch(() => {});

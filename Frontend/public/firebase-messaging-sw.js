@@ -119,42 +119,40 @@ async function handleColdStartPush(payload = {}) {
   await notifyOpenClients(payload);
 }
 
-async function loadFirebaseWebConfig() {
-  const candidates = [
-    "/api/v1/food/public/env",
-    "/api/v1/env/public",
-    "/api/env/public",
-  ];
-  for (const url of candidates) {
-    try {
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) continue;
-      const json = await response.json();
-      const data = (json && json.data) || {};
-      const config = {
-        apiKey: sanitize(data.VITE_FIREBASE_API_KEY || data.FIREBASE_API_KEY),
-        authDomain: sanitize(data.VITE_FIREBASE_AUTH_DOMAIN || data.FIREBASE_AUTH_DOMAIN),
-        projectId: sanitize(data.VITE_FIREBASE_PROJECT_ID || data.FIREBASE_PROJECT_ID),
-        appId: sanitize(data.VITE_FIREBASE_APP_ID || data.FIREBASE_APP_ID),
-        messagingSenderId: sanitize(data.VITE_FIREBASE_MESSAGING_SENDER_ID || data.FIREBASE_MESSAGING_SENDER_ID),
-        storageBucket: sanitize(data.VITE_FIREBASE_STORAGE_BUCKET || data.FIREBASE_STORAGE_BUCKET),
-        measurementId: sanitize(data.VITE_FIREBASE_MEASUREMENT_ID || data.FIREBASE_MEASUREMENT_ID),
-      };
+function loadFirebaseWebConfig() {
+  try {
+    const params = new URLSearchParams(self.location.search);
+    const config = {
+      apiKey: sanitize(params.get("apiKey")),
+      authDomain: sanitize(params.get("authDomain")),
+      projectId: sanitize(params.get("projectId")),
+      appId: sanitize(params.get("appId")),
+      messagingSenderId: sanitize(params.get("messagingSenderId")),
+      storageBucket: sanitize(params.get("storageBucket")),
+      measurementId: sanitize(params.get("measurementId")),
+    };
 
-      if (config.apiKey && config.projectId && config.appId && config.messagingSenderId) {
-        pushDebugLog(PUSH_DEBUG_PREFIX, "Loaded Firebase web config");
-        return config;
-      }
-    } catch {
-      // try next candidate
+    if (config.apiKey && config.projectId && config.appId && config.messagingSenderId) {
+      pushDebugLog(PUSH_DEBUG_PREFIX, "Loaded Firebase web config from query params");
+      return config;
     }
+  } catch {
+    // fallback
   }
 
-  return null;
+  return {
+    apiKey: "AIzaSyAC_N9ZTat6Pt_1mh78Q92KJDp20FOHor8",
+    authDomain: "demotuggo.firebaseapp.com",
+    projectId: "demotuggo",
+    storageBucket: "demotuggo.firebasestorage.app",
+    messagingSenderId: "841927628612",
+    appId: "1:841927628612:web:1634e9e4f4faa8e7472911",
+    measurementId: "G-PZG4TFCQLW",
+  };
 }
 
 (async () => {
-  const config = await loadFirebaseWebConfig();
+  const config = loadFirebaseWebConfig();
   if (!config || !config.apiKey || !config.projectId || !config.appId || !config.messagingSenderId) {
     return;
   }
@@ -164,7 +162,6 @@ async function loadFirebaseWebConfig() {
   const messaging = firebase.messaging();
 
   messaging.onBackgroundMessage(async (payload) => {
-    pushDebugLog(PUSH_DEBUG_PREFIX, "Received Firebase background message", { payload });
     
     const visibleClient = await hasVisibleClientForTarget(payload);
     

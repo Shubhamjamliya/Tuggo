@@ -13,7 +13,11 @@ import { logger } from '../../../../utils/logger.js';
  * and returns dynamic tracking configuration for the Flutter client.
  */
 export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}) => {
+    const startTime = Date.now();
+    logger.info(`📍 [LOCATION_TRACKING] Ingesting location payload for driver: ${deliveryPartnerId}`);
+
     if (!deliveryPartnerId) {
+        logger.error(`❌ [LOCATION_TRACKING] Missing deliveryPartnerId`);
         throw new Error('Delivery partner ID is required');
     }
 
@@ -31,9 +35,11 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
         rawLocations = [payload.locations];
     }
 
+    logger.info(`📦 [LOCATION_TRACKING] Driver ${deliveryPartnerId} received ${rawLocations.length} raw points`);
+
     // 2. Fetch driver profile & active order in parallel
     const [partner, activeOrder] = await Promise.all([
-        FoodDeliveryPartner.findById(deliveryPartnerId).select('status availabilityStatus lastLocationAt').lean(),
+        FoodDeliveryPartner.findById(deliveryPartnerId).select('status availabilityStatus lastLocationAt name phone').lean(),
         FoodOrder.findOne({
             'dispatch.deliveryPartnerId': partnerObjectId,
             orderStatus: { $in: ['accepted', 'confirmed', 'reached_pickup', 'picked_up', 'out_for_delivery', 'reached_drop'] }
@@ -41,7 +47,14 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
     ]);
 
     if (!partner) {
+        logger.error(`❌ [LOCATION_TRACKING] Driver not found: ${deliveryPartnerId}`);
         throw new Error('Delivery partner not found');
+    }
+
+    if (activeOrder) {
+        logger.info(`🚀 [LOCATION_TRACKING] Active order found for driver ${deliveryPartnerId}: Order ID = ${activeOrder.orderId || activeOrder._id} (Status: ${activeOrder.orderStatus})`);
+    } else {
+        logger.info(`ℹ️ [LOCATION_TRACKING] No active order for driver ${deliveryPartnerId} (Driver is in IDLE/ONLINE mode)`);
     }
 
     // 3. Filter & validate incoming coordinates
@@ -114,8 +127,9 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
 
             const bulkRes = await DeliveryLocationLog.bulkWrite(bulkOps, { ordered: false });
             processedCount = (bulkRes.upsertedCount || 0) + (bulkRes.modifiedCount || 0) + (bulkRes.matchedCount || 0);
+            logger.info(`💾 [LOCATION_TRACKING] Logged ${validPoints.length} points to DB breadcrumb history`);
         } catch (dbErr) {
-            logger.warn(`[LocationBatch] Non-critical bulk log insert notice: ${dbErr.message}`);
+            logger.warn(`⚠️ [LOCATION_TRACKING] Non-critical bulk log insert notice: ${dbErr.message}`);
             processedCount = validPoints.length;
         }
 
@@ -124,13 +138,15 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
         const lastKnownTime = partner.lastLocationAt ? new Date(partner.lastLocationAt).getTime() : 0;
         const isNewest = newestPoint.capturedAt.getTime() >= lastKnownTime;
 
+        logger.info(`📡 [LOCATION_TRACKING] Latest point: lat=${newestPoint.lat}, lng=${newestPoint.lng}, heading=${newestPoint.heading}, speed=${newestPoint.speed}, isNewest=${isNewest}`);
+
         if (isNewest) {
             const now = newestPoint.capturedAt.getTime();
             const coordPayload = {
                 lat: newestPoint.lat,
                 lng: newestPoint.lng,
-                speed: newestPoint.speed,
-                heading: newestPoint.heading,
+                speed: newestPoint.speed || 0,
+                heading: newestPoint.heading || 0,
                 accuracy: newestPoint.accuracy,
                 timestamp: now
             };
@@ -143,7 +159,7 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
                     lastLocation: newestPoint.location,
                     lastLocationAt: newestPoint.capturedAt
                 }
-            }).catch(e => logger.error(`[LocationBatch] Error updating driver last location: ${e.message}`));
+            }).catch(e => logger.error(`❌ [LOCATION_TRACKING] Mongo driver location update error: ${e.message}`));
 
             // B. Update Redis Hot Cache
             try {
@@ -157,9 +173,10 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
                         redisOps.push(redis.hSet('order:locations:hot', String(activeOrder.orderId || activeOrder._id), coordString));
                     }
                     await Promise.all(redisOps);
+                    logger.info(`🔥 [LOCATION_TRACKING] Redis hot cache updated for driver: ${deliveryPartnerId}`);
                 }
             } catch (rErr) {
-                logger.warn(`[LocationBatch] Redis hot cache error: ${rErr.message}`);
+                logger.warn(`⚠️ [LOCATION_TRACKING] Redis hot cache error: ${rErr.message}`);
             }
 
             // C. Update Firebase Realtime Database
@@ -177,25 +194,35 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
                         last_updated: now,
                         is_online: partner.availabilityStatus === 'online',
                         active_order_id: activeOrder ? String(activeOrder.orderId || activeOrder._id) : null
-                    }).catch(e => logger.warn(`[LocationBatch] Firebase boy update: ${e.message}`));
+                    }).then(() => {
+                        logger.info(`🔥 [FIREBASE] Updated node delivery_boys/${deliveryPartnerId}`);
+                    }).catch(e => logger.warn(`⚠️ [FIREBASE] delivery_boys error: ${e.message}`));
 
                     // Update active order node if on trip
                     if (activeOrder) {
-                        const orderKey = String(activeOrder.orderId || activeOrder._id);
-                        const orderRef = firebaseDB.ref(`active_orders/${orderKey}`);
-                        orderRef.update({
-                            lat: newestPoint.lat,
-                            lng: newestPoint.lng,
-                            heading: newestPoint.heading || 0,
-                            speed: newestPoint.speed || 0,
-                            accuracy: newestPoint.accuracy || 0,
-                            last_updated: now,
-                            status: activeOrder.orderStatus || 'on_the_way'
-                        }).catch(e => logger.warn(`[LocationBatch] Firebase order update: ${e.message}`));
+                        const orderKeys = [String(activeOrder._id)];
+                        if (activeOrder.orderId && String(activeOrder.orderId) !== String(activeOrder._id)) {
+                            orderKeys.push(String(activeOrder.orderId));
+                        }
+
+                        for (const key of orderKeys) {
+                            const orderRef = firebaseDB.ref(`active_orders/${key}`);
+                            orderRef.update({
+                                lat: newestPoint.lat,
+                                lng: newestPoint.lng,
+                                heading: newestPoint.heading || 0,
+                                speed: newestPoint.speed || 0,
+                                accuracy: newestPoint.accuracy || 0,
+                                last_updated: now,
+                                status: activeOrder.orderStatus || 'on_the_way'
+                            }).then(() => {
+                                logger.info(`🔥 [FIREBASE] Updated active_orders/${key}`);
+                            }).catch(e => logger.warn(`⚠️ [FIREBASE] active_orders error: ${e.message}`));
+                        }
                     }
                 }
             } catch (fErr) {
-                logger.warn(`[LocationBatch] Firebase sync error: ${fErr.message}`);
+                logger.warn(`⚠️ [LOCATION_TRACKING] Firebase sync error: ${fErr.message}`);
             }
 
             // D. Broadcast via Socket.IO if clients are connected
@@ -203,25 +230,46 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
                 const io = getIO();
                 if (io) {
                     const trackingBroadcast = {
-                        orderId: activeOrder?.orderId || activeOrder?._id,
-                        driverId: deliveryPartnerId,
+                        orderId: activeOrder ? String(activeOrder.orderId || activeOrder._id) : null,
+                        deliveryPartnerId: String(deliveryPartnerId),
+                        driverId: String(deliveryPartnerId),
                         ...coordPayload,
                         status: activeOrder?.orderStatus || 'on_the_way'
                     };
 
-                    if (activeOrder?.orderId) {
-                        io.to(rooms.order(activeOrder.orderId)).emit('location-update', trackingBroadcast);
-                    }
-                    if (activeOrder?.user) {
-                        const userId = activeOrder.user?._id || activeOrder.user;
-                        io.to(rooms.user(userId)).emit('location-update', trackingBroadcast);
-                    }
-                    if (activeOrder?.restaurantId) {
-                        io.to(rooms.restaurant(activeOrder.restaurantId)).emit('location-update', trackingBroadcast);
+                    if (activeOrder) {
+                        // Emit to order tracking rooms
+                        const orderTrackingRoom = rooms.tracking(activeOrder._id.toString());
+                        io.to(orderTrackingRoom).emit('location-update', trackingBroadcast);
+                        logger.info(`📢 [SOCKET] Emitted 'location-update' to room: ${orderTrackingRoom}`);
+
+                        if (activeOrder.orderId && activeOrder.orderId !== activeOrder._id.toString()) {
+                            const customTrackingRoom = rooms.tracking(activeOrder.orderId);
+                            io.to(customTrackingRoom).emit('location-update', trackingBroadcast);
+                            logger.info(`📢 [SOCKET] Emitted 'location-update' to room: ${customTrackingRoom}`);
+                        }
+
+                        // Emit to customer room
+                        if (activeOrder.user) {
+                            const userId = activeOrder.user?._id?.toString() || activeOrder.user?.toString();
+                            if (userId) {
+                                io.to(rooms.user(userId)).emit('location-update', trackingBroadcast);
+                                logger.info(`📢 [SOCKET] Emitted 'location-update' to user room: user:${userId}`);
+                            }
+                        }
+
+                        // Emit to restaurant room
+                        if (activeOrder.restaurantId) {
+                            const restId = activeOrder.restaurantId?._id?.toString() || activeOrder.restaurantId?.toString();
+                            if (restId) {
+                                io.to(rooms.restaurant(restId)).emit('location-update', trackingBroadcast);
+                                logger.info(`📢 [SOCKET] Emitted 'location-update' to restaurant room: restaurant:${restId}`);
+                            }
+                        }
                     }
                 }
             } catch (sErr) {
-                logger.warn(`[LocationBatch] Socket emit error: ${sErr.message}`);
+                logger.error(`❌ [LOCATION_TRACKING] Socket emit error: ${sErr.message}`);
             }
         }
     }
@@ -244,14 +292,17 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
     } else if (hasActiveTrip) {
         mode = 'onTrip';
         stopTracking = false;
-        intervalMs = 5000; // 5s cadence on active trip
-        distanceFilterMeters = 15; // 15m filter
+        intervalMs = 10000; // 10s cadence on active trip
+        distanceFilterMeters = 20; // 20m filter
     } else {
         mode = 'idle';
         stopTracking = false;
-        intervalMs = 15000; // 15s cadence when idle online
-        distanceFilterMeters = 40; // 40m filter
+        intervalMs = 20000; // 20s cadence when idle online
+        distanceFilterMeters = 50; // 50m filter
     }
+
+    const duration = Date.now() - startTime;
+    logger.info(`✅ [LOCATION_TRACKING] Finished in ${duration}ms | Processed: ${validPoints.length} | Mode: ${mode} | stopTracking: ${stopTracking}`);
 
     return {
         processedCount: validPoints.length,
