@@ -14,10 +14,11 @@ import { logger } from '../../../../utils/logger.js';
  */
 export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}) => {
     const startTime = Date.now();
-    logger.info(`📍 [LOCATION_TRACKING] Ingesting location payload for driver: ${deliveryPartnerId}`);
+    console.log(`\n==================== 🛵 DRIVER LOCATION RECEIVED 🛵 ====================`);
+    console.log(`⏱️ Time: ${new Date().toLocaleTimeString()} | Driver: ${deliveryPartnerId}`);
 
     if (!deliveryPartnerId) {
-        logger.error(`❌ [LOCATION_TRACKING] Missing deliveryPartnerId`);
+        console.error(`❌ [LOCATION_TRACKING] Missing deliveryPartnerId`);
         throw new Error('Delivery partner ID is required');
     }
 
@@ -35,7 +36,7 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
         rawLocations = [payload.locations];
     }
 
-    logger.info(`📦 [LOCATION_TRACKING] Driver ${deliveryPartnerId} received ${rawLocations.length} raw points`);
+    console.log(`📦 Coordinates count: ${rawLocations.length} points`);
 
     // 2. Fetch driver profile & active order in parallel
     const [partner, activeOrder] = await Promise.all([
@@ -47,14 +48,14 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
     ]);
 
     if (!partner) {
-        logger.error(`❌ [LOCATION_TRACKING] Driver not found: ${deliveryPartnerId}`);
+        console.error(`❌ [LOCATION_TRACKING] Driver not found: ${deliveryPartnerId}`);
         throw new Error('Delivery partner not found');
     }
 
     if (activeOrder) {
-        logger.info(`🚀 [LOCATION_TRACKING] Active order found for driver ${deliveryPartnerId}: Order ID = ${activeOrder.orderId || activeOrder._id} (Status: ${activeOrder.orderStatus})`);
+        console.log(`🚀 Active Order: ${activeOrder.orderId || activeOrder._id} (Status: ${activeOrder.orderStatus})`);
     } else {
-        logger.info(`ℹ️ [LOCATION_TRACKING] No active order for driver ${deliveryPartnerId} (Driver is in IDLE/ONLINE mode)`);
+        console.log(`ℹ️ State: Online / Idle (No active trip)`);
     }
 
     // 3. Filter & validate incoming coordinates
@@ -138,7 +139,7 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
         const lastKnownTime = partner.lastLocationAt ? new Date(partner.lastLocationAt).getTime() : 0;
         const isNewest = newestPoint.capturedAt.getTime() >= lastKnownTime;
 
-        logger.info(`📡 [LOCATION_TRACKING] Latest point: lat=${newestPoint.lat}, lng=${newestPoint.lng}, heading=${newestPoint.heading}, speed=${newestPoint.speed}, isNewest=${isNewest}`);
+        console.log(`📍 GPS Coordinates: Lat=${newestPoint.lat}, Lng=${newestPoint.lng} | Heading=${newestPoint.heading}° | Speed=${newestPoint.speed}km/h`);
 
         if (isNewest) {
             const now = newestPoint.capturedAt.getTime();
@@ -230,7 +231,10 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
                 const io = getIO();
                 if (io) {
                     const trackingBroadcast = {
-                        orderId: activeOrder ? String(activeOrder.orderId || activeOrder._id) : null,
+                        orderId: activeOrder ? String(activeOrder._id) : null,
+                        order_id: activeOrder ? String(activeOrder._id) : null,
+                        customOrderId: activeOrder?.orderId || null,
+                        trackingId: activeOrder ? String(activeOrder._id) : null,
                         deliveryPartnerId: String(deliveryPartnerId),
                         driverId: String(deliveryPartnerId),
                         ...coordPayload,
@@ -302,7 +306,8 @@ export const processDriverLocationBatch = async (deliveryPartnerId, payload = {}
     }
 
     const duration = Date.now() - startTime;
-    logger.info(`✅ [LOCATION_TRACKING] Finished in ${duration}ms | Processed: ${validPoints.length} | Mode: ${mode} | stopTracking: ${stopTracking}`);
+    console.log(`✅ Processed in ${duration}ms | Mode: ${mode} | stopTracking: ${stopTracking}`);
+    console.log(`=========================================================================\n`);
 
     return {
         processedCount: validPoints.length,
