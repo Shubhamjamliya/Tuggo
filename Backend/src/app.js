@@ -110,8 +110,17 @@ app.use(xssClean());
 // Optional: log API response time (method, path, status, duration) - no sensitive data
 app.use('/api', responseTimeLogger);
 
-// API Routes
+// Global logging for any location tracking request to trace foreground/background hits
+app.use((req, res, next) => {
+    if (req.originalUrl && req.originalUrl.includes('location')) {
+        console.log(`\n📥 [RAW_HTTP_HIT] ${req.method} ${req.originalUrl} | Auth: ${req.headers.authorization ? 'Bearer Provided' : 'NO_AUTH_HEADER'} | Body: ${JSON.stringify(req.body || {}).substring(0, 300)}`);
+    }
+    next();
+});
+
+// API Routes (supports both /api/v1/... and /v1/... paths)
 app.use('/api', routes);
+app.use('/', routes);
 
 // Static file serving for uploads
 app.use('/uploads', express.static(path.resolve(config.uploadPath)));

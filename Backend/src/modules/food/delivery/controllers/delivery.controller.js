@@ -278,10 +278,12 @@ export const getDeliveryReferralStatsController = async (req, res, next) => {
 export const updateDriverLocationBatchController = async (req, res, next) => {
     try {
         const deliveryPartnerId = req.user?.userId;
+        console.log(`🚚 [CONTROLLER] Location batch controller called for driver: ${deliveryPartnerId}`);
         const { processDriverLocationBatch } = await import('../services/deliveryTracking.service.js');
         const result = await processDriverLocationBatch(deliveryPartnerId, req.body);
         return sendResponse(res, 200, 'Location processed successfully', result);
     } catch (error) {
+        console.error(`❌ [CONTROLLER_ERROR] Location batch error: ${error.message}`);
         next(error);
     }
 };
