@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldCheck, DollarSign, CheckCircle2, 
-  QrCode, Loader2, X, Package
+  QrCode, Loader2, X, Package, RefreshCw
 } from 'lucide-react';
 import { deliveryAPI } from '@food/api';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
@@ -53,6 +53,8 @@ const OtpModal = ({ order, onVerified, onClose }) => {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = [useRef(), useRef(), useRef(), useRef()];
 
   useEffect(() => {
@@ -66,6 +68,14 @@ const OtpModal = ({ order, onVerified, onClose }) => {
     return () => clearTimeout(timer);
   }, [order?.deliveryVerification?.dropOtp?.code]);
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
   const orderId = order.order_id || order.orderId || order._id || 'ORD';
 
   const handleOtpChange = (index, value) => {
@@ -78,6 +88,28 @@ const OtpModal = ({ order, onVerified, onClose }) => {
 
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) inputRefs[index - 1].current?.focus();
+  };
+
+  const handleResendOtp = async () => {
+    if (isResendingOtp || resendCooldown > 0 || isOtpVerified || isAlreadyVerified) return;
+    setIsResendingOtp(true);
+    try {
+      const res = await deliveryAPI.confirmReachedDrop(orderId);
+      if (res?.data?.success || res?.status === 200) {
+        toast.success("OTP resent to customer's screen");
+        setResendCooldown(30);
+      } else {
+        toast.error(res?.data?.message || "Failed to resend OTP");
+      }
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        "Failed to resend OTP to customer"
+      );
+    } finally {
+      setIsResendingOtp(false);
+    }
   };
 
   const verifyOtp = async () => {
@@ -148,7 +180,7 @@ const OtpModal = ({ order, onVerified, onClose }) => {
 
         <DeliveryInstructionsPanel note={order?.note} />
 
-        <div className="flex justify-center gap-2.5 sm:gap-3 mb-6 sm:mb-8">
+        <div className="flex justify-center gap-2.5 sm:gap-3 mb-4 sm:mb-5">
           {otp.map((digit, i) => (
             <input
               key={i}
@@ -163,6 +195,41 @@ const OtpModal = ({ order, onVerified, onClose }) => {
               }`}
             />
           ))}
+        </div>
+
+        {/* Resend / Re-request OTP button */}
+        <div className="flex items-center justify-center mb-6">
+          <button
+            type="button"
+            onClick={handleResendOtp}
+            disabled={isResendingOtp || resendCooldown > 0 || isOtpVerified || isAlreadyVerified}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              isOtpVerified || isAlreadyVerified
+                ? 'opacity-40 cursor-not-allowed text-gray-400 bg-gray-100'
+                : resendCooldown > 0
+                ? 'bg-orange-50 text-orange-600 border border-orange-200 cursor-not-allowed'
+                : isResendingOtp
+                ? 'bg-gray-100 text-gray-500 cursor-wait'
+                : 'bg-orange-50 hover:bg-orange-100 active:scale-95 text-orange-700 border border-orange-200 cursor-pointer shadow-xs'
+            }`}
+          >
+            {isResendingOtp ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Resending OTP...</span>
+              </>
+            ) : resendCooldown > 0 ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 text-orange-500" />
+                <span>Resend OTP in <span className="font-bold">{resendCooldown}s</span></span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 text-orange-600" />
+                <span>Customer didn't get OTP? Resend</span>
+              </>
+            )}
+          </button>
         </div>
 
         <ActionSlider 

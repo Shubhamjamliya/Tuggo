@@ -52,18 +52,26 @@ export function createPaymentLink({ amountPaise, currency = 'INR', description, 
 }
 
 /** Create a fixed-amount, single-use UPI QR owned by Razorpay. */
-export function createRazorpayQrCode({ amountPaise, closeBy, description, notes }) {
+export async function createRazorpayQrCode({ amountPaise, closeBy, description, notes }) {
     const instance = getRazorpayInstance();
-    if (!instance) return Promise.reject(new Error('Razorpay not configured'));
-    return instance.qrCode.create({
-        type: 'upi_qr',
-        usage: 'single_use',
-        fixed_amount: true,
-        payment_amount: Math.round(amountPaise),
-        close_by: Math.floor(closeBy),
-        description,
-        notes
-    });
+    if (!instance) throw new Error('Razorpay not configured');
+    try {
+        return await instance.qrCode.create({
+            type: 'upi_qr',
+            usage: 'single_use',
+            fixed_amount: true,
+            payment_amount: Math.round(amountPaise),
+            close_by: Math.floor(closeBy),
+            description,
+            notes
+        });
+    } catch (err) {
+        const errorMsg = err?.error?.description || err?.description || err?.message || 'Razorpay QR creation failed';
+        const error = new Error(errorMsg);
+        error.statusCode = err?.statusCode || 400;
+        error.error = err?.error || err;
+        throw error;
+    }
 }
 
 /** Fetch payments associated with one Razorpay QR code. */
