@@ -47,6 +47,7 @@ const DESKTOP_ORDER_ALERT_QUERY = "(min-width: 768px)";
 
 // Top filter tabs
 const filterTabs = [
+  { id: "all", label: "All" },
   { id: "new", label: "New" },
   { id: "preparing", label: "Preparing" },
   { id: "ready", label: "Ready" },
@@ -55,7 +56,6 @@ const filterTabs = [
   { id: "completed", label: "Completed" },
   { id: "cancelled", label: "Cancelled" },
   { id: "dead", label: "Dead Orders" },
-  { id: "all", label: "All" },
 ];
 
 const allOrdersStatusPriority = {
@@ -1154,7 +1154,7 @@ export default function OrdersMain() {
   const navigate = useNavigate();
   useRestaurantLenis();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const [activeFilter, setActiveFilter] = useState("new");
+  const [activeFilter, setActiveFilter] = useState("all");
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
