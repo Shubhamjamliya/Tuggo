@@ -190,7 +190,7 @@ async function listNearbyOnlineDeliveryPartners(
 
   if (picked.length === 0) {
     logger.warn(
-      `[Dispatch] No eligible riders for restaurant ${rId}: online=${allOnline.length}, busy=${busyIds.size}, radiusKm=${maxKm}, zoneFilter=${Boolean(zonePolygon && zoneOnly)}`,
+      `[Dispatch] No eligible riders for restaurant ${rId}: online=${allOnline.length}, busy=${capacityFullIds.size}, radiusKm=${maxKm}, zoneFilter=${Boolean(zonePolygon && zoneOnly)}`,
     );
     return { partners: [] };
   }
