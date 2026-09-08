@@ -214,6 +214,8 @@ export const sendVoipPushNotification = async (tokens, payload = {}, options = {
 
     const apsAlertTitle = sanitizeString(payload.title || payload.notification?.title || 'New order request');
     const apsAlertBody = sanitizeString(payload.body || payload.notification?.body || 'You have a new order request.');
+    const orderIdentifier = sanitizeString(payload.orderId || payload.data?.orderId || payload.orderMongoId || payload.data?.orderMongoId || payload.id || '');
+
     const bodyPayload = {
         aps: {
             alert: {
@@ -227,6 +229,20 @@ export const sendVoipPushNotification = async (tokens, payload = {}, options = {
         type: sanitizeString(payload.type || payload.data?.type || 'voip_ring'),
         title: apsAlertTitle,
         body: apsAlertBody,
+        orderId: orderIdentifier,
+        orderMongoId: orderIdentifier,
+        // Standard CallKit / flutter_callkit_incoming required fields:
+        id: orderIdentifier,
+        nameCaller: apsAlertTitle,
+        callerName: apsAlertTitle,
+        handle: apsAlertBody,
+        textAccept: 'Accept',
+        textDecline: 'Decline',
+        duration: 45000,
+        extra: {
+            orderId: orderIdentifier,
+            ...((payload.data && typeof payload.data === 'object') ? payload.data : {}),
+        },
     };
 
     logger.info(`[VoIP-Background-Call-Trace] 📞 Preparing VoIP Background Push | Target: ${options.ownerType || 'UNKNOWN'} | Devices: ${uniqueTokens.length} | Topic: ${topic} | APNs Host: ${getApnsAuthority()} | Payload: ${JSON.stringify(bodyPayload)}`);
