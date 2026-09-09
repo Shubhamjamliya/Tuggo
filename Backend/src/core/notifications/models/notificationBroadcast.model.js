@@ -74,5 +74,6 @@ const notificationBroadcastSchema = new mongoose.Schema(
 );
 
 notificationBroadcastSchema.index({ createdAt: -1 });
+notificationBroadcastSchema.index({ createdAt: 1 }, { expireAfterSeconds: 3 * 24 * 60 * 60 }); // 3-day TTL auto-cleanup
 
 export const BroadcastNotification = mongoose.model('BroadcastNotification', notificationBroadcastSchema);

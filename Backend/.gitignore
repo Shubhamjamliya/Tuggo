@@ -19,6 +19,8 @@ pids
 *.seed
 *.pid.lock
 uploads/
+backups/
+*.dump
 
 # IDE - VSCode
 .vscode/*
