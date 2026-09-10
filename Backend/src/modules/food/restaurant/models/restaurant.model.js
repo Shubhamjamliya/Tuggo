@@ -296,6 +296,11 @@ const restaurantSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    isBanned: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     collection: "food_restaurants",

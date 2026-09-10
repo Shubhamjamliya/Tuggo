@@ -284,7 +284,15 @@ export async function getRestaurants(query) {
     if (status === 'live_and_banned') {
         filter.$or = [
             { status: 'approved' },
-            { status: 'rejected', rejectionReason: 'Disabled by admin' }
+            { status: 'rejected', rejectionReason: 'Disabled by admin' },
+            { status: 'rejected', rejectionReason: { $regex: /disabled by admin|banned/i } },
+            { isBanned: true }
+        ];
+    } else if (status === 'banned') {
+        filter.$or = [
+            { status: 'rejected', rejectionReason: 'Disabled by admin' },
+            { status: 'rejected', rejectionReason: { $regex: /disabled by admin|banned/i } },
+            { isBanned: true }
         ];
     } else if (status && ['pending', 'approved', 'rejected'].includes(status)) {
         filter.status = status;
@@ -297,7 +305,7 @@ export async function getRestaurants(query) {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .select('restaurantName location area city profileImage coverImages menuImages menuPdf status ownerName ownerPhone zoneId zoneRank rating discount itemDiscounts discountRules openingTime closingTime deliveryTimings onboarding openDays estimatedDeliveryTime isActive')
+            .select('restaurantName location area city profileImage coverImages menuImages menuPdf status rejectionReason rejectedAt isBanned ownerName ownerPhone zoneId zoneRank rating discount itemDiscounts discountRules openingTime closingTime deliveryTimings onboarding openDays estimatedDeliveryTime isActive')
             .populate('zoneId', 'name zoneName')
             .lean(),
         FoodRestaurant.countDocuments(filter)
@@ -2633,8 +2641,10 @@ export async function updateRestaurantStatus(id, body = {}) {
 
     const updateData = {
         status,
-        rejectedAt: isActive ? undefined : new Date(),
-        rejectionReason: isActive ? '' : 'Disabled by admin'
+        rejectedAt: isActive ? null : new Date(),
+        rejectionReason: isActive ? '' : 'Disabled by admin',
+        isBanned: !isActive,
+        isAcceptingOrders: isActive
     };
 
     if (isActive) {

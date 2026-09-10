@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { Search, Download, ChevronDown, Eye, Settings, ArrowUpDown, Loader2, X, MapPin, Phone, Mail, Clock, Star, Building2, User, FileText, CreditCard, Calendar, Image as ImageIcon, ExternalLink, ShieldX, AlertTriangle, Trash2, Plus, Map } from "lucide-react"
+import { Search, Download, ChevronDown, Eye, Settings, ArrowUpDown, Loader2, X, MapPin, Phone, Mail, Clock, Star, Building2, User, FileText, CreditCard, Calendar, Image as ImageIcon, ExternalLink, ShieldX, ShieldCheck, AlertTriangle, Trash2, Plus, Map } from "lucide-react"
 import { adminAPI, restaurantAPI, uploadAPI } from "@food/api"
 import { clearModuleAuth } from "@food/utils/auth"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
@@ -29,21 +29,26 @@ const PLACEHOLDER_40 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/
 const PLACEHOLDER_128 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Crect fill='%23e2e8f0' width='128' height='128'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-size='32' font-family='sans-serif'%3E?%3C/text%3E%3C/svg%3E"
 
 const normalizeApprovalStatus = (restaurant) => {
+  if (restaurant?.isBanned || (restaurant?.status === "rejected" && (restaurant?.rejectionReason === "Disabled by admin" || /disabled by admin|banned/i.test(restaurant?.rejectionReason || "")))) {
+    return "banned"
+  }
   const raw = String(restaurant?.status || "").trim().toLowerCase()
-  if (raw === "approved" || raw === "pending" || raw === "rejected") return raw
+  if (raw === "approved" || raw === "pending" || raw === "rejected" || raw === "banned") return raw
   return "pending"
 }
 
 const approvalStatusLabel = (status) => {
+  if (status === "banned") return "Banned"
   if (status === "approved") return "Approved"
   if (status === "rejected") return "Rejected"
   return "Pending"
 }
 
 const approvalStatusBadgeClass = (status) => {
-  if (status === "approved") return "bg-emerald-100 text-emerald-700"
-  if (status === "rejected") return "bg-rose-100 text-rose-700"
-  return "bg-amber-100 text-amber-700"
+  if (status === "banned") return "bg-red-100 text-red-700 border border-red-200"
+  if (status === "approved") return "bg-emerald-100 text-emerald-700 border border-emerald-200"
+  if (status === "rejected") return "bg-rose-100 text-rose-700 border border-rose-200"
+  return "bg-amber-100 text-amber-700 border border-amber-200"
 }
 
 const normalizeTimeValue = (value) => {
@@ -224,7 +229,7 @@ export default function RestaurantsList() {
         setLoading(true)
         setError(null)
 
-        const response = await adminAPI.getApprovedRestaurants({})
+        const response = await adminAPI.getRestaurants({ status: 'live_and_banned' })
 
         if (cancelled) return
 
@@ -266,19 +271,30 @@ export default function RestaurantsList() {
         }
 
         if (rawList.length > 0 || body?.success === true) {
-          const mappedRestaurants = rawList.map((restaurant, index) => ({
-            id: restaurant._id || restaurant.id || index + 1,
-            _id: restaurant._id,
-            name: restaurant.name || restaurant.restaurantName || "N/A",
-            ownerName: restaurant.ownerName || "N/A",
-            ownerPhone: restaurant.ownerPhone || restaurant.phone || "N/A",
-            zone: zoneLabelFromRestaurant(restaurant),
-            approvalStatus: normalizeApprovalStatus(restaurant),
-            isActive: restaurant.status === "approved",
-            rating: restaurant.ratings?.average || restaurant.rating || 0,
-            logo: getPrimaryRestaurantImage(restaurant, PLACEHOLDER_40),
-            originalData: restaurant,
-          }))
+          const mappedRestaurants = rawList.map((restaurant, index) => {
+            const isBanned = Boolean(
+              restaurant.isBanned === true ||
+              restaurant.status === "rejected" ||
+              restaurant.rejectionReason === "Disabled by admin" ||
+              (typeof restaurant.rejectionReason === "string" && /disabled by admin|banned/i.test(restaurant.rejectionReason))
+            )
+            const isActive = !isBanned && restaurant.status === "approved"
+
+            return {
+              id: restaurant._id || restaurant.id || index + 1,
+              _id: restaurant._id,
+              name: restaurant.name || restaurant.restaurantName || "N/A",
+              ownerName: restaurant.ownerName || "N/A",
+              ownerPhone: restaurant.ownerPhone || restaurant.phone || "N/A",
+              zone: zoneLabelFromRestaurant(restaurant),
+              approvalStatus: isBanned ? "banned" : normalizeApprovalStatus(restaurant),
+              isActive: isActive,
+              isBanned: isBanned,
+              rating: restaurant.ratings?.average || restaurant.rating || 0,
+              logo: getPrimaryRestaurantImage(restaurant, PLACEHOLDER_40),
+              originalData: restaurant,
+            }
+          })
           if (!cancelled) setRestaurants(mappedRestaurants)
         } else {
           if (!cancelled) setRestaurants([])
@@ -340,9 +356,9 @@ export default function RestaurantsList() {
 
     if (filters.all !== "All") {
       if (filters.all === "Active") {
-        result = result.filter(restaurant => restaurant.isActive === true)
-      } else if (filters.all === "Inactive") {
-        result = result.filter(restaurant => restaurant.isActive !== true)
+        result = result.filter(restaurant => !restaurant.isBanned && restaurant.isActive === true)
+      } else if (filters.all === "Banned" || filters.all === "Inactive") {
+        result = result.filter(restaurant => restaurant.isBanned === true || restaurant.isActive !== true)
       }
     }
 
@@ -413,8 +429,9 @@ export default function RestaurantsList() {
   }
 
   const totalRestaurants = restaurants.length
-  const activeRestaurants = restaurants.filter(r => r.isActive === true).length
-  const inactiveRestaurants = restaurants.filter(r => r.isActive !== true).length
+  const activeRestaurants = restaurants.filter(r => !r.isBanned && r.isActive === true).length
+  const bannedRestaurants = restaurants.filter(r => r.isBanned === true || r.isActive !== true).length
+  const inactiveRestaurants = bannedRestaurants
 
   // Show full phone number without masking
   const formatPhone = (phone) => {
@@ -1011,7 +1028,8 @@ export default function RestaurantsList() {
 
   // Handle ban/unban restaurant
   const handleBanRestaurant = (restaurant) => {
-    const isBanned = !restaurant.isActive
+    if (!restaurant) return
+    const isBanned = Boolean(restaurant.isBanned || !restaurant.isActive || restaurant.status === "rejected")
     setBanConfirmDialog({
       restaurant,
       action: isBanned ? 'unban' : 'ban'
@@ -1037,10 +1055,49 @@ export default function RestaurantsList() {
         setRestaurants(prevRestaurants =>
           prevRestaurants.map(r =>
             r.id === restaurant.id || r._id === restaurant._id
-              ? { ...r, isActive: newStatus }
+              ? {
+                  ...r,
+                  isActive: newStatus,
+                  isBanned: !newStatus,
+                  approvalStatus: newStatus ? "approved" : "banned",
+                  originalData: {
+                    ...r.originalData,
+                    status: newStatus ? "approved" : "rejected",
+                    rejectionReason: newStatus ? "" : "Disabled by admin",
+                    isBanned: !newStatus,
+                    isActive: newStatus,
+                  }
+                }
               : r
           )
         )
+
+        // If selectedRestaurant is currently open in modal, update it as well
+        setSelectedRestaurant(prev => {
+          if (!prev) return null
+          if (prev.id === restaurant.id || prev._id === restaurant._id) {
+            return {
+              ...prev,
+              isActive: newStatus,
+              isBanned: !newStatus,
+              approvalStatus: newStatus ? "approved" : "banned"
+            }
+          }
+          return prev
+        })
+        setRestaurantDetails(prev => {
+          if (!prev) return null
+          if (prev.id === restaurant.id || prev._id === restaurant._id) {
+            return {
+              ...prev,
+              status: newStatus ? "approved" : "rejected",
+              rejectionReason: newStatus ? "" : "Disabled by admin",
+              isBanned: !newStatus,
+              isActive: newStatus
+            }
+          }
+          return prev
+        })
 
         // Close dialog
         setBanConfirmDialog(null)
@@ -1049,16 +1106,7 @@ export default function RestaurantsList() {
         debugLog(`Restaurant ${isBanning ? 'banned' : 'unbanned'} successfully`)
       } catch (apiErr) {
         debugError("API Error:", apiErr)
-        // If API fails, still update locally for better UX
-        setRestaurants(prevRestaurants =>
-          prevRestaurants.map(r =>
-            r.id === restaurant.id || r._id === restaurant._id
-              ? { ...r, isActive: newStatus }
-              : r
-          )
-        )
-        setBanConfirmDialog(null)
-        alert(`Restaurant ${isBanning ? 'banned' : 'unbanned'} locally. Please check backend connection.`)
+        alert(`Failed to ${action} restaurant: ${apiErr?.response?.data?.message || apiErr.message || 'Unknown error'}`)
       }
 
     } catch (err) {
@@ -1143,7 +1191,15 @@ export default function RestaurantsList() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {/* Total Restaurants */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <button
+            type="button"
+            onClick={() => setFilters(prev => ({ ...prev, all: "All" }))}
+            className={`text-left bg-white rounded-xl shadow-sm border p-6 transition-all duration-200 cursor-pointer hover:shadow-md ${
+              filters.all === "All"
+                ? "border-blue-500 ring-2 ring-blue-500/20 shadow-sm"
+                : "border-slate-200 hover:border-slate-300"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-1">Total restaurants</p>
@@ -1153,10 +1209,18 @@ export default function RestaurantsList() {
                 <MapPin className="w-6 h-6 text-blue-600" />
               </div>
             </div>
-          </div>
+          </button>
 
           {/* Active Restaurants */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <button
+            type="button"
+            onClick={() => setFilters(prev => ({ ...prev, all: "Active" }))}
+            className={`text-left bg-white rounded-xl shadow-sm border p-6 transition-all duration-200 cursor-pointer hover:shadow-md ${
+              filters.all === "Active"
+                ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm"
+                : "border-slate-200 hover:border-slate-300"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-1">Active restaurants</p>
@@ -1166,26 +1230,71 @@ export default function RestaurantsList() {
                 <Building2 className="w-6 h-6 text-green-600" />
               </div>
             </div>
-          </div>
+          </button>
 
-          {/* Inactive Restaurants */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          {/* Banned Restaurants */}
+          <button
+            type="button"
+            onClick={() => setFilters(prev => ({ ...prev, all: "Banned" }))}
+            className={`text-left bg-white rounded-xl shadow-sm border p-6 transition-all duration-200 cursor-pointer hover:shadow-md ${
+              filters.all === "Banned" || filters.all === "Inactive"
+                ? "border-rose-500 ring-2 ring-rose-500/20 shadow-sm"
+                : "border-slate-200 hover:border-slate-300"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Inactive restaurants</p>
-                <p className="text-2xl font-bold text-slate-900">{inactiveRestaurants}</p>
+                <p className="text-sm font-medium text-slate-600 mb-1">Banned restaurants</p>
+                <p className="text-2xl font-bold text-slate-900">{bannedRestaurants}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
                 <ShieldX className="w-6 h-6 text-red-600" />
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Restaurants List Section */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <h2 className="text-xl font-bold text-slate-900">Restaurants List</h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-xl font-bold text-slate-900">Restaurants List</h2>
+              <div className="flex items-center bg-slate-100 p-1 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setFilters(prev => ({ ...prev, all: "All" }))}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                    filters.all === "All"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  All ({totalRestaurants})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilters(prev => ({ ...prev, all: "Active" }))}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                    filters.all === "Active"
+                      ? "bg-white text-emerald-700 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Active ({activeRestaurants})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilters(prev => ({ ...prev, all: "Banned" }))}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                    filters.all === "Banned" || filters.all === "Inactive"
+                      ? "bg-white text-rose-700 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Banned ({bannedRestaurants})
+                </button>
+              </div>
+            </div>
 
             <div className="flex items-center gap-3">
               <button
@@ -1376,11 +1485,16 @@ export default function RestaurantsList() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col gap-1">
-                            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${approvalStatusBadgeClass(restaurant.approvalStatus)}`}>
+                            <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${approvalStatusBadgeClass(restaurant.approvalStatus)}`}>
+                              {restaurant.isBanned ? (
+                                <ShieldX className="w-3 h-3 text-red-600" />
+                              ) : (
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              )}
                               {approvalStatusLabel(restaurant.approvalStatus)}
                             </span>
                             <span className="text-[11px] text-slate-500">
-                              Outlet: {restaurant.isActive ? "Active" : "Inactive"}
+                              Outlet: {restaurant.isBanned ? "Banned" : (restaurant.isActive ? "Active" : "Inactive")}
                             </span>
                           </div>
                         </td>
@@ -1390,7 +1504,7 @@ export default function RestaurantsList() {
                               <button
                                 type="button"
                                 onClick={() => handleDownloadMenuPdf(restaurant)}
-                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                                 title="Download Menu PDF"
                               >
                                 <FileText className="w-3.5 h-3.5" />
@@ -1399,24 +1513,33 @@ export default function RestaurantsList() {
                             )}
                             <button
                               onClick={() => handleViewDetails(restaurant)}
-                              className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"
+                              className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
                               title="View Details"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleBanRestaurant(restaurant)}
-                              className={`p-1.5 rounded transition-colors ${!restaurant.isActive
-                                ? "text-green-600 hover:bg-green-50"
-                                : "text-red-600 hover:bg-red-50"
-                                }`}
-                              title={!restaurant.isActive ? "Unban Restaurant" : "Ban Restaurant"}
-                            >
-                              <ShieldX className="w-4 h-4" />
-                            </button>
+                            {restaurant.isBanned || !restaurant.isActive ? (
+                              <button
+                                onClick={() => handleBanRestaurant(restaurant)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
+                                title="Unban Restaurant"
+                              >
+                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Unban</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleBanRestaurant(restaurant)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                                title="Ban Restaurant"
+                              >
+                                <ShieldX className="w-3.5 h-3.5" />
+                                <span>Ban</span>
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteRestaurant(restaurant)}
-                              className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
+                              className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                               title="Delete Restaurant"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1505,12 +1628,35 @@ export default function RestaurantsList() {
               </div>
               <div className="flex items-center gap-2">
                 {!isEditingDetails ? (
-                  <button
-                    onClick={handleStartEditDetails}
-                    className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
-                  >
-                    Edit Details
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleBanRestaurant(restaurantDetails || selectedRestaurant)}
+                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        (restaurantDetails?.isBanned || restaurantDetails?.status === "rejected" || selectedRestaurant?.isBanned || !selectedRestaurant?.isActive)
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200"
+                      }`}
+                    >
+                      {(restaurantDetails?.isBanned || restaurantDetails?.status === "rejected" || selectedRestaurant?.isBanned || !selectedRestaurant?.isActive) ? (
+                        <>
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Unban Restaurant</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldX className="w-4 h-4" />
+                          <span>Ban Restaurant</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleStartEditDetails}
+                      className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors cursor-pointer"
+                    >
+                      Edit Details
+                    </button>
+                  </>
                 ) : (
                   <>
                     <button
@@ -1784,8 +1930,12 @@ export default function RestaurantsList() {
                           {r?.restaurantName || r?.name || "N/A"}
                         </h3>
                         <div className="flex items-center justify-center md:justify-start gap-2">
-                          <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${r?.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {r?.isActive !== false ? 'Active' : 'Inactive'}
+                          <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                            (r?.isBanned || r?.status === 'rejected' || r?.isActive === false)
+                              ? 'bg-red-100 text-red-700 border border-red-200'
+                              : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          }`}>
+                            {(r?.isBanned || r?.status === 'rejected' || r?.isActive === false) ? 'Banned' : 'Active'}
                           </span>
                         </div>
                       </div>
@@ -2596,8 +2746,8 @@ export default function RestaurantsList() {
 
       {/* Ban/Unban Confirmation Dialog */}
       {banConfirmDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={cancelBanRestaurant}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-100 flex items-center justify-center p-4 transition-all duration-300" onClick={cancelBanRestaurant}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200/80 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center gap-4 mb-4">
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${banConfirmDialog.action === 'ban' ? 'bg-red-100' : 'bg-green-100'
@@ -2626,14 +2776,14 @@ export default function RestaurantsList() {
                 <button
                   onClick={cancelBanRestaurant}
                   disabled={banning}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmBanRestaurant}
                   disabled={banning}
-                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${banConfirmDialog.action === 'ban'
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${banConfirmDialog.action === 'ban'
                     ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-green-600 hover:bg-green-700'
                     }`}
@@ -2655,8 +2805,8 @@ export default function RestaurantsList() {
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirmDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={cancelDeleteRestaurant}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-100 flex items-center justify-center p-4 transition-all duration-300" onClick={cancelDeleteRestaurant}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200/80 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
