@@ -147,8 +147,41 @@ export default function AdminEarningReport() {
                 <tbody className="divide-y divide-slate-200">
                   {transactions.map((tx) => {
                     const breakdown = tx.adminEarningBreakdown || {}
-                    const itemSubtotal = tx.totalItemAmount || 0
-                    const discount = tx.itemDiscount || 0
+                    const rawItems = Array.isArray(tx.items) ? tx.items : []
+                    let calculatedOriginal = 0
+                    let calculatedDiscount = 0
+                    rawItems.forEach((it) => {
+                      const price = Number(it.price || 0)
+                      const orig = it.originalPrice != null && Number(it.originalPrice) > price ? Number(it.originalPrice) : price
+                      const qty = Number(it.quantity || 1)
+                      calculatedOriginal += orig * qty
+                      if (orig > price) {
+                        calculatedDiscount += (orig - price) * qty
+                      }
+                    })
+
+                    const itemSubtotal = Number(tx.itemSubtotalAfterDiscount ?? tx.totalItemAmount ?? 0)
+                    let discount = Number(
+                      (tx.restaurantDiscount != null && Number(tx.restaurantDiscount) > 0 ? tx.restaurantDiscount : null) ??
+                      (calculatedDiscount > 0 ? calculatedDiscount : (tx.itemDiscount || 0))
+                    )
+                    let originalItemCost = Number(
+                      (tx.originalItemCost != null && Number(tx.originalItemCost) > 0 ? tx.originalItemCost : null) ??
+                      (breakdown.originalItemCost != null && Number(breakdown.originalItemCost) > 0 ? breakdown.originalItemCost : null) ??
+                      (calculatedOriginal > itemSubtotal ? calculatedOriginal : (itemSubtotal + discount))
+                    )
+
+                    if (calculatedOriginal > 0 && calculatedOriginal > originalItemCost) {
+                      originalItemCost = calculatedOriginal
+                    }
+                    if (calculatedDiscount > 0 && calculatedDiscount > discount) {
+                      discount = calculatedDiscount
+                    }
+                    if (discount > 0 && originalItemCost <= itemSubtotal) {
+                      originalItemCost = itemSubtotal + discount
+                    } else if (originalItemCost > itemSubtotal && discount <= 0) {
+                      discount = originalItemCost - itemSubtotal
+                    }
                     const taxes = breakdown.gstCollectedFromUser || tx.vatTax || 0
                     const platformFee = breakdown.platformFee || tx.platformFee || 0
                     const packagingFee = breakdown.packagingFee || 0
@@ -213,15 +246,19 @@ export default function AdminEarningReport() {
                                   <h3 className="text-sm font-bold text-gray-900 mb-3 tracking-wide">Customer Bill</h3>
                                   <div className="space-y-2.5">
                                     <div className="flex items-center justify-between">
-                                      <span className="text-[13px] text-gray-600 font-medium">Item subtotal</span>
-                                      <span className="text-[13px] text-gray-900">{formatMoney(itemSubtotal)}</span>
+                                      <span className="text-[13px] text-gray-600 font-medium">Original item cost</span>
+                                      <span className="text-[13px] text-gray-900">{formatMoney(originalItemCost)}</span>
                                     </div>
                                     {discount > 0 && (
                                       <div className="flex items-center justify-between">
-                                        <span className="text-[13px] text-gray-600 font-medium">Discount</span>
+                                        <span className="text-[13px] text-gray-600 font-medium">Restaurant discount</span>
                                         <span className="text-[13px] text-red-600">{formatDiscount(discount)}</span>
                                       </div>
                                     )}
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[13px] text-gray-600 font-medium">Item subtotal (after discount)</span>
+                                      <span className="text-[13px] text-gray-900 font-semibold">{formatMoney(itemSubtotal)}</span>
+                                    </div>
                                     <div className="flex items-center justify-between">
                                       <span className="text-[13px] text-gray-600 font-medium">Delivery fee (user)</span>
                                       <span className="text-[13px] text-gray-900">{formatMoney(deliveryFeeUser)}</span>
@@ -307,8 +344,18 @@ export default function AdminEarningReport() {
                                   <h3 className="text-sm font-bold text-blue-900 mb-3 tracking-wide">Restaurant Payout</h3>
                                   <div className="space-y-2.5">
                                     <div className="flex items-center justify-between">
-                                      <span className="text-[13px] text-gray-600 font-medium">Item subtotal</span>
-                                      <span className="text-[13px] text-gray-900">{formatMoney(itemSubtotal)}</span>
+                                      <span className="text-[13px] text-gray-600 font-medium">Original item cost</span>
+                                      <span className="text-[13px] text-gray-900">{formatMoney(originalItemCost)}</span>
+                                    </div>
+                                    {discount > 0 && (
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[13px] text-gray-600 font-medium">Restaurant discount</span>
+                                        <span className="text-[13px] text-red-600">{formatDiscount(discount)}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[13px] text-gray-600 font-medium">Item subtotal (after discount)</span>
+                                      <span className="text-[13px] text-gray-900 font-semibold">{formatMoney(itemSubtotal)}</span>
                                     </div>
                                     {packagingFee > 0 && (
                                       <div className="flex items-center justify-between">

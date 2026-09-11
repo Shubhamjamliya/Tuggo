@@ -484,13 +484,34 @@ export default function OrdersPage({ statusKey = "all" }) {
         dp?.phone ||
         ""
 
-      const items = Array.isArray(order.items)
-        ? order.items.map((item) => ({
-            quantity: item.quantity || 1,
-            name: item.name || item.foodName || item.title || "Item",
-            price: item.price || 0,
-          }))
-        : []
+      const rawItems = Array.isArray(order.items) ? order.items : []
+      let originalItemTotal = 0
+      let restaurantDiscountTotal = 0
+
+      const items = rawItems.map((item) => {
+        const qty = Number(item.quantity || 1)
+        const price = Number(item.price || 0)
+        const originalPrice = item.originalPrice != null && Number(item.originalPrice) > price
+          ? Number(item.originalPrice)
+          : price
+        originalItemTotal += originalPrice * qty
+        if (originalPrice > price) {
+          restaurantDiscountTotal += (originalPrice - price) * qty
+        }
+        return {
+          ...item,
+          quantity: qty,
+          name: item.name || item.foodName || item.title || "Item",
+          price: price,
+          originalPrice: originalPrice,
+          isVeg: item.isVeg,
+          description: item.description || "",
+        }
+      })
+
+      const pricingDiscount = Number(pricing.discount || 0)
+      const finalDiscount = restaurantDiscountTotal > 0 ? restaurantDiscountTotal : pricingDiscount
+      const actualItemTotal = originalItemTotal > subtotal ? originalItemTotal : (subtotal + finalDiscount)
 
       const customerName = order.customerName || order.userId?.name || "N/A"
       const customerPhone = order.customerPhone || order.userId?.phone || "N/A"
@@ -512,10 +533,13 @@ export default function OrdersPage({ statusKey = "all" }) {
         customerPhone,
         restaurant,
         items,
+        actualItemTotal,
+        originalItemCost: actualItemTotal,
+        restaurantDiscount: finalDiscount,
         subtotal,
         totalItemAmount: subtotal,
         couponDiscount: discountAmount,
-        itemDiscount: 0,
+        itemDiscount: finalDiscount,
         deliveryCharge: deliveryFee,
         vatTax: taxAmount,
         platformFee,

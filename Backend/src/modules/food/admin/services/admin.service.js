@@ -836,13 +836,38 @@ export async function getTransactionReport(query = {}) {
             ? (tx.status === 'settled' ? 'settled' : 'delivered')
             : tx.status;
 
+        const rawItems = Array.isArray(order.items) ? order.items : [];
+        let originalItemCost = 0;
+        let restaurantDiscount = 0;
+
+        rawItems.forEach((it) => {
+            const price = Number(it.price || 0);
+            const orig = it.originalPrice != null && Number(it.originalPrice) > price ? Number(it.originalPrice) : price;
+            const qty = Number(it.quantity || 1);
+            originalItemCost += orig * qty;
+            if (orig > price) {
+                restaurantDiscount += (orig - price) * qty;
+            }
+        });
+
+        const pricingDiscount = Number(pricing.discount || 0);
+        if (restaurantDiscount === 0 && pricingDiscount > 0) {
+            restaurantDiscount = pricingDiscount;
+            originalItemCost = subtotal + pricingDiscount;
+        } else if (originalItemCost === 0) {
+            originalItemCost = subtotal;
+        }
+
         return {
             id: tx._id,
             orderId: tx.orderReadableId || order.orderId || 'N/A',
             restaurant: tx.restaurantId?.restaurantName || 'N/A',
             customerName: tx.userId?.name || 'Guest',
+            originalItemCost,
+            restaurantDiscount,
             totalItemAmount: subtotal,
-            itemDiscount: pricing.discount || 0,
+            itemSubtotalAfterDiscount: subtotal,
+            itemDiscount: restaurantDiscount,
             couponDiscount: 0, // Placeholder if you add coupon logic
             referralDiscount: 0, // Placeholder
             discountedAmount: Math.max(0, (pricing.subtotal || 0) - (pricing.discount || 0)),
@@ -852,7 +877,16 @@ export async function getTransactionReport(query = {}) {
             orderAmount: tx.amounts?.totalCustomerPaid || pricing.total || 0,
             status: displayStatus,
             orderStatus: order.orderStatus,
+            items: rawItems.map((i) => ({
+                name: i.name,
+                quantity: i.quantity || 1,
+                price: i.price,
+                originalPrice: i.originalPrice,
+            })),
             adminEarningBreakdown: {
+                originalItemCost,
+                restaurantDiscount,
+                itemSubtotalAfterDiscount: subtotal,
                 deliveryProfit: deliveryFeeUser - deliveryCostAdmin - deliveryGstAdmin,
                 platformFee: platformFee,
                 packagingFee: packagingFee,

@@ -98,6 +98,28 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order, onAssignD
     return null
   }
 
+  // Calculate pricing breakdown with restaurant discount
+  const pricing = order?.pricing || {};
+  const rawItems = Array.isArray(order?.items) ? order.items : [];
+
+  let calculatedOriginal = 0;
+  let calculatedDiscount = 0;
+  rawItems.forEach((item) => {
+    const qty = Number(item.quantity || 1);
+    const price = Number(item.price || 0);
+    const orig = item.originalPrice != null && Number(item.originalPrice) > price ? Number(item.originalPrice) : price;
+    calculatedOriginal += orig * qty;
+    if (orig > price) {
+      calculatedDiscount += (orig - price) * qty;
+    }
+  });
+
+  const subtotal = Number(order?.subtotal ?? order?.totalItemAmount ?? pricing.subtotal ?? 0);
+  const discountFromOrder = Number(order?.restaurantDiscount ?? order?.itemDiscount ?? pricing.discount ?? 0);
+  const restaurantDiscount = calculatedDiscount > 0 ? calculatedDiscount : discountFromOrder;
+  const actualItemTotal = Number(order?.actualItemTotal ?? order?.originalItemCost ?? (calculatedOriginal > subtotal ? calculatedOriginal : (subtotal + restaurantDiscount)));
+  const afterDiscountSubtotal = subtotal;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] bg-white p-0 overflow-y-auto">
@@ -283,29 +305,42 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order, onAssignD
                 Order Items ({order.items.length})
               </h3>
               <div className="space-y-3">
-                {order.items.map((item, index) => (
-                  <div key={index} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded">
-                          {item.quantity || 1}x
-                        </span>
-                        <p className="text-sm font-medium text-slate-900">{item.name || "Unknown Item"}</p>
-                        {item.isVeg !== undefined && (
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${item.isVeg ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {item.isVeg ? 'Veg' : 'Non-Veg'}
+                {order.items.map((item, index) => {
+                  const qty = item.quantity || 1;
+                  const price = Number(item.price || 0);
+                  const origPrice = item.originalPrice != null ? Number(item.originalPrice) : price;
+                  const hasDiscount = origPrice > price;
+                  return (
+                    <div key={index} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded">
+                            {qty}x
                           </span>
+                          <p className="text-sm font-medium text-slate-900">{item.name || "Unknown Item"}</p>
+                          {item.isVeg !== undefined && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${item.isVeg ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {item.isVeg ? 'Veg' : 'Non-Veg'}
+                            </span>
+                          )}
+                        </div>
+                        {item.description && (
+                          <p className="text-xs text-slate-500 mt-1 ml-8">{item.description}</p>
                         )}
                       </div>
-                      {item.description && (
-                        <p className="text-xs text-slate-500 mt-1 ml-8">{item.description}</p>
-                      )}
+                      <div className="text-right">
+                        {hasDiscount && (
+                          <span className="text-xs text-slate-400 line-through mr-1.5">
+                            ₹{(origPrice * qty).toFixed(2)}
+                          </span>
+                        )}
+                        <span className="text-sm font-semibold text-slate-900">
+                          ₹{(price * qty).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      ₹{((item.price || 0) * (item.quantity || 1)).toFixed(2)}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -427,18 +462,20 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order, onAssignD
           <div className="border-t border-slate-200 pt-4">
             <h3 className="text-sm font-semibold text-slate-700 mb-4">Pricing Breakdown</h3>
             <div className="space-y-2">
-              {order.totalItemAmount !== undefined && (
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Actual Item Total</span>
+                <span className="font-medium text-slate-900">₹{actualItemTotal.toFixed(2)}</span>
+              </div>
+              {restaurantDiscount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">Subtotal</span>
-                  <span className="font-medium text-slate-900">₹{order.totalItemAmount.toFixed(2)}</span>
+                  <span className="text-slate-600">Restaurant Discount</span>
+                  <span className="font-medium text-emerald-600">-₹{restaurantDiscount.toFixed(2)}</span>
                 </div>
               )}
-              {order.itemDiscount !== undefined && order.itemDiscount > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">Discount</span>
-                  <span className="font-medium text-emerald-600">-₹{order.itemDiscount.toFixed(2)}</span>
-                </div>
-              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600 font-medium">Item Total (After Discount)</span>
+                <span className="font-semibold text-slate-900">₹{afterDiscountSubtotal.toFixed(2)}</span>
+              </div>
               {order.couponDiscount !== undefined && order.couponDiscount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600">Coupon Discount</span>

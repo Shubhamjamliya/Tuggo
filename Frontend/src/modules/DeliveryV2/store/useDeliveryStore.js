@@ -35,8 +35,8 @@ export const useDeliveryStore = create(
       
       // --- Admin / Business Settings ---
       settings: {
-        pickupRangeLimit: 500, // meters, fallback default
-        deliveryRangeLimit: 500, // meters, fallback default
+        pickupRangeLimit: 1500, // meters, fallback default
+        deliveryRangeLimit: 1500, // meters, fallback default
       },
 
       // --- Actions ---

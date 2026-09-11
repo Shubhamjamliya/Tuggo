@@ -41,9 +41,9 @@ export const useProximityCheck = () => {
   const riderPoint = useMemo(() => parseLatLng(riderLocation), [riderLocation]);
 
   const actionLimit = useMemo(() => {
-    if (tripStatus === 'PICKING_UP') return settings.pickupRangeLimit || 500;
-    if (tripStatus === 'PICKED_UP') return settings.deliveryRangeLimit || 500;
-    return 500;
+    if (tripStatus === 'PICKING_UP') return settings.pickupRangeLimit || 1500;
+    if (tripStatus === 'PICKED_UP') return settings.deliveryRangeLimit || 1500;
+    return 1500;
   }, [tripStatus, settings]);
 
   const distanceToTarget = useMemo(() => {
@@ -62,7 +62,7 @@ export const useProximityCheck = () => {
     import.meta.env.VITE_ENABLE_RANGE_BYPASS === 'true' ||
     import.meta.env.DEV;
 
-  const isWithinRange = isDevMode ? true : distanceToTarget <= actionLimit;
+  const isWithinRange = isDevMode ? true : (!targetLocation ? true : distanceToTarget <= actionLimit);
 
   return {
     distanceToTarget,
