@@ -10,6 +10,37 @@ const toGeoPoint = ({ latitude, longitude }) => {
     return { type: 'Point', coordinates: [lng, lat] };
 };
 
+const resolveAddressLocation = async (address, dto) => {
+    let loc = toGeoPoint(dto);
+
+    // Safeguard: if location is missing, OR if location is set to default Indore (22.7196, 75.8577) while city is not Indore
+    const isIndoreDefault = loc?.coordinates &&
+        Math.abs(loc.coordinates[1] - 22.7196) < 0.05 &&
+        Math.abs(loc.coordinates[0] - 75.8577) < 0.05 &&
+        address.city &&
+        !String(address.city).toLowerCase().includes('indore');
+
+    if (!loc || isIndoreDefault) {
+        try {
+            const query = [address.street, address.additionalDetails, address.city, address.state, address.zipCode].filter(Boolean).join(', ');
+            if (query) {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`, {
+                    headers: { 'User-Agent': 'Tuggo-Backend/1.0', 'Accept-Language': 'en' }
+                });
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    const lat = Number(data[0].lat);
+                    const lng = Number(data[0].lon);
+                    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                        loc = { type: 'Point', coordinates: [lng, lat] };
+                    }
+                }
+            }
+        } catch (_) {}
+    }
+    return loc;
+};
+
 const normalizeLabel = (label) => {
     const v = String(label || '').trim();
     if (v === 'Work') return 'Office';
@@ -36,7 +67,7 @@ export const addAddress = async (userId, dto) => {
         state: dto.state,
         zipCode: dto.zipCode || '',
         phone: dto.phone || '',
-        location: toGeoPoint(dto),
+        location: await resolveAddressLocation(dto, dto),
         isDefault: false
     };
 
@@ -84,7 +115,7 @@ export const updateAddress = async (userId, addressId, dto) => {
     if (dto.state !== undefined) address.state = dto.state;
     if (dto.zipCode !== undefined) address.zipCode = dto.zipCode || '';
     if (dto.phone !== undefined) address.phone = dto.phone || '';
-    const location = toGeoPoint(dto);
+    const location = await resolveAddressLocation(address, dto);
     if (location) address.location = location;
 
     await user.save();

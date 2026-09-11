@@ -13,7 +13,7 @@ import { locationAPI, userAPI } from "@food/api"
 import { Loader } from '@googlemaps/js-api-loader'
 import AnimatedPage from "@food/components/user/AnimatedPage"
 import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
-import { clearStoredUserLocation, notifyLocationUpdated, persistDeliveryAddressMode, persistUserLocation } from "@food/utils/locationPersistence"
+import { clearStoredUserLocation, notifyLocationUpdated, persistDeliveryAddressMode, persistUserLocation, readStoredUserLocation } from "@food/utils/locationPersistence"
 
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -54,7 +54,13 @@ export default function AddressSelectorPage() {
   const { addresses = [], addAddress, updateAddress, deleteAddress, setDefaultAddress, userProfile, isAuthenticated } = useProfile()
   const { setSavedLocation, setDeliveryAddressMode } = useAppLocation()
   const [showAddressForm, setShowAddressForm] = useState(false)
-  const [mapPosition, setMapPosition] = useState([22.7196, 75.8577]) // Default Indore coordinates [lat, lng]
+  const [mapPosition, setMapPosition] = useState(() => {
+    const stored = readStoredUserLocation()
+    if (stored?.latitude && stored?.longitude && Number.isFinite(Number(stored.latitude)) && Number.isFinite(Number(stored.longitude))) {
+      return [Number(stored.latitude), Number(stored.longitude)]
+    }
+    return [22.7196, 75.8577] // Fallback coordinates
+  })
   const [addressFormData, setAddressFormData] = useState({
     street: "",
     city: "",
@@ -335,6 +341,27 @@ export default function AddressSelectorPage() {
     }
   }
 
+  const handleLocateCurrentPositionInForm = async () => {
+    try {
+      toast.loading("Getting current location...", { id: "geo-form" })
+      const loc = await requestLocation(true)
+      if (loc?.latitude && loc?.longitude) {
+        const newPos = [loc.latitude, loc.longitude]
+        setMapPosition(newPos)
+        if (googleMapRef.current) {
+          googleMapRef.current.panTo({ lat: loc.latitude, lng: loc.longitude })
+          googleMapRef.current.setZoom(17)
+        }
+        await handleMapMoveEnd(loc.latitude, loc.longitude)
+        toast.success("Location updated: " + (loc.area || loc.city || "Current Location"), { id: "geo-form" })
+      } else {
+        toast.error("Could not obtain GPS location", { id: "geo-form" })
+      }
+    } catch (e) {
+      toast.error("Failed to get location", { id: "geo-form" })
+    }
+  }
+
   const handleAddAddressClick = () => {
     if (!isAuthenticated) {
       toast.info("Please login to add an address")
@@ -351,6 +378,33 @@ export default function AddressSelectorPage() {
       phone: "",
     })
     setShowAddressForm(true)
+
+    // Immediately center map on user's current GPS location or stored location
+    const stored = readStoredUserLocation()
+    const targetLoc = (location?.latitude && location?.longitude) ? location : stored
+
+    if (targetLoc?.latitude && targetLoc?.longitude) {
+      const pos = [Number(targetLoc.latitude), Number(targetLoc.longitude)]
+      setMapPosition(pos)
+      if (googleMapRef.current) {
+        googleMapRef.current.panTo({ lat: pos[0], lng: pos[1] })
+        googleMapRef.current.setZoom(17)
+      }
+      handleMapMoveEnd(pos[0], pos[1])
+    }
+
+    // Trigger high-accuracy GPS update in background
+    requestLocation(false).then((fresh) => {
+      if (fresh?.latitude && fresh?.longitude) {
+        const freshPos = [fresh.latitude, fresh.longitude]
+        setMapPosition(freshPos)
+        if (googleMapRef.current) {
+          googleMapRef.current.panTo({ lat: freshPos[0], lng: freshPos[1] })
+          googleMapRef.current.setZoom(17)
+        }
+        handleMapMoveEnd(freshPos[0], freshPos[1])
+      }
+    }).catch(() => {})
   }
 
   const handleCancelAddressForm = () => {
@@ -398,6 +452,75 @@ export default function AddressSelectorPage() {
   }, [keyboardInset])
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+
+  const forwardGeocodeAddress = async (query) => {
+    const cleanQuery = String(query || "").trim()
+    if (!cleanQuery) return null
+
+    try {
+      if (GOOGLE_MAPS_API_KEY) {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cleanQuery)}&key=${GOOGLE_MAPS_API_KEY}`
+        const res = await fetch(url)
+        const data = await res.json()
+        if (data.status === "OK" && data.results && data.results.length > 0) {
+          const loc = data.results[0].geometry?.location
+          if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
+            return {
+              lat: loc.lat,
+              lng: loc.lng,
+              formattedAddress: data.results[0].formatted_address,
+              components: data.results[0].address_components || []
+            }
+          }
+        }
+      }
+
+      const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(cleanQuery)}`
+      const res = await fetch(url, { headers: { "Accept-Language": "en", "User-Agent": "Tuggo Food Delivery-App" } })
+      const json = await res.json()
+      if (Array.isArray(json) && json.length > 0) {
+        const item = json[0]
+        const lat = Number(item.lat)
+        const lng = Number(item.lon)
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          return {
+            lat,
+            lng,
+            formattedAddress: item.display_name,
+            address: item.address || {}
+          }
+        }
+      }
+    } catch (e) {
+      debugError("Forward geocoding error:", e)
+    }
+    return null
+  }
+
+  const syncMapWithTypedAddress = async () => {
+    const query = [
+      addressFormData.street,
+      addressFormData.additionalDetails,
+      addressFormData.city,
+      addressFormData.state,
+      addressFormData.zipCode
+    ].filter(Boolean).join(", ")
+
+    if (!query || (!addressFormData.city && !addressFormData.street)) return
+
+    const geocoded = await forwardGeocodeAddress(query)
+    if (geocoded) {
+      const dist = calculateDistance(mapPosition[0], mapPosition[1], geocoded.lat, geocoded.lng)
+      if (dist > 15000) {
+        setMapPosition([geocoded.lat, geocoded.lng])
+        if (googleMapRef.current) {
+          googleMapRef.current.panTo({ lat: geocoded.lat, lng: geocoded.lng })
+          googleMapRef.current.setZoom(16)
+        }
+        setCurrentAddress(geocoded.formattedAddress || query)
+      }
+    }
+  }
 
   const handleMapMoveEnd = async (lat, lng) => {
     if (!ENABLE_LOCATION_REVERSE_GEOCODE) return
@@ -475,43 +598,67 @@ export default function AddressSelectorPage() {
 
   const handleAddressFormSubmit = async (e) => {
     e.preventDefault()
-    if (!isAuthenticated) {
-      if (!addressFormData.street || !addressFormData.city) {
-        toast.error("Please fill required fields")
-        return
-      }
-
-      const locData = {
-        latitude: mapPosition[0],
-        longitude: mapPosition[1],
-        address: [addressFormData.additionalDetails, addressFormData.street, addressFormData.city].filter(Boolean).join(", "),
-        formattedAddress: currentAddress,
-        city: addressFormData.city,
-        state: addressFormData.state,
-        area: addressFormData.additionalDetails || "",
-        label: addressFormData.label
-      }
-
-      persistUserLocation(locData, { mode: "saved" })
-      persistDeliveryAddressMode("saved")
-      notifyLocationUpdated(locData)
-
-      toast.success("Location set successfully")
-      handleBack()
-      return
-    }
     if (!addressFormData.street || !addressFormData.city) {
       toast.error("Please fill required fields")
       return
     }
+
     setLoadingAddress(true)
     try {
+      let finalLat = mapPosition[0]
+      let finalLng = mapPosition[1]
+
+      const typedQuery = [
+        addressFormData.street,
+        addressFormData.additionalDetails,
+        addressFormData.city,
+        addressFormData.state,
+        addressFormData.zipCode
+      ].filter(Boolean).join(", ")
+
+      const distFromIndore = calculateDistance(finalLat, finalLng, 22.7196, 75.8577)
+      const isDefaultIndore = distFromIndore < 2000
+
+      // Forward-geocode to verify and correct coordinates if needed
+      if (typedQuery) {
+        const geocoded = await forwardGeocodeAddress(typedQuery)
+        if (geocoded) {
+          const distFromGeocoded = calculateDistance(finalLat, finalLng, geocoded.lat, geocoded.lng)
+          if (isDefaultIndore || distFromGeocoded > 15000) {
+            finalLat = geocoded.lat
+            finalLng = geocoded.lng
+            setMapPosition([finalLat, finalLng])
+          }
+        }
+      }
+
+      if (!isAuthenticated) {
+        const locData = {
+          latitude: finalLat,
+          longitude: finalLng,
+          address: [addressFormData.additionalDetails, addressFormData.street, addressFormData.city].filter(Boolean).join(", "),
+          formattedAddress: currentAddress || typedQuery,
+          city: addressFormData.city,
+          state: addressFormData.state,
+          area: addressFormData.additionalDetails || "",
+          label: addressFormData.label
+        }
+
+        persistUserLocation(locData, { mode: "saved" })
+        persistDeliveryAddressMode("saved")
+        notifyLocationUpdated(locData)
+
+        toast.success("Location set successfully")
+        handleBack()
+        return
+      }
+
       const payload = {
         ...addressFormData,
         label: addressFormData.label === "Work" ? "Office" : addressFormData.label,
-        location: { type: "Point", coordinates: [mapPosition[1], mapPosition[0]] },
-        latitude: mapPosition[0],
-        longitude: mapPosition[1]
+        location: { type: "Point", coordinates: [finalLng, finalLat] },
+        latitude: finalLat,
+        longitude: finalLng
       }
       let createdOrUpdated;
       if (addressFormData.id) {
@@ -689,7 +836,8 @@ export default function AddressSelectorPage() {
 
             <div className="absolute bottom-10 right-4 z-10">
               <Button
-                onClick={handleUseCurrentLocation}
+                type="button"
+                onClick={handleLocateCurrentPositionInForm}
                 className="bg-white text-black hover:bg-gray-100 shadow-xl border border-gray-200 rounded-full h-12 px-6"
               >
                 <Navigation className="h-4 w-4 mr-2 text-primary" /> Use My Location
@@ -712,6 +860,7 @@ export default function AddressSelectorPage() {
                 placeholder="Search or drag to update street/area"
                 value={addressFormData.street}
                 onChange={e => setAddressFormData({ ...addressFormData, street: e.target.value })}
+                onBlur={syncMapWithTypedAddress}
                 onFocus={() => scrollFieldIntoView("street")}
                 ref={(el) => { manualFieldRefs.current.street = el }}
                 className="mb-4 h-12 rounded-xl bg-gray-50 dark:bg-gray-800/50"
@@ -735,6 +884,7 @@ export default function AddressSelectorPage() {
                 <Input
                   value={addressFormData.city}
                   onChange={e => setAddressFormData({ ...addressFormData, city: e.target.value })}
+                  onBlur={syncMapWithTypedAddress}
                   onFocus={() => scrollFieldIntoView("city")}
                   ref={(el) => { manualFieldRefs.current.city = el }}
                   className="h-12 rounded-xl"
@@ -746,6 +896,7 @@ export default function AddressSelectorPage() {
                 <Input
                   value={addressFormData.state}
                   onChange={e => setAddressFormData({ ...addressFormData, state: e.target.value })}
+                  onBlur={syncMapWithTypedAddress}
                   onFocus={() => scrollFieldIntoView("state")}
                   ref={(el) => { manualFieldRefs.current.state = el }}
                   className="h-12 rounded-xl"

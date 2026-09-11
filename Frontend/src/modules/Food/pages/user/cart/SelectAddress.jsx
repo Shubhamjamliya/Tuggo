@@ -112,6 +112,24 @@ export default function SelectAddress() {
 
     setIsSaving(true)
     try {
+      let lat = undefined
+      let lng = undefined
+      const query = [street, form.additionalDetails, city, state, form.zipCode].filter(Boolean).join(", ")
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`, {
+          headers: { "Accept-Language": "en", "User-Agent": "Tuggo Food Delivery-App" }
+        })
+        const json = await res.json()
+        if (Array.isArray(json) && json.length > 0) {
+          const parsedLat = Number(json[0].lat)
+          const parsedLng = Number(json[0].lon)
+          if (Number.isFinite(parsedLat) && Number.isFinite(parsedLng)) {
+            lat = parsedLat
+            lng = parsedLng
+          }
+        }
+      } catch (_) {}
+
       const payload = {
         label: toBackendLabel(label),
         additionalDetails: String(form.additionalDetails || "").trim(),
@@ -120,6 +138,9 @@ export default function SelectAddress() {
         state,
         zipCode: String(form.zipCode || "").trim(),
         phone: String(form.phone || "").trim(),
+        latitude: lat,
+        longitude: lng,
+        location: (lat && lng) ? { type: "Point", coordinates: [lng, lat] } : undefined
       }
       const created = await addAddress(payload)
       const newId = getAddressId(created)
