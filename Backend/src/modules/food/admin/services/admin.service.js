@@ -831,6 +831,11 @@ export async function getTransactionReport(query = {}) {
         const deliveryCostAdmin = Number(tx.amounts?.riderShare) || Number(order.riderEarning) || 30;
         const deliveryGstAdmin = deliveryCostAdmin * 0.18;
 
+        const isDelivered = order.orderStatus === 'delivered';
+        const displayStatus = isDelivered 
+            ? (tx.status === 'settled' ? 'settled' : 'delivered')
+            : tx.status;
+
         return {
             id: tx._id,
             orderId: tx.orderReadableId || order.orderId || 'N/A',
@@ -845,7 +850,8 @@ export async function getTransactionReport(query = {}) {
             deliveryCharge: pricing.deliveryFee || 0,
             platformFee,
             orderAmount: tx.amounts?.totalCustomerPaid || pricing.total || 0,
-            status: tx.status,
+            status: displayStatus,
+            orderStatus: order.orderStatus,
             adminEarningBreakdown: {
                 deliveryProfit: deliveryFeeUser - deliveryCostAdmin - deliveryGstAdmin,
                 platformFee: platformFee,
@@ -880,32 +886,45 @@ export async function getTransactionReport(query = {}) {
     };
 
     for (const tx of transactionRows) {
+        const order = tx.orderId || {};
+        const isDelivered = order.orderStatus === 'delivered';
+        const isCancelled = order.orderStatus && (order.orderStatus.includes('cancel') || order.orderStatus === 'dead');
+        const isCompletedTx = !isCancelled && (isDelivered || tx.status === 'captured' || tx.status === 'settled');
+
         // Calculate Summary
-        if ((tx.status === 'captured' || tx.status === 'settled') && (tx.orderId && tx.orderId.orderStatus === 'delivered')) {
-            completedTransaction += tx.amounts?.totalCustomerPaid || 0;
-            adminEarning += tx.amounts?.platformNetProfit || 0;
-            restaurantEarning += tx.amounts?.restaurantShare || 0;
-            deliverymanEarning += tx.amounts?.riderShare || 0;
+        if (isCompletedTx) {
+            const pricing = order.pricing || {};
+            const totalPaid = tx.amounts?.totalCustomerPaid || pricing.total || 0;
+            const riderShare = Number(tx.amounts?.riderShare) || Number(order.riderEarning) || 0;
+
+            const restCommission = Number(pricing.restaurantCommission || 0);
+            const gstOnItem = Number(pricing.gstOnItem || 0);
+            const gstOnComm = Number(pricing.gstOnCommission || 0);
+            const pgFee = Number(pricing.paymentGatewayFee || 0);
+            const tcsVal = Number(pricing.tcs || 0);
+            const fallbackRestShare = (pricing.subtotal || 0) + (pricing.packagingFee || 0) - restCommission - gstOnItem - gstOnComm - pgFee - tcsVal;
+            const fallbackAdminProfit = (pricing.platformFee || 0) + (pricing.deliveryFee || 0) + restCommission + gstOnItem + pgFee + tcsVal - riderShare;
+
+            completedTransaction += totalPaid;
+            adminEarning += (tx.amounts?.platformNetProfit !== undefined ? tx.amounts.platformNetProfit : Math.max(0, fallbackAdminProfit));
+            restaurantEarning += (tx.amounts?.restaurantShare !== undefined ? tx.amounts.restaurantShare : Math.max(0, fallbackRestShare));
+            deliverymanEarning += riderShare;
 
             // Breakdown
-            const order = tx.orderId || {};
-            const pricing = order.pricing || {};
-            
             const deliveryFeeUser = Number(pricing.deliveryFee || 0);
-            const deliveryCostAdmin = Number(tx.amounts?.riderShare) || Number(order.riderEarning) || 30;
+            const deliveryCostAdmin = riderShare || 30;
             const deliveryGstAdmin = deliveryCostAdmin * 0.18;
-            
+
             adminEarningBreakdown.deliveryProfit += (deliveryFeeUser - deliveryCostAdmin - deliveryGstAdmin);
             adminEarningBreakdown.platformFee += Number(pricing.platformFee || 0);
             adminEarningBreakdown.packagingFee += Number(pricing.packagingFee || 0);
-            adminEarningBreakdown.restaurantCommission += Number(pricing.restaurantCommission || 0);
-            adminEarningBreakdown.gstOnCommission += Number(pricing.gstOnCommission || 0);
-            adminEarningBreakdown.paymentGatewayFee += Number(pricing.paymentGatewayFee || 0);
-            adminEarningBreakdown.tcs += Number(pricing.tcs || 0);
+            adminEarningBreakdown.restaurantCommission += restCommission;
+            adminEarningBreakdown.gstOnCommission += gstOnComm;
+            adminEarningBreakdown.paymentGatewayFee += pgFee;
+            adminEarningBreakdown.tcs += tcsVal;
         }
-        if (tx.status === 'refunded' || (tx.orderId && (tx.orderId.orderStatus === 'cancelled_by_admin' || tx.orderId.orderStatus === 'dead'))) {
-            // Count number of refunded transactions according to old logic or sum them
-            refundedTransaction += tx.amounts?.totalCustomerPaid || 0;
+        if (tx.status === 'refunded' || isCancelled) {
+            refundedTransaction += tx.amounts?.totalCustomerPaid || order.pricing?.total || 0;
         }
     }
 

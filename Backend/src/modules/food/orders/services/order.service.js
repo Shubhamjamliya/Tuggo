@@ -1805,6 +1805,20 @@ export async function updateOrderStatusAdmin(orderId, adminId, orderStatus, note
   
   // Allow admin to move it backward or forward, but let's at least log it
   order.orderStatus = orderStatus;
+
+  if (orderStatus === 'delivered') {
+    if (!order.payment) order.payment = {};
+    order.payment.status = 'paid';
+    order.payment.amountDue = 0;
+    order.markModified('payment');
+
+    if (!order.deliveryState) order.deliveryState = {};
+    order.deliveryState.status = 'delivered';
+    order.deliveryState.currentPhase = 'delivered';
+    if (!order.deliveryState.deliveredAt) order.deliveryState.deliveredAt = new Date();
+    order.markModified('deliveryState');
+  }
+
   pushStatusHistory(order, {
     byRole: "ADMIN",
     byId: adminId,
@@ -1813,6 +1827,52 @@ export async function updateOrderStatusAdmin(orderId, adminId, orderStatus, note
     note: note || "Status updated by admin"
   });
   await order.save();
+
+  // Keep transaction ledger synchronized with admin order status updates
+  try {
+    if (orderStatus === 'delivered') {
+      await FoodTransaction.updateOne(
+        { $or: [{ orderId: order._id }, { orderReadableId: order.orderId }] },
+        {
+          $set: {
+            status: 'captured',
+            'payment.status': 'paid',
+            'payment.amountDue': 0
+          },
+          $push: {
+            history: {
+              kind: 'admin_marked_delivered',
+              amount: order.pricing?.total || 0,
+              at: new Date(),
+              note: 'Admin marked order as delivered',
+              recordedBy: { role: 'ADMIN', id: adminId }
+            }
+          }
+        }
+      );
+    } else if (String(orderStatus).includes('cancel') || orderStatus === 'dead') {
+      await FoodTransaction.updateOne(
+        { $or: [{ orderId: order._id }, { orderReadableId: order.orderId }] },
+        {
+          $set: {
+            status: 'refunded',
+            'payment.status': 'refunded'
+          },
+          $push: {
+            history: {
+              kind: 'admin_marked_cancelled',
+              amount: order.pricing?.total || 0,
+              at: new Date(),
+              note: `Admin marked order as cancelled: ${note || orderStatus}`,
+              recordedBy: { role: 'ADMIN', id: adminId }
+            }
+          }
+        }
+      );
+    }
+  } catch (txErr) {
+    logger.warn(`Failed to sync FoodTransaction on admin order status update: ${txErr?.message || txErr}`);
+  }
 
   try {
     const { getIO, rooms } = await import('../../../../config/socket.js');
