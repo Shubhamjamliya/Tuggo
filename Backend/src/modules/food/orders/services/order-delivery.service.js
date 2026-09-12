@@ -1223,16 +1223,25 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
   const payMethod = String(
     tx?.payment?.method || order?.payment?.method || order?.paymentMethod || 'cash',
   ).toLowerCase();
-  const finalPayMethod = ['cash', 'cod', 'cash_on_delivery'].includes(payMethod)
+  const requestedMethod = String(body?.paymentMethod || body?.paymentOverride || '').toLowerCase();
+  let finalPayMethod = ['cash', 'cod', 'cash_on_delivery'].includes(payMethod)
     ? 'cash'
     : payMethod;
 
+  // Allow switching from unpaid QR to cash collection at doorstep if rider confirms cash received
+  if (finalPayMethod === 'razorpay_qr' && ['cash', 'cod', 'cash_on_delivery'].includes(requestedMethod)) {
+    finalPayMethod = 'cash';
+  }
+
   // 3. Server-side Payment Verification (Blocking)
-  // The request body cannot select a payment method or claim that payment happened.
   let verifiedPaymentStatus = prevPayStatus.toLowerCase();
   if (finalPayMethod === 'razorpay_qr') {
-    const syncedPayment = await syncRazorpayQrPayment(order);
-    verifiedPaymentStatus = String(syncedPayment?.status || '').toLowerCase();
+    try {
+      const syncedPayment = await syncRazorpayQrPayment(order);
+      verifiedPaymentStatus = String(syncedPayment?.status || '').toLowerCase();
+    } catch (err) {
+      logger.warn(`Razorpay QR sync error during delivery completion: ${err.message}`);
+    }
   } else if (finalPayMethod === 'cash') {
     // Record cash first, before changing the order to delivered. The endpoint is
     // authenticated, restricted to the assigned rider, and OTP-gated above.

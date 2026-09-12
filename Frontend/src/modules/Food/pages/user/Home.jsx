@@ -1777,6 +1777,7 @@ export default function Home() {
     filteredRestaurants.length === 0;
 
   const recommendedForYouRestaurants = useMemo(() => {
+    if (!effectiveZoneId) return [];
     const idsInOrder = (recommendedRestaurantIds || []).map((id) => String(id));
     const hasIds = idsInOrder.length > 0;
     const fromSettings = Array.isArray(recommendedRestaurantsFromSettings)
@@ -1784,38 +1785,47 @@ export default function Home() {
       : [];
 
     // Primary source: restaurants returned by landing settings API (already admin-selected).
-    const fromSettingsMapped = fromSettings.map((restaurant) => {
-      const restaurantId = restaurant?._id ? String(restaurant._id) : "";
-      const cuisine =
-        Array.isArray(restaurant?.cuisines) && restaurant.cuisines.length > 0
-          ? restaurant.cuisines[0]
-          : "Multi-cuisine";
-      const menuImages = extractImages(
-        (Array.isArray(restaurant?.menuImages)
-          ? restaurant.menuImages
-          : [restaurant?.menuImages]
-        ).filter(Boolean),
-      );
-      const carouselImages = Array.from(new Set(menuImages)).reverse();
-      const image = carouselImages[0] || foodImages[0];
+    const fromSettingsMapped = fromSettings
+      .filter((restaurant) => {
+        const rZoneId = restaurant?.zoneId?._id || restaurant?.zoneId;
+        if (rZoneId) {
+          return String(rZoneId) === String(effectiveZoneId);
+        }
+        return true;
+      })
+      .map((restaurant) => {
+        const restaurantId = restaurant?._id ? String(restaurant._id) : "";
+        const cuisine =
+          Array.isArray(restaurant?.cuisines) && restaurant.cuisines.length > 0
+            ? restaurant.cuisines[0]
+            : "Multi-cuisine";
+        const menuImages = extractImages(
+          (Array.isArray(restaurant?.menuImages)
+            ? restaurant.menuImages
+            : [restaurant?.menuImages]
+          ).filter(Boolean),
+        );
+        const carouselImages = Array.from(new Set(menuImages)).reverse();
+        const image = carouselImages[0] || foodImages[0];
 
-      return {
-        id: restaurant?.restaurantId || restaurantId,
-        mongoId: restaurantId,
-        name: getRestaurantDisplayName(restaurant),
-        cuisine,
-        rating: Number(restaurant?.rating) || 0,
-        distance: "",
-        deliveryTime: "",
-        image: normalizeImageUrl(image) || foodImages[0],
-        images: carouselImages.length > 0 ? carouselImages : [foodImages[0]],
-        slug: restaurant?.slug || restaurant?.restaurantId || restaurantId,
-        offer: null,
-        pureVegRestaurant: restaurant?.pureVegRestaurant === true,
-        isActive: true,
-        isAcceptingOrders: true,
-      };
-    });
+        return {
+          id: restaurant?.restaurantId || restaurantId,
+          mongoId: restaurantId,
+          name: getRestaurantDisplayName(restaurant),
+          cuisine,
+          rating: Number(restaurant?.rating) || 0,
+          distance: "",
+          deliveryTime: "",
+          image: normalizeImageUrl(image) || foodImages[0],
+          images: carouselImages.length > 0 ? carouselImages : [foodImages[0]],
+          slug: restaurant?.slug || restaurant?.restaurantId || restaurantId,
+          offer: null,
+          pureVegRestaurant: restaurant?.pureVegRestaurant === true,
+          isActive: true,
+          isAcceptingOrders: true,
+          zoneId: restaurant?.zoneId,
+        };
+      });
 
     // Keep admin-selected order when IDs exist.
     const orderedFromSettings = hasIds
@@ -1828,7 +1838,7 @@ export default function Home() {
         .filter(Boolean)
       : fromSettingsMapped;
 
-    // Fallback: if settings payload misses some entries, recover them from fetched restaurant list by ID.
+    // Fallback: if settings payload misses some entries, recover them from fetched restaurant list by ID (strictly matching zone).
     const existingIds = new Set(
       orderedFromSettings.map((restaurant) =>
         String(restaurant.mongoId || restaurant.id),
@@ -1836,8 +1846,10 @@ export default function Home() {
     );
     const fromFetchedMissing = (restaurantsData || []).filter((restaurant) => {
       const mongoId = String(restaurant.mongoId || "");
+      const rZoneId = restaurant?.zoneId?._id || restaurant?.zoneId;
+      const matchesZone = !rZoneId || String(rZoneId) === String(effectiveZoneId);
       return (
-        hasIds && idsInOrder.includes(mongoId) && !existingIds.has(mongoId)
+        hasIds && idsInOrder.includes(mongoId) && !existingIds.has(mongoId) && matchesZone
       );
     });
 
@@ -1845,6 +1857,7 @@ export default function Home() {
       .filter(matchesVegMode)
       .slice(0, 12);
   }, [
+    effectiveZoneId,
     recommendedRestaurantIds,
     recommendedRestaurantsFromSettings,
     restaurantsData,

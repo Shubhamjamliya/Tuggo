@@ -1192,8 +1192,9 @@ export async function listOrdersRestaurant(restaurantId, query) {
   const filter = {
     restaurantId: new mongoose.Types.ObjectId(restaurantId),
     $or: [
-      { "payment.method": { $in: ["cash", "wallet"] } },
+      { "payment.method": { $in: ["cash", "wallet", "razorpay_qr"] } },
       { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "refunded"] } },
+      { orderStatus: { $in: ["confirmed", "preparing", "ready_for_pickup", "picked_up", "delivered"] } },
     ],
   };
   applyRestaurantOrderStatusFilter(filter, query.status);
@@ -1579,8 +1580,9 @@ export async function listOrdersAdmin(query) {
   const { page, limit, skip } = buildPaginationOptions(query);
   const filter = {
     $or: [
-      { "payment.method": { $in: ["cash", "wallet"] } },
+      { "payment.method": { $in: ["cash", "wallet", "razorpay_qr"] } },
       { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "refunded"] } },
+      { orderStatus: { $in: ["confirmed", "preparing", "ready_for_pickup", "picked_up", "delivered"] } },
     ],
   };
 

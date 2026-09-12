@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { Upload, Trash2, Image as ImageIcon, Loader2, AlertCircle, CheckCircle2, ArrowUp, ArrowDown, Layout, Tag, UtensilsCrossed, ChefHat, Megaphone, Search } from "lucide-react"
 import api from "@food/api"
 import { adminAPI } from "@food/api"
@@ -437,6 +437,13 @@ export default function LandingPageManagement() {
       })
       .slice(0, 80)
   }, [allRestaurants, recommendedSearchQuery, selectedZoneForRecommended])
+
+  const getZoneName = useCallback((zoneId) => {
+    if (!zoneId) return 'No Zone'
+    const idStr = String(zoneId?._id || zoneId)
+    const found = zones.find((z) => String(z._id || z.id) === idStr)
+    return found?.name || 'Unknown Zone'
+  }, [zones])
 
   const recommendedRestaurantsSelected = useMemo(() => {
     const selectedIds = new Set(settings.recommendedRestaurantIds || [])
@@ -1926,19 +1933,24 @@ export default function LandingPageManagement() {
                   <div>
                     <Label htmlFor="recommended-search">Recommended For You Restaurants</Label>
                     <p className="text-xs text-slate-500 mt-1 mb-2">
-                      Choose multiple restaurants to display below filters on the user home page.
+                      Choose restaurants to display in "Recommended For You" on the customer app. Restaurants will automatically display zone-wise according to each customer's active delivery zone.
                     </p>
 
                     <div className="flex gap-3 mb-3">
                       <select
-                        className="flex-1 max-w-[200px] h-10 px-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        className="flex-1 max-w-[240px] h-10 px-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium bg-white text-slate-700"
                         value={selectedZoneForRecommended}
                         onChange={(e) => setSelectedZoneForRecommended(e.target.value)}
                       >
-                        <option value="">All Zones</option>
-                        {zones.map((zone) => (
-                          <option key={zone._id || zone.id} value={zone._id || zone.id}>{zone.name}</option>
-                        ))}
+                        <option value="">All Zones ({allRestaurants.length} restaurants)</option>
+                        {zones.map((zone) => {
+                          const countInZone = allRestaurants.filter((r) => String(r.zoneId?._id || r.zoneId) === String(zone._id || zone.id)).length;
+                          return (
+                            <option key={zone._id || zone.id} value={zone._id || zone.id}>
+                              {zone.name} ({countInZone})
+                            </option>
+                          );
+                        })}
                       </select>
                       <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -1946,49 +1958,101 @@ export default function LandingPageManagement() {
                           id="recommended-search"
                           value={recommendedSearchQuery}
                           onChange={(e) => setRecommendedSearchQuery(e.target.value)}
-                          placeholder="Search restaurants..."
+                          placeholder="Search restaurants by name or ID..."
                           className="pl-9 h-10"
                         />
                       </div>
                     </div>
 
                     {recommendedRestaurantsSelected.length > 0 && (
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        {recommendedRestaurantsSelected.map((restaurant) => (
-                          <button
-                            key={restaurant._id}
-                            type="button"
-                            onClick={() => toggleRecommendedRestaurant(restaurant._id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs hover:bg-blue-100"
-                          >
-                            <span>{restaurant.name}</span>
-                            <span className="text-blue-500">x</span>
-                          </button>
-                        ))}
+                      <div className="mb-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-semibold text-slate-700">
+                            Selected Recommended Restaurants ({recommendedRestaurantsSelected.length})
+                          </span>
+                          {selectedZoneForRecommended && (
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              Selected in {getZoneName(selectedZoneForRecommended)}:{" "}
+                              <strong className="text-blue-600">
+                                {recommendedRestaurantsSelected.filter((r) => String(r.zoneId?._id || r.zoneId) === selectedZoneForRecommended).length}
+                              </strong>
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {recommendedRestaurantsSelected.map((restaurant) => {
+                            const zoneName = getZoneName(restaurant.zoneId);
+                            const isMatchesFilter = !selectedZoneForRecommended || String(restaurant.zoneId?._id || restaurant.zoneId) === selectedZoneForRecommended;
+                            return (
+                              <button
+                                key={restaurant._id}
+                                type="button"
+                                onClick={() => toggleRecommendedRestaurant(restaurant._id)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                  isMatchesFilter
+                                    ? "bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200 shadow-sm"
+                                    : "bg-white hover:bg-slate-100 text-slate-600 border-slate-200 opacity-60"
+                                }`}
+                                title={`Zone: ${zoneName}. Click to remove.`}
+                              >
+                                <span>{restaurant.name}</span>
+                                <span className="px-1.5 py-0.5 rounded-full bg-blue-200/80 text-blue-900 text-[10px] font-semibold">
+                                  {zoneName}
+                                </span>
+                                {restaurant.status !== "approved" && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-rose-100 text-rose-700 font-bold uppercase">
+                                    {restaurant.status || "not approved"}
+                                  </span>
+                                )}
+                                <span className="text-slate-400 hover:text-rose-600 font-bold ml-0.5">×</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
 
                     <div className="max-h-72 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
                       {filteredRestaurantsForRecommended.length === 0 ? (
-                        <div className="p-4 text-sm text-slate-500 text-center">No restaurants found</div>
+                        <div className="p-4 text-sm text-slate-500 text-center">No restaurants found in selected filter</div>
                       ) : (
                         filteredRestaurantsForRecommended.map((restaurant) => {
-                          const isChecked = (settings.recommendedRestaurantIds || []).includes(restaurant._id)
+                          const isChecked = (settings.recommendedRestaurantIds || []).includes(restaurant._id);
+                          const zoneName = getZoneName(restaurant.zoneId);
+                          const isApproved = restaurant.status === "approved";
                           return (
                             <label
                               key={restaurant._id}
-                              className="flex items-center justify-between gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50"
+                              className={`flex items-center justify-between gap-3 px-3.5 py-2.5 cursor-pointer transition-colors ${
+                                isChecked ? "bg-blue-50/60 hover:bg-blue-50" : "hover:bg-slate-50"
+                              }`}
                             >
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-slate-800 truncate">{restaurant.name}</p>
-                                <p className="text-xs text-slate-500 truncate">{restaurant._id || "No ID"}</p>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-sm font-semibold text-slate-800 truncate">{restaurant.name}</p>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                    {zoneName}
+                                  </span>
+                                  {isApproved ? (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                      Approved
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                                      {restaurant.status || "Pending"}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-500 truncate mt-0.5">
+                                  {[restaurant.area, restaurant.city].filter(Boolean).join(", ") || "No address specified"}
+                                </p>
                               </div>
                               <Checkbox
                                 checked={isChecked}
                                 onCheckedChange={() => toggleRecommendedRestaurant(restaurant._id)}
                               />
                             </label>
-                          )
+                          );
                         })
                       )}
                     </div>

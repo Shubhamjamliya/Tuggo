@@ -129,37 +129,42 @@ export async function syncRazorpayQrPayment(orderDoc) {
   const qr = payment.qr || {};
   if (!qr.qrId || !isRazorpayConfigured()) return payment;
 
-  const [result, remoteQr] = await Promise.all([
-    fetchAllRazorpayQrPayments(qr.qrId),
-    fetchRazorpayQrCode(qr.qrId),
-  ]);
-  const capturedPayments = paymentItems(result).filter(
-    (item) => String(item?.status || '').toLowerCase() === 'captured',
-  );
-  let markedPaid = false;
-  for (const captured of capturedPayments) {
-    if (await markCapturedQrPayment(transaction, captured, 'status_poll')) {
-      markedPaid = true;
-      break;
-    }
-  }
-
-  const remoteStatus = String(remoteQr?.status || '').toLowerCase();
-  const locallyExpired = qr.expiresAt && new Date(qr.expiresAt).getTime() <= Date.now();
-  if (!markedPaid && (TERMINAL_QR_STATUSES.has(remoteStatus) || locallyExpired)) {
-    const terminalStatus = locallyExpired && !TERMINAL_QR_STATUSES.has(remoteStatus)
-      ? 'expired'
-      : remoteStatus;
-    await Promise.all([
-      FoodTransaction.updateOne(
-        { _id: transaction._id, 'payment.status': { $ne: 'paid' } },
-        { $set: { 'payment.qr.status': terminalStatus, 'payment.status': 'failed' } },
-      ),
-      FoodOrder.updateOne(
-        { _id: orderDoc._id, 'payment.status': { $ne: 'paid' } },
-        { $set: { 'payment.qr.status': terminalStatus, 'payment.status': 'failed' } },
-      ),
+  try {
+    const [result, remoteQr] = await Promise.all([
+      fetchAllRazorpayQrPayments(qr.qrId),
+      fetchRazorpayQrCode(qr.qrId),
     ]);
+    const capturedPayments = paymentItems(result).filter(
+      (item) => String(item?.status || '').toLowerCase() === 'captured',
+    );
+    let markedPaid = false;
+    for (const captured of capturedPayments) {
+      if (await markCapturedQrPayment(transaction, captured, 'status_poll')) {
+        markedPaid = true;
+        break;
+      }
+    }
+
+    const remoteStatus = String(remoteQr?.status || '').toLowerCase();
+    const locallyExpired = qr.expiresAt && new Date(qr.expiresAt).getTime() <= Date.now();
+    if (!markedPaid && (TERMINAL_QR_STATUSES.has(remoteStatus) || locallyExpired)) {
+      const terminalStatus = locallyExpired && !TERMINAL_QR_STATUSES.has(remoteStatus)
+        ? 'expired'
+        : remoteStatus;
+      await Promise.all([
+        FoodTransaction.updateOne(
+          { _id: transaction._id, 'payment.status': { $ne: 'paid' } },
+          { $set: { 'payment.qr.status': terminalStatus, 'payment.status': 'failed' } },
+        ),
+        FoodOrder.updateOne(
+          { _id: orderDoc._id, 'payment.status': { $ne: 'paid' } },
+          { $set: { 'payment.qr.status': terminalStatus, 'payment.status': 'failed' } },
+        ),
+      ]);
+    }
+  } catch (err) {
+    // Gracefully handle any Razorpay network or endpoint errors
+    console.warn(`[order-payment] Razorpay QR sync error for qrId ${qr.qrId}:`, err?.message || err);
   }
   return (await FoodTransaction.findById(transaction._id).lean())?.payment || payment;
 }

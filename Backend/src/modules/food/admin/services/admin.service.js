@@ -428,8 +428,9 @@ export async function getDashboardStats(query = {}) {
 
     const orderMatch = {
         $or: [
-            { "payment.method": { $in: ["cash", "wallet"] } },
+            { "payment.method": { $in: ["cash", "wallet", "razorpay_qr"] } },
             { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "refunded"] } },
+            { orderStatus: { $in: ["confirmed", "preparing", "ready_for_pickup", "picked_up", "delivered"] } },
         ],
     };
     if (periodRange) {
@@ -1096,7 +1097,7 @@ export async function getRestaurantReport(query = {}) {
         restaurantId: { $in: restaurantIds },
         orderStatus: 'delivered',
         $or: [
-            { "payment.method": { $in: ["cash", "wallet"] } },
+            { "payment.method": { $in: ["cash", "wallet", "razorpay_qr"] } },
             { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "refunded"] } },
         ],
     };

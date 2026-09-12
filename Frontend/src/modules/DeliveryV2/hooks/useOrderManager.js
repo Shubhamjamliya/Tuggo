@@ -177,7 +177,7 @@ export const useOrderManager = () => {
   /**
    * Finalize Delivery with OTP Check
    */
-  const completeDelivery = async (otp) => {
+  const completeDelivery = async (otp, paymentOverride) => {
     const orderId = resolveOrderId();
     if (!orderId) {
       toast.error('Order id not found. Please refresh current trip.');
@@ -203,6 +203,8 @@ export const useOrderManager = () => {
         const completeRes = await deliveryAPI.completeDelivery(orderId, { 
           otp: otpToUse, 
           rating: 5,
+          paymentOverride,
+          paymentMethod: paymentOverride,
         });
         if (completeRes.data?.success && completeRes.data?.data?.order) {
           finalOrder = completeRes.data.data.order;

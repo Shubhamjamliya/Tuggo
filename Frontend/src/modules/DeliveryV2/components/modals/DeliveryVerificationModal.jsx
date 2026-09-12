@@ -318,10 +318,10 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
   const qrFlowStarted = Boolean(collectQr) || paymentStatus === 'pending';
 
   const confirmCashCollected = async () => {
-    if (qrFlowStarted || isCompletingCash) return;
+    if (isCompletingCash) return;
     setIsCompletingCash(true);
     try {
-      await onComplete(otpString);
+      await onComplete(otpString, 'cash');
       toast.success('Cash collection recorded');
     } catch {
       // The completion handler already displays the server error.
@@ -369,7 +369,7 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
                 <div className="space-y-3">
                   <button
                     onClick={confirmCashCollected}
-                    disabled={isCompletingCash || isGeneratingQr || qrFlowStarted}
+                    disabled={isCompletingCash || isGeneratingQr}
                     className="w-full py-3.5 sm:py-4 rounded-2xl bg-green-600 text-white font-bold text-[11px] sm:text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isCompletingCash ? (
