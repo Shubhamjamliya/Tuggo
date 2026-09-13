@@ -34,6 +34,7 @@ import { FoodRestaurantWithdrawal } from '../../restaurant/models/foodRestaurant
 import { FoodDeliveryWithdrawal } from '../../delivery/models/foodDeliveryWithdrawal.model.js';
 import { FoodDeliveryWallet } from '../../delivery/models/deliveryWallet.model.js';
 import { FoodDeliveryCashDeposit } from '../../delivery/models/foodDeliveryCashDeposit.model.js';
+import { getDeliveryMultiOrderSettings, ACTIVE_DELIVERY_ORDER_STATUSES } from '../../delivery/services/deliveryMultiOrderSettings.service.js';
 import {
     backfillLegacyCategoryWorkflow,
     categoryAllowsFoodType,
@@ -4002,13 +4003,30 @@ export async function getAvailableDeliveryPartners(query) {
     const filter = { status: 'approved', availabilityStatus: 'online' };
     const list = await FoodDeliveryPartner.find(filter).lean();
 
-    const busyPartners = await FoodOrder.distinct('dispatch.deliveryPartnerId', {
-        'dispatch.status': 'accepted',
-        orderStatus: { $in: ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up', 'reached_drop'] }
-    });
-    const busyIds = busyPartners.map(id => String(id));
+    const settings = await getDeliveryMultiOrderSettings();
+    const effectiveLimit = settings.enabled ? settings.maxConcurrentOrders : 1;
 
-    const availablePartners = list.filter(p => !busyIds.includes(String(p._id)));
+    const activeCounts = await FoodOrder.aggregate([
+        {
+            $match: {
+                'dispatch.status': 'accepted',
+                'dispatch.deliveryPartnerId': { $ne: null },
+                orderStatus: { $in: ACTIVE_DELIVERY_ORDER_STATUSES }
+            }
+        },
+        {
+            $group: {
+                _id: '$dispatch.deliveryPartnerId',
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+    const countMap = new Map(activeCounts.map(c => [String(c._id), c.count]));
+
+    const availablePartners = list.filter(p => {
+        const activeCount = countMap.get(String(p._id)) || 0;
+        return activeCount < effectiveLimit;
+    });
 
     return {
         availablePartners: availablePartners.map(doc => ({
@@ -4020,7 +4038,9 @@ export async function getAvailableDeliveryPartners(query) {
             lastLat: doc.lastLat,
             lastLng: doc.lastLng,
             city: doc.city,
-            area: doc.address || doc.state || ''
+            area: doc.address || doc.state || '',
+            activeOrdersCount: countMap.get(String(doc._id)) || 0,
+            maxOrders: effectiveLimit
         }))
     };
 }

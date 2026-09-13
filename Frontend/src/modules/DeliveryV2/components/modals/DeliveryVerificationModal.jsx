@@ -96,7 +96,7 @@ const OtpModal = ({ order, onVerified, onClose }) => {
     try {
       const res = await deliveryAPI.confirmReachedDrop(orderId);
       if (res?.data?.success || res?.status === 200) {
-        toast.success("OTP resent to customer's screen");
+        toast.success("OTP resent to customer via screen & push notification");
         setResendCooldown(30);
       } else {
         toast.error(res?.data?.message || "Failed to resend OTP");

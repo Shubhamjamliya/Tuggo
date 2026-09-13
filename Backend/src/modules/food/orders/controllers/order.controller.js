@@ -1,6 +1,7 @@
 import { sendResponse } from '../../../../utils/response.js';
 import * as orderService from '../services/order.service.js';
 import * as foodOrderPaymentService from '../services/foodOrderPayment.service.js';
+import { checkRidersAvailabilityInZone } from '../services/order-dispatch.service.js';
 import {
     validateCalculateOrderDto,
     validateCreateOrderDto,
@@ -11,6 +12,16 @@ import {
     validateDispatchSettingsDto,
     validateOrderRatingsDto
 } from '../validators/order.validator.js';
+
+export async function checkRiderAvailabilityController(req, res, next) {
+    try {
+        const { restaurantId, zoneId } = req.query;
+        const result = await checkRidersAvailabilityInZone({ restaurantId, zoneId });
+        return sendResponse(res, 200, 'Rider availability checked', result);
+    } catch (err) {
+        next(err);
+    }
+}
 
 export async function calculateOrderController(req, res, next) {
     try {

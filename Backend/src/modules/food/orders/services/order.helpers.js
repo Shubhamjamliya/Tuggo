@@ -65,17 +65,53 @@ export function sanitizeOrderForExternal(orderDoc) {
   return o;
 }
 
-export function emitDeliveryDropOtpToUser(order, plainOtp) {
+export function emitDeliveryDropOtpToUser(order, plainOtp, options = {}) {
   try {
+    const rawUserId = order?.userId?._id || order?.userId;
+    if (!plainOtp || !rawUserId) return;
+    const userIdStr = String(rawUserId);
+
+    const orderIdentifier = String(order.order_id || order.orderId || order._id || '');
+    const orderMongoId = (order._id || '').toString();
+
     const io = getIO();
-    if (!io || !plainOtp || !order?.userId) return;
-    io.to(rooms.user(order.userId)).emit("delivery_drop_otp", {
-      orderMongoId: order._id?.toString?.(),
-      orderId: order.order_id || order._id?.toString?.(),
-      otp: plainOtp,
-      message:
-        "Share this OTP with your delivery partner to hand over the order.",
-    });
+    if (io) {
+      const socketPayload = {
+        orderMongoId,
+        orderId: orderIdentifier,
+        otp: plainOtp,
+        message:
+          "Share this OTP with your delivery partner to hand over the order.",
+      };
+      io.to(rooms.user(userIdStr)).emit("delivery_drop_otp", socketPayload);
+      if (orderIdentifier) {
+        io.to(rooms.tracking(orderIdentifier)).emit("delivery_drop_otp", socketPayload);
+      }
+      if (orderMongoId && orderMongoId !== orderIdentifier) {
+        io.to(rooms.tracking(orderMongoId)).emit("delivery_drop_otp", socketPayload);
+      }
+    }
+
+    const isResend = Boolean(options.isResend);
+    const title = isResend ? `Delivery OTP: ${plainOtp}` : `Your Delivery OTP: ${plainOtp}`;
+    const body = isResend
+      ? `Here is your delivery verification code: ${plainOtp}. Share it with your delivery partner for Order #${orderIdentifier}.`
+      : `Your delivery partner has reached your location! Share OTP ${plainOtp} to collect Order #${orderIdentifier}.`;
+
+    void notifyOwnerSafely(
+      { ownerType: 'USER', ownerId: userIdStr },
+      {
+        title,
+        body,
+        data: {
+          type: 'delivery_drop_otp',
+          orderId: orderIdentifier,
+          orderMongoId,
+          otp: String(plainOtp),
+          link: `/food/user/orders/${orderIdentifier}/tracking`,
+        },
+      }
+    );
   } catch (e) {
     logger.warn(`emitDeliveryDropOtpToUser failed: ${e?.message || e}`);
   }
@@ -203,21 +239,86 @@ export async function applyAggregateRating(model, entityId, newRating) {
 export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
   const order = orderDoc?.toObject ? orderDoc.toObject() : orderDoc || {};
   const restaurant = restaurantDoc || order?.restaurantId || null;
-  const restaurantLocation = restaurant?.location || {};
-  const deliveryAddress = order?.deliveryAddress || {};
+  const restaurantLocation = restaurant?.location || order?.restaurantLocation || {};
+  const deliveryAddress = order?.deliveryAddress || order?.address || {};
+
   const customerAddressParts = [
     deliveryAddress.street,
     deliveryAddress.additionalDetails,
+    deliveryAddress.landmark,
+    deliveryAddress.area,
     deliveryAddress.city,
     deliveryAddress.state,
-    deliveryAddress.zipCode,
+    deliveryAddress.zipCode || deliveryAddress.pincode,
   ]
     .map((v) => String(v || '').trim())
     .filter(Boolean);
 
+  const customerAddress =
+    (customerAddressParts.length ? customerAddressParts.join(', ') : '') ||
+    deliveryAddress.formattedAddress ||
+    deliveryAddress.address ||
+    order.customerAddress ||
+    order.customer_address ||
+    order.address?.formattedAddress ||
+    order.address ||
+    '';
+
   const orderMongoId =
     orderDoc?._id?.toString?.() || order?._id?.toString?.() || order?._id;
   const displayOrderId = order?.order_id || orderMongoId;
+
+  // Resolve restaurant coordinates [lng, lat] or latitude/longitude
+  const rLat =
+    restaurantLocation?.latitude ??
+    restaurantLocation?.lat ??
+    order?.restaurantLat ??
+    order?.restaurant_lat ??
+    (Array.isArray(restaurantLocation?.coordinates) && restaurantLocation.coordinates.length >= 2
+      ? Number(restaurantLocation.coordinates[1])
+      : undefined);
+
+  const rLng =
+    restaurantLocation?.longitude ??
+    restaurantLocation?.lng ??
+    order?.restaurantLng ??
+    order?.restaurant_lng ??
+    (Array.isArray(restaurantLocation?.coordinates) && restaurantLocation.coordinates.length >= 2
+      ? Number(restaurantLocation.coordinates[0])
+      : undefined);
+
+  const restaurantAddress =
+    restaurantLocation?.address ||
+    restaurantLocation?.formattedAddress ||
+    restaurant?.addressLine1 ||
+    restaurant?.address ||
+    order?.restaurantAddress ||
+    order?.restaurant_address ||
+    [restaurantLocation?.area || restaurant?.area, restaurantLocation?.city || restaurant?.city].filter(Boolean).join(', ') ||
+    '';
+
+  // Resolve customer coordinates [lng, lat] or latitude/longitude
+  const cLat =
+    (Array.isArray(deliveryAddress?.location?.coordinates) && deliveryAddress.location.coordinates.length >= 2
+      ? Number(deliveryAddress.location.coordinates[1])
+      : undefined) ??
+    order?.customerLocation?.lat ??
+    order?.customerLocation?.latitude ??
+    order?.deliveryLocation?.lat ??
+    order?.deliveryLocation?.latitude ??
+    order?.customerLat ??
+    order?.customer_lat;
+
+  const cLng =
+    (Array.isArray(deliveryAddress?.location?.coordinates) && deliveryAddress.location.coordinates.length >= 2
+      ? Number(deliveryAddress.location.coordinates[0])
+      : undefined) ??
+    order?.customerLocation?.lng ??
+    order?.customerLocation?.longitude ??
+    order?.deliveryLocation?.lng ??
+    order?.deliveryLocation?.longitude ??
+    order?.customerLng ??
+    order?.customer_lng;
 
   return {
     _id: orderMongoId,
@@ -233,32 +334,73 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
       order?.restaurantId?._id?.toString?.() ||
       order?.restaurantId?.toString?.() ||
       order?.restaurantId,
-    restaurantName: restaurant?.restaurantName || order?.restaurantName,
-    restaurantAddress:
-      restaurantLocation?.address ||
-      restaurantLocation?.formattedAddress ||
-      restaurant?.addressLine1 ||
-      "",
-    restaurantPhone: restaurant?.phone || "",
+    restaurantName:
+      restaurant?.restaurantName ||
+      restaurant?.name ||
+      order?.restaurantName ||
+      order?.restaurant_name ||
+      'Restaurant',
+    restaurantAddress,
+    restaurantPhone: restaurant?.phone || order?.restaurantPhone || '',
+    restaurantLat: rLat,
+    restaurantLng: rLng,
+    restaurant_lat: rLat,
+    restaurant_lng: rLng,
     restaurantLocation: {
-      latitude: restaurantLocation?.latitude,
-      longitude: restaurantLocation?.longitude,
-      address:
-        restaurantLocation?.address ||
-        restaurantLocation?.formattedAddress ||
-        restaurant?.addressLine1 ||
-        "",
-      area: restaurantLocation?.area || restaurant?.area || "",
-      city: restaurantLocation?.city || restaurant?.city || "",
-      state: restaurantLocation?.state || restaurant?.state || "",
+      latitude: rLat,
+      longitude: rLng,
+      lat: rLat,
+      lng: rLng,
+      coordinates: rLng != null && rLat != null ? [rLng, rLat] : restaurantLocation?.coordinates,
+      address: restaurantAddress,
+      formattedAddress: restaurantLocation?.formattedAddress || restaurantAddress,
+      area: restaurantLocation?.area || restaurant?.area || '',
+      city: restaurantLocation?.city || restaurant?.city || '',
+      state: restaurantLocation?.state || restaurant?.state || '',
     },
-    deliveryAddress: order?.deliveryAddress,
-    customerAddress: customerAddressParts.length ? customerAddressParts.join(', ') : "",
-    customerName: order?.customerName || order?.deliveryAddress?.fullName || order?.deliveryAddress?.name || order?.userId?.name || "",
-    customerPhone: order?.customerPhone || order?.deliveryAddress?.phone || order?.userId?.phone || "",
-    userName: order?.customerName || order?.deliveryAddress?.fullName || order?.deliveryAddress?.name || order?.userId?.name || "",
-    userPhone: order?.customerPhone || order?.deliveryAddress?.phone || order?.userId?.phone || "",
-    note: order?.note || "",
+    deliveryAddress: {
+      ...deliveryAddress,
+      formattedAddress: deliveryAddress.formattedAddress || customerAddress,
+      address: deliveryAddress.address || customerAddress,
+    },
+    customerAddress,
+    customerLocation:
+      cLat != null && cLng != null
+        ? {
+            lat: Number(cLat),
+            lng: Number(cLng),
+            latitude: Number(cLat),
+            longitude: Number(cLng),
+            coordinates: [Number(cLng), Number(cLat)],
+          }
+        : null,
+    customerLat: cLat,
+    customerLng: cLng,
+    customer_lat: cLat,
+    customer_lng: cLng,
+    customerName:
+      order?.customerName ||
+      order?.deliveryAddress?.fullName ||
+      order?.deliveryAddress?.name ||
+      order?.userId?.name ||
+      '',
+    customerPhone:
+      order?.customerPhone ||
+      order?.deliveryAddress?.phone ||
+      order?.userId?.phone ||
+      '',
+    userName:
+      order?.customerName ||
+      order?.deliveryAddress?.fullName ||
+      order?.deliveryAddress?.name ||
+      order?.userId?.name ||
+      '',
+    userPhone:
+      order?.customerPhone ||
+      order?.deliveryAddress?.phone ||
+      order?.userId?.phone ||
+      '',
+    note: order?.note || '',
     riderEarning: order?.riderEarning || 0,
     deliveryBonusAmount: order?.deliveryBonusAmount || 0,
     earnings: order?.riderEarning || order?.pricing?.deliveryFee || 0,

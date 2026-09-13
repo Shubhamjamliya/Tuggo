@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+    checkRiderAvailabilityController,
     calculateOrderController,
     createOrderController,
     verifyPaymentController,
@@ -14,6 +15,7 @@ import {
 
 const router = express.Router();
 
+router.get('/check-rider-availability', checkRiderAvailabilityController);
 router.post('/calculate', calculateOrderController);
 router.post('/', createOrderController);
 router.post('/verify-payment', verifyPaymentController);

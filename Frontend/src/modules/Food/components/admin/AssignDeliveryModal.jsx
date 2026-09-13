@@ -90,9 +90,15 @@ export default function AssignDeliveryModal({ orderId, isOpen, onClose, onAssign
                     <div>
                       <h3 className="font-semibold text-gray-800">{partner.name}</h3>
                       <p className="text-xs text-gray-500">{partner.phone}</p>
-                      <span className="inline-block mt-1 px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-bold rounded uppercase tracking-wider">
-                        Online & Free
-                      </span>
+                      {partner.activeOrdersCount > 0 ? (
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase tracking-wider">
+                          Active Orders: {partner.activeOrdersCount}/{partner.maxOrders}
+                        </span>
+                      ) : (
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-bold rounded uppercase tracking-wider">
+                          Online & Free
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button

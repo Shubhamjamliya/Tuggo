@@ -35,6 +35,7 @@ import { calculateOrderPricing } from './order-pricing.service.js';
 import * as dispatchService from './order-dispatch.service.js';
 import { clearDeliveryOffersForOrder } from './order-dispatch.firebase.js';
 import * as deliveryService from './order-delivery.service.js';
+import { getDeliveryPartnerOrderCapacity } from '../../delivery/services/deliveryMultiOrderSettings.service.js';
 import * as paymentService from './order-payment.service.js';
 import {
   enqueueOrderEvent,
@@ -154,6 +155,18 @@ export async function createOrder(userId, dto) {
   if (restaurant.isAcceptingOrders === false)
     throw new ValidationError("Restaurant not accepting orders");
 
+  // Check if delivery partners are available online in the zone (for immediate orders)
+  if (!dto.scheduledAt) {
+    const riderAvailability = await dispatchService.checkRidersAvailabilityInZone({
+      restaurantId: dto.restaurantId,
+      zoneId: dto.zoneId || restaurant.zoneId,
+    });
+    if (!riderAvailability.available) {
+      const err = new ValidationError('All riders are busy, kindly try after some time');
+      err.code = 'NO_RIDERS_AVAILABLE';
+      throw err;
+    }
+  }
 
   const settings = await getDispatchSettings();
   const dispatchMode = settings.dispatchMode;
@@ -1717,13 +1730,11 @@ export async function assignDeliveryPartnerAdmin(
   if (!partner || partner.status !== "approved" || partner.availabilityStatus !== "online")
     throw new ValidationError("Delivery partner is not available or offline");
 
-  const busyPartner = await FoodOrder.findOne({
-    'dispatch.deliveryPartnerId': new mongoose.Types.ObjectId(deliveryPartnerId),
-    'dispatch.status': 'accepted',
-    orderStatus: { $in: ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up', 'reached_drop'] }
-  });
-  if (busyPartner) {
-    throw new ValidationError("Delivery partner is currently busy with another order");
+  const capacity = await getDeliveryPartnerOrderCapacity(deliveryPartnerId);
+  if (!capacity.canAcceptMore) {
+    throw new ValidationError(
+      `Delivery partner has reached their active order limit (${capacity.activeOrderCount}/${capacity.effectiveLimit})`
+    );
   }
 
   const paymentMethod = String(order.payment?.method || order.paymentMethod || 'cash').toLowerCase();

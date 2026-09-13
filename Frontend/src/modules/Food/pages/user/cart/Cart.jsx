@@ -1817,6 +1817,28 @@ export default function Cart() {
         return
       }
 
+      // Check if any delivery partners are available online in the zone (for immediate orders)
+      if (!isScheduled) {
+        try {
+          const availRes = await orderAPI.checkRiderAvailability({
+            restaurantId: finalRestaurantId,
+            zoneId: zoneId || defaultAddress?.zoneId || undefined,
+          });
+          if (availRes?.data?.data && availRes.data.data.available === false) {
+            toast.error("All riders are busy, kindly try after some time");
+            setIsPlacingOrder(false);
+            return;
+          }
+        } catch (availErr) {
+          const msg = availErr?.response?.data?.message || availErr?.message;
+          if (msg && msg.toLowerCase().includes('busy')) {
+            toast.error("All riders are busy, kindly try after some time");
+            setIsPlacingOrder(false);
+            return;
+          }
+        }
+      }
+
       // Create order in backend
       const orderResponse = await orderAPI.createOrder(orderPayload)
 
@@ -2085,7 +2107,17 @@ export default function Cart() {
         errorMessage = error.message
       }
 
-      alert(errorMessage)
+      const isRiderBusy =
+        errorMessage?.toLowerCase?.().includes('all riders are busy') ||
+        error?.response?.data?.code === 'NO_RIDERS_AVAILABLE' ||
+        error?.response?.data?.data?.reason === 'all_riders_busy' ||
+        error?.response?.data?.data?.reason === 'no_online_riders';
+
+      if (isRiderBusy) {
+        toast.error("All riders are busy, kindly try after some time");
+      } else {
+        toast.error(errorMessage);
+      }
       setIsPlacingOrder(false)
     }
   }

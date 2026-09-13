@@ -1937,6 +1937,8 @@ export const uploadAPI = {
   },
 };/** Order API (user app â€“ Bearer USER token). Minimal calls: single create/verify, list/details cached by caller. */
 export const orderAPI = {
+  checkRiderAvailability: (params = {}) =>
+    userClient.get("/food/orders/check-rider-availability", { params }),
   calculateOrder: (payload) =>
     userClient.post("/food/orders/calculate", payload ?? {}),
   createOrder: (payload) =>

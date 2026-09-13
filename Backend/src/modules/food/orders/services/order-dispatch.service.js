@@ -644,3 +644,98 @@ export async function resetDispatchForFreshHunt(orderId) {
     },
   });
 }
+
+/**
+ * Check if there are any available online delivery partners in the zone or vicinity of a restaurant.
+ * @param {Object} options
+ * @param {string} [options.restaurantId]
+ * @param {string} [options.zoneId]
+ * @returns {Promise<{ available: boolean, count: number, reason: string }>}
+ */
+export async function checkRidersAvailabilityInZone({ restaurantId, zoneId } = {}) {
+  let restaurant = null;
+  if (restaurantId) {
+    try {
+      restaurant = await FoodRestaurant.findById(restaurantId)
+        .select('location zoneId')
+        .lean();
+    } catch {
+      // ignore invalid ObjectId format
+    }
+  }
+
+  const effectiveZoneId = zoneId || restaurant?.zoneId;
+  let zoneDoc = null;
+  if (effectiveZoneId) {
+    try {
+      zoneDoc = await FoodZone.findById(effectiveZoneId)
+        .select('coordinates isActive name')
+        .lean();
+    } catch {
+      // ignore invalid ObjectId format
+    }
+  }
+
+  const allOnline = await FoodDeliveryPartner.find({
+    availabilityStatus: 'online',
+    status: 'approved',
+  })
+    .select('_id status lastLat lastLng lastLocation')
+    .lean();
+
+  if (!allOnline || allOnline.length === 0) {
+    return { available: false, count: 0, reason: 'no_online_riders' };
+  }
+
+  const capacityFullIds = await getCapacityFullDeliveryPartnerIds();
+  const nonBusyRiders = allOnline.filter(
+    (p) => !capacityFullIds.has(String(p._id))
+  );
+
+  if (nonBusyRiders.length === 0) {
+    return { available: false, count: 0, reason: 'all_riders_busy' };
+  }
+
+  let zonePolygon = null;
+  if (
+    zoneDoc?.isActive !== false &&
+    Array.isArray(zoneDoc?.coordinates) &&
+    zoneDoc.coordinates.length >= 3
+  ) {
+    zonePolygon = zoneDoc.coordinates;
+  }
+
+  const restCoords = restaurant?.location?.coordinates;
+  const hasRestCoords = Array.isArray(restCoords) && restCoords.length === 2;
+  const rLng = hasRestCoords ? restCoords[0] : null;
+  const rLat = hasRestCoords ? restCoords[1] : null;
+
+  const eligibleRiders = nonBusyRiders.filter((p) => {
+    const lat = p.lastLat ?? (Array.isArray(p.lastLocation?.coordinates) ? p.lastLocation.coordinates[1] : null);
+    const lng = p.lastLng ?? (Array.isArray(p.lastLocation?.coordinates) ? p.lastLocation.coordinates[0] : null);
+
+    if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+      if (zonePolygon) {
+        return isPointInPolygon(lat, lng, zonePolygon);
+      }
+      if (rLat != null && rLng != null) {
+        const d = haversineKm(rLat, rLng, lat, lng);
+        return Number.isFinite(d) && d <= 15;
+      }
+      return true;
+    }
+
+    // Rider is online without recorded GPS (newly online or live-tracked)
+    return true;
+  });
+
+  if (eligibleRiders.length === 0) {
+    return { available: false, count: 0, reason: 'no_riders_in_zone' };
+  }
+
+  return {
+    available: true,
+    count: eligibleRiders.length,
+    reason: 'available',
+  };
+}
