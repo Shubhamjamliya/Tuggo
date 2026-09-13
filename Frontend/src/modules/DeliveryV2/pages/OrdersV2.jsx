@@ -1,7 +1,7 @@
 import React from 'react';
-import { CheckCircle2, Clock3, MapPin, Package, Store, X, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Clock3, MapPin, Package, Store, X, ExternalLink, Banknote, CreditCard } from 'lucide-react';
 import { getOrderAcceptId, getOrderMongoId } from '@food/utils/orderDispatchId';
-import { getRestaurantDisplayInfo, getCustomerDisplayInfo } from '@/modules/DeliveryV2/utils/orderLocation';
+import { getRestaurantDisplayInfo, getCustomerDisplayInfo, getOrderPaymentInfo } from '@/modules/DeliveryV2/utils/orderLocation';
 
 const money = (value) => `₹${Number(value || 0).toFixed(0)}`;
 
@@ -17,6 +17,7 @@ function OrderInfo({ order }) {
     order?.riderEarning;
   const restaurantInfo = getRestaurantDisplayInfo(order);
   const customerInfo = getCustomerDisplayInfo(order);
+  const paymentInfo = getOrderPaymentInfo(order);
   const distanceKm =
     order?.pickupDistanceKm ??
     order?.distanceKm ??
@@ -29,6 +30,13 @@ function OrderInfo({ order }) {
         <div>
           <div className="flex items-center gap-2">
             <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{displayOrderId(order)}</p>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+              paymentInfo.isCod
+                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+            }`}>
+              {paymentInfo.paymentLabel}
+            </span>
             {distanceKm != null && Number.isFinite(Number(distanceKm)) && (
               <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
                 {Number(distanceKm).toFixed(1)} km
@@ -37,9 +45,12 @@ function OrderInfo({ order }) {
           </div>
           <h3 className="mt-0.5 text-base font-black text-gray-950">{restaurantInfo.name}</h3>
         </div>
-        <span className="rounded-xl bg-green-50 border border-green-100 px-3 py-1.5 text-sm font-black text-green-700">
-          {money(amount)}
-        </span>
+        <div className="text-right shrink-0">
+          <span className="inline-block rounded-xl bg-green-50 border border-green-100 px-3 py-1.5 text-sm font-black text-green-700">
+            {money(amount)}
+          </span>
+          <span className="block text-[10px] font-semibold text-gray-400 mt-0.5">Rider Pay</span>
+        </div>
       </div>
 
       <div className="mt-3.5 space-y-2.5 rounded-xl bg-gray-50/80 p-3 text-xs border border-gray-100">
@@ -96,6 +107,31 @@ function OrderInfo({ order }) {
             <p className="mt-0.5 text-xs font-semibold text-gray-800 truncate">{customerInfo.name}</p>
             <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">{customerInfo.address}</p>
           </div>
+        </div>
+      </div>
+
+      {/* Order Bill & Payment Status Strip */}
+      <div className={`mt-2.5 flex items-center justify-between rounded-xl px-3 py-2 text-xs border ${
+        paymentInfo.isCod
+          ? 'bg-amber-50/70 border-amber-200/80 text-amber-900'
+          : 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900'
+      }`}>
+        <div className="flex items-center gap-2 min-w-0">
+          {paymentInfo.isCod ? <Banknote className="h-4 w-4 shrink-0 text-amber-600" /> : <CreditCard className="h-4 w-4 shrink-0 text-emerald-600" />}
+          <div className="min-w-0">
+            <span className="font-bold block truncate">
+              {paymentInfo.isCod ? `Cash to Collect: ₹${paymentInfo.totalAmount.toFixed(2)}` : 'Pre-paid Online (Collect ₹0)'}
+            </span>
+            <span className="text-[10px] opacity-80 block truncate">
+              {paymentInfo.collectionNotice}
+            </span>
+          </div>
+        </div>
+        <div className="text-right shrink-0 ml-2">
+          <span className="text-[10px] uppercase font-bold text-gray-400 block">Total Bill</span>
+          <span className="font-black text-gray-950 text-sm">
+            ₹{paymentInfo.totalAmount.toFixed(2)}
+          </span>
         </div>
       </div>
     </>

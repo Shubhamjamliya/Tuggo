@@ -327,9 +327,10 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
     status: orderDoc?.orderStatus || order?.orderStatus,
     items: order?.items || [],
     pricing: order?.pricing,
-    total: order?.pricing?.total,
+    total: order?.pricing?.total ?? order?.total ?? order?.orderAmount,
+    orderAmount: order?.orderAmount ?? order?.pricing?.total ?? order?.total,
     payment: order?.payment,
-    paymentMethod: order?.payment?.method,
+    paymentMethod: order?.payment?.method || order?.paymentMethod,
     restaurantId:
       order?.restaurantId?._id?.toString?.() ||
       order?.restaurantId?.toString?.() ||

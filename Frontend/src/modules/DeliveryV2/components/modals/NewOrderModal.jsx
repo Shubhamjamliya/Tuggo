@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, MapPin, FastForward, Clock, Phone, ChefHat, ChevronDown, Store, ExternalLink } from 'lucide-react';
+import { User, MapPin, FastForward, Clock, Phone, ChefHat, ChevronDown, Store, ExternalLink, Banknote, CreditCard } from 'lucide-react';
 import { ActionSlider } from '@/modules/DeliveryV2/components/ui/ActionSlider';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
 import { getHaversineDistance } from '@/modules/DeliveryV2/utils/geo';
 import { getOrderMongoId, getOrderDisplayId, isSameOrder } from '@food/utils/orderDispatchId';
-import { getRestaurantDisplayInfo, getCustomerDisplayInfo } from '@/modules/DeliveryV2/utils/orderLocation';
+import { getRestaurantDisplayInfo, getCustomerDisplayInfo, getOrderPaymentInfo } from '@/modules/DeliveryV2/utils/orderLocation';
 
 /**
  * NewOrderModal - Ported to Original 1:1 Theme with Slider Accept.
@@ -18,6 +18,7 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
 
   const restaurantInfo = useMemo(() => getRestaurantDisplayInfo(order), [order]);
   const customerInfo = useMemo(() => getCustomerDisplayInfo(order), [order]);
+  const paymentInfo = useMemo(() => getOrderPaymentInfo(order), [order]);
 
   useEffect(() => {
     setTimeLeft(60);
@@ -153,7 +154,16 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
           style={{ background: 'linear-gradient(33deg, #15498b 0%, #000000 100%)' }}
         >
           <div>
-            <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest mb-1">Incoming Request</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest">Incoming Request</p>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                paymentInfo.isCod
+                  ? 'bg-amber-400/25 text-amber-300 border border-amber-400/40'
+                  : 'bg-emerald-400/25 text-emerald-300 border border-emerald-400/40'
+              }`}>
+                {paymentInfo.paymentLabel}
+              </span>
+            </div>
             <div className="flex items-end gap-2">
               <h2 className="text-2xl sm:text-4xl font-bold tracking-tighter">₹{Number(earnings || 0).toFixed(2)}</h2>
               {bonus > 0 && (
@@ -162,6 +172,9 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
                 </p>
               )}
             </div>
+            <p className="text-white/75 text-xs font-semibold mt-1">
+              Order Value: <span className="font-bold text-white">₹{paymentInfo.totalAmount.toFixed(2)}</span>
+            </p>
           </div>
           <div className="bg-white/20 border border-white/30 rounded-2xl sm:rounded-3xl px-3 sm:px-6 py-2 sm:py-3 text-white font-bold text-lg sm:text-2xl shadow-inner tabular-nums">
             {timeLeft}s
@@ -187,13 +200,14 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
                   `Order ${index + 1}`;
                 const qRest = getRestaurantDisplayInfo(queuedOrder);
                 const qCust = getCustomerDisplayInfo(queuedOrder);
+                const qPayment = getOrderPaymentInfo(queuedOrder);
 
                 return (
                   <button
                     key={queuedId || `order-${index}`}
                     type="button"
                     onClick={() => onSelectOrder?.(queuedOrder)}
-                    className={`shrink-0 rounded-2xl p-3 border text-left transition-all min-w-[210px] max-w-[250px] ${
+                    className={`shrink-0 rounded-2xl p-3 border text-left transition-all min-w-[210px] max-w-[260px] ${
                       isActive
                         ? 'bg-gray-900 text-white border-gray-900 shadow-lg ring-2 ring-blue-400/40'
                         : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
@@ -203,9 +217,18 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
                       <span className="block text-[10px] font-bold uppercase tracking-wider opacity-80 truncate">
                         {label}
                       </span>
-                      <span className="shrink-0 text-sm font-black text-green-500">
-                        ₹{Number(qEarnings || 0).toFixed(0)}
-                      </span>
+                      <div className="text-right shrink-0">
+                        <span className="block text-sm font-black text-green-500">
+                          ₹{Number(qEarnings || 0).toFixed(0)}
+                        </span>
+                        <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${
+                          qPayment.isCod
+                            ? (isActive ? 'bg-amber-400/30 text-amber-300' : 'bg-amber-100 text-amber-800')
+                            : (isActive ? 'bg-emerald-400/30 text-emerald-300' : 'bg-emerald-100 text-emerald-800')
+                        }`}>
+                          {qPayment.paymentLabel} · ₹{Math.round(qPayment.totalAmount)}
+                        </span>
+                      </div>
                     </div>
                     <div className="space-y-1 text-[11px]">
                       <div className="flex items-center gap-1.5 truncate">
@@ -278,6 +301,44 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
                 <p className="text-gray-950 font-bold text-base sm:text-xl leading-tight">{customerName}</p>
                 <p className="text-gray-500 text-sm font-medium leading-relaxed line-clamp-2 mt-0.5">{customerAddress}</p>
               </div>
+            </div>
+          </div>
+
+          {/* Order Bill & Payment Mode Card */}
+          <div className={`p-3.5 sm:p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+            paymentInfo.isCod
+              ? 'bg-amber-50/90 border-amber-200'
+              : 'bg-emerald-50/90 border-emerald-200'
+          }`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${
+                paymentInfo.isCod ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'
+              }`}>
+                {paymentInfo.isCod ? <Banknote className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                    paymentInfo.isCod ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900'
+                  }`}>
+                    {paymentInfo.paymentLabel}
+                  </span>
+                  <span className="text-xs font-bold text-gray-900 truncate">
+                    {paymentInfo.paymentStatusText}
+                  </span>
+                </div>
+                <p className={`text-[11px] font-semibold mt-0.5 truncate ${
+                  paymentInfo.isCod ? 'text-amber-800' : 'text-emerald-800'
+                }`}>
+                  {paymentInfo.collectionNotice}
+                </p>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Order Bill</span>
+              <span className="text-base sm:text-lg font-black text-gray-950">
+                ₹{paymentInfo.totalAmount.toFixed(2)}
+              </span>
             </div>
           </div>
 

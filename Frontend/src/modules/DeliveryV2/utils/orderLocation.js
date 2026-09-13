@@ -200,3 +200,72 @@ export function getCustomerDisplayInfo(order) {
     phone,
   };
 }
+
+/**
+ * Extract order bill amount and payment status (COD vs PAID) for rider display.
+ */
+export function getOrderPaymentInfo(order) {
+  if (!order) {
+    return {
+      totalAmount: 0,
+      formattedTotal: '₹0.00',
+      isCod: false,
+      isPaid: true,
+      paymentMethod: 'online',
+      paymentLabel: 'PAID',
+      paymentStatusText: 'Pre-paid Online',
+      collectionNotice: 'Do not collect cash from customer',
+    };
+  }
+
+  // Extract raw order total value
+  const rawTotal =
+    order.pricing?.total ??
+    order.total ??
+    order.orderAmount ??
+    order.order_amount ??
+    order.pricing?.grandTotal ??
+    order.amounts?.total ??
+    0;
+
+  const totalAmount = Number(rawTotal) || 0;
+  const formattedTotal = `₹${totalAmount.toFixed(2)}`;
+
+  // Determine payment method and status
+  const method = String(
+    order.paymentMethod ||
+    order.payment?.method ||
+    order.paymentMode ||
+    order.payment_method ||
+    ''
+  ).toLowerCase().trim();
+
+  const paymentStatus = String(
+    order.payment?.status ||
+    order.paymentStatus ||
+    order.payment_status ||
+    ''
+  ).toLowerCase().trim();
+
+  const isCod =
+    method === 'cash' ||
+    method === 'cod' ||
+    method === 'cash_on_delivery' ||
+    paymentStatus === 'cod_pending';
+
+  const isPaid = !isCod;
+
+  return {
+    totalAmount,
+    formattedTotal,
+    isCod,
+    isPaid,
+    paymentMethod: method || (isCod ? 'cod' : 'online'),
+    paymentLabel: isCod ? 'COD' : 'PAID',
+    paymentStatusText: isCod ? 'Cash on Delivery' : 'Pre-paid Online',
+    collectionNotice: isCod
+      ? `Collect ₹${totalAmount.toFixed(2)} cash from customer`
+      : 'Online Paid — Do NOT collect cash',
+  };
+}
+
