@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BellRing, Check, Loader2, Send, Smartphone, Trash2 } from 'lucide-react';
+import { BellRing, Check, Loader2, PhoneCall, Send, Smartphone, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@food/api';
 import { Switch } from '@food/components/ui/switch';
@@ -23,7 +23,12 @@ const getDeviceId = () => {
 };
 
 export default function RestaurantDelayAlerts() {
-  const [settings, setSettings] = useState({ enabled: false, delayMinutes: 5, devices: [] });
+  const [settings, setSettings] = useState({
+    enabled: false,
+    delayMinutes: 5,
+    devices: [],
+    obdCallAlert: { enabled: true, delayMinutes: 3, escalationDelaySeconds: 90, voiceFile: 'Ravi.wav' }
+  });
   const [deviceName, setDeviceName] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,7 +40,18 @@ export default function RestaurantDelayAlerts() {
   const load = async () => {
     try {
       const response = await adminAPI.getRestaurantDelayAlertSettings();
-      setSettings(response?.data?.data || { enabled: false, delayMinutes: 5, devices: [] });
+      const data = response?.data?.data || {};
+      setSettings({
+        enabled: Boolean(data.enabled),
+        delayMinutes: Number(data.delayMinutes || 5),
+        devices: data.devices || [],
+        obdCallAlert: {
+          enabled: data.obdCallAlert?.enabled !== undefined ? Boolean(data.obdCallAlert.enabled) : true,
+          delayMinutes: Number(data.obdCallAlert?.delayMinutes || 3),
+          escalationDelaySeconds: Number(data.obdCallAlert?.escalationDelaySeconds || 90),
+          voiceFile: String(data.obdCallAlert?.voiceFile || 'Ravi.wav'),
+        }
+      });
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Unable to load alert settings');
     } finally {
@@ -91,6 +107,7 @@ export default function RestaurantDelayAlerts() {
         enabled: settings.enabled,
         delayMinutes,
         selectedDeviceIds: settings.devices.filter((device) => device.selected && device.isActive).map((device) => device.id),
+        obdCallAlert: settings.obdCallAlert,
       });
       setSettings(response?.data?.data || settings);
       toast.success('Restaurant delay alerts saved');
@@ -170,6 +187,109 @@ export default function RestaurantDelayAlerts() {
                 <div className="flex gap-2"><button type="button" onClick={() => testDevice(device.id)} disabled={!device.isActive || testingId === device.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">{testingId === device.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}Test</button><button type="button" onClick={() => removeDevice(device.id)} className="rounded-lg border border-red-200 p-2 text-red-600" aria-label={`Remove ${device.name}`}><Trash2 className="h-4 w-4" /></button></div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* OBD Automated Phone Call Alert Section */}
+        <section className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700">
+                <PhoneCall className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-bold text-slate-900">Automated Phone Call to Restaurant (OBD)</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Automatically ring restaurant phone numbers if they do not accept an order in time.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-xs font-bold ${settings.obdCallAlert?.enabled ? 'text-emerald-700' : 'text-slate-500'}`}>
+                {settings.obdCallAlert?.enabled ? 'ON' : 'OFF'}
+              </span>
+              <Switch
+                checked={settings.obdCallAlert?.enabled}
+                onCheckedChange={(enabled) =>
+                  setSettings((current) => ({
+                    ...current,
+                    obdCallAlert: { ...current.obdCallAlert, enabled }
+                  }))
+                }
+                className="data-[state=checked]:bg-emerald-600"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label className="text-sm font-semibold text-slate-800" htmlFor="obdDelayMinutes">
+                Call 1: Primary Number Delay
+              </label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  id="obdDelayMinutes"
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={settings.obdCallAlert?.delayMinutes || 3}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      obdCallAlert: { ...current.obdCallAlert, delayMinutes: event.target.value }
+                    }))
+                  }
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 outline-none focus:border-emerald-600 text-sm"
+                />
+                <span className="text-sm font-semibold text-slate-500 whitespace-nowrap">min</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-400">Rings primary phone if unaccepted</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-slate-800" htmlFor="obdEscalationSeconds">
+                Call 2: Secondary Escalation Delay
+              </label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  id="obdEscalationSeconds"
+                  type="number"
+                  min="30"
+                  max="600"
+                  value={settings.obdCallAlert?.escalationDelaySeconds || 90}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      obdCallAlert: { ...current.obdCallAlert, escalationDelaySeconds: event.target.value }
+                    }))
+                  }
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 outline-none focus:border-emerald-600 text-sm"
+                />
+                <span className="text-sm font-semibold text-slate-500 whitespace-nowrap">sec</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-400">Rings secondary phone after Call 1</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-slate-800" htmlFor="obdVoiceFile">
+                Voice Audio File (.wav)
+              </label>
+              <div className="mt-2">
+                <input
+                  id="obdVoiceFile"
+                  type="text"
+                  value={settings.obdCallAlert?.voiceFile || 'Ravi.wav'}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      obdCallAlert: { ...current.obdCallAlert, voiceFile: event.target.value }
+                    }))
+                  }
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 outline-none focus:border-emerald-600 text-sm font-mono"
+                />
+              </div>
+              <p className="mt-1 text-xs text-slate-400">File uploaded in OBD portal</p>
+            </div>
           </div>
         </section>
 
