@@ -203,6 +203,29 @@ const deliveryVerificationSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const callAlertSchema = new mongoose.Schema(
+    {
+        primaryCallStatus: {
+            type: String,
+            enum: ['none', 'in_progress', 'completed', 'failed', 'skipped'],
+            default: 'none'
+        },
+        primaryCalledAt: { type: Date, default: null },
+        primaryPhoneNumber: { type: String, default: '', trim: true },
+        primaryCampaignResponse: { type: mongoose.Schema.Types.Mixed, default: null },
+
+        secondaryCallStatus: {
+            type: String,
+            enum: ['none', 'in_progress', 'completed', 'failed', 'skipped'],
+            default: 'none'
+        },
+        secondaryCalledAt: { type: Date, default: null },
+        secondaryPhoneNumber: { type: String, default: '', trim: true },
+        secondaryCampaignResponse: { type: mongoose.Schema.Types.Mixed, default: null }
+    },
+    { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
     {
         order_id: {
@@ -316,7 +339,10 @@ const orderSchema = new mongoose.Schema(
             type: { type: String, enum: ['Point'] },
             coordinates: { type: [Number] }
         },
-
+        callAlert: {
+            type: callAlertSchema,
+            default: () => ({})
+        }
     },
     {
         collection: 'food_orders',
@@ -330,6 +356,8 @@ orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ restaurantId: 1, orderStatus: 1, createdAt: -1 });
 orderSchema.index({ 'dispatch.deliveryPartnerId': 1, orderStatus: 1 });
 orderSchema.index({ 'dispatch.status': 1, orderStatus: 1 });
+orderSchema.index({ orderStatus: 1, 'callAlert.primaryCallStatus': 1, createdAt: 1 });
+orderSchema.index({ orderStatus: 1, 'callAlert.secondaryCallStatus': 1, 'callAlert.primaryCalledAt': 1 });
 orderSchema.index({ 'dispatch.status': 1, orderStatus: 1, updatedAt: -1 });
 orderSchema.index({ 'dispatch.deliveryPartnerId': 1, 'dispatch.status': 1, updatedAt: -1 });
 orderSchema.index({ 'payment.status': 1, createdAt: -1 });

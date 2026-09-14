@@ -42,6 +42,16 @@ const startScheduler = async () => {
         };
         runFssaiExpirySync();
         setInterval(runFssaiExpirySync, 60 * 60 * 1000);
+
+        // Restaurant Unaccepted Order Phone Call Alert Poller (every 30 seconds)
+        try {
+            const { pollAndTriggerRestaurantCallAlerts } = await import('./src/modules/food/orders/services/order-call-alert.service.js');
+            pollAndTriggerRestaurantCallAlerts();
+            setInterval(pollAndTriggerRestaurantCallAlerts, 30 * 1000);
+            logger.info('Restaurant OBD call alert poller initialized (30s interval)');
+        } catch (err) {
+            logger.error(`Call alert poller startup error: ${err.message}`);
+        }
         
         // Create a simple HTTP server for health checks
         const http = await import('http');

@@ -24,6 +24,12 @@ const serializeSettings = (settings) => ({
     isActive: Boolean(device.isActive),
     lastSeenAt: device.lastSeenAt,
   })),
+  obdCallAlert: {
+    enabled: settings?.obdCallAlert?.enabled !== undefined ? Boolean(settings.obdCallAlert.enabled) : true,
+    delayMinutes: Number(settings?.obdCallAlert?.delayMinutes || 3),
+    escalationDelaySeconds: Number(settings?.obdCallAlert?.escalationDelaySeconds || 90),
+    voiceFile: String(settings?.obdCallAlert?.voiceFile || 'Ravi.wav'),
+  },
 });
 
 async function getSettingsDocument() {
@@ -38,15 +44,38 @@ export async function getRestaurantDelayAlertSettings() {
   return serializeSettings(await getSettingsDocument());
 }
 
-export async function updateRestaurantDelayAlertSettings({ enabled, delayMinutes, selectedDeviceIds }) {
+export async function updateRestaurantDelayAlertSettings({ enabled, delayMinutes, selectedDeviceIds, obdCallAlert }) {
   const settings = await getSettingsDocument();
   const selectedIds = new Set((selectedDeviceIds || []).map(String));
   if (enabled && selectedIds.size === 0) throw new ValidationError('Select at least one notification device before enabling alerts.');
-  settings.enabled = Boolean(enabled);
-  settings.delayMinutes = Math.min(60, Math.max(1, Math.trunc(Number(delayMinutes) || 5)));
-  settings.devices.forEach((device) => {
-    device.selected = device.isActive && selectedIds.has(String(device._id));
-  });
+  if (enabled !== undefined) {
+    settings.enabled = Boolean(enabled);
+  }
+  if (delayMinutes !== undefined) {
+    settings.delayMinutes = Math.min(60, Math.max(1, Math.trunc(Number(delayMinutes) || 5)));
+  }
+  if (selectedDeviceIds !== undefined) {
+    settings.devices.forEach((device) => {
+      device.selected = device.isActive && selectedIds.has(String(device._id));
+    });
+  }
+  if (obdCallAlert) {
+    if (!settings.obdCallAlert) {
+      settings.obdCallAlert = {};
+    }
+    if (obdCallAlert.enabled !== undefined) {
+      settings.obdCallAlert.enabled = Boolean(obdCallAlert.enabled);
+    }
+    if (obdCallAlert.delayMinutes !== undefined) {
+      settings.obdCallAlert.delayMinutes = Math.min(30, Math.max(1, Math.trunc(Number(obdCallAlert.delayMinutes) || 3)));
+    }
+    if (obdCallAlert.escalationDelaySeconds !== undefined) {
+      settings.obdCallAlert.escalationDelaySeconds = Math.min(600, Math.max(30, Math.trunc(Number(obdCallAlert.escalationDelaySeconds) || 90)));
+    }
+    if (obdCallAlert.voiceFile !== undefined) {
+      settings.obdCallAlert.voiceFile = String(obdCallAlert.voiceFile || 'Ravi.wav').trim();
+    }
+  }
   await settings.save();
   return serializeSettings(settings);
 }

@@ -62,8 +62,6 @@ export const config = {
     // BullMQ
     bullmqEnabled: process.env.BULLMQ_ENABLED === 'true',
 
-
-
     // Firebase / FCM
     firebaseProjectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
     firebaseDatabaseUrl: process.env.VITE_FIREBASE_DATABASE_URL,
@@ -92,7 +90,7 @@ export const config = {
     // Razorpay (payments)
     razorpayKeyId: process.env.RAZORPAY_KEY_ID,
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET,
-    razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET, // ✅ NEW
+    razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
 
     // Email (SMTP) – for admin forgot password OTP etc.
     emailHost: process.env.EMAIL_HOST,
@@ -101,10 +99,28 @@ export const config = {
     emailPass: process.env.EMAIL_PASS ? String(process.env.EMAIL_PASS).replace(/\s/g, '') : '',
     emailFrom: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@example.com',
 
-
+    // Petpooja POS
+    petpoojaSyncEnabled: process.env.PETPOOJA_SYNC_ENABLED === 'true',
+    petpoojaAppKey: process.env.PETPOOJA_APP_KEY,
+    petpoojaAppSecret: process.env.PETPOOJA_APP_SECRET,
 
     // Google Maps
-    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY
+    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY,
+
+    // OBD Call Alert Configuration
+    obd: {
+        apiUrl: process.env.OBD_API_URL || 'http://202.89.79.132/OBDAPI/webresources/CreateOBDCampaignPost',
+        ukey: process.env.OBD_UKEY || 'xI4u4NTPUK2kji8yevL7gUtBL',
+        serviceno: process.env.OBD_SERVICENO || '7557132559',
+        voicefile: process.env.OBD_VOICEFILE || 'Ravi.wav',
+        sourcetype: process.env.OBD_SOURCETYPE || '0',
+        campaigntype: process.env.OBD_CAMPAIGNTYPE || '4',
+        filetype: process.env.OBD_FILETYPE || '2',
+        ivrtemplateid: process.env.OBD_IVRTEMPLATEID || '1',
+        retryduration: Number(process.env.OBD_RETRYDURATION || 0),
+        dtmflength: process.env.OBD_DTMFLENGTH || '1',
+        waitduration: process.env.OBD_WAITDURATION || '5'
+    }
 };
 
 export const updateConfig = () => {
@@ -171,6 +187,18 @@ export const updateConfig = () => {
     config.petpoojaAppKey = process.env.PETPOOJA_APP_KEY || config.petpoojaAppKey;
     config.petpoojaAppSecret = process.env.PETPOOJA_APP_SECRET || config.petpoojaAppSecret;
     config.googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY || config.googleMapsApiKey;
+
+    if (config.obd) {
+        config.obd.apiUrl = process.env.OBD_API_URL || config.obd.apiUrl;
+        config.obd.ukey = process.env.OBD_UKEY || config.obd.ukey;
+        config.obd.serviceno = process.env.OBD_SERVICENO || config.obd.serviceno;
+        config.obd.voicefile = process.env.OBD_VOICEFILE || config.obd.voicefile;
+        config.obd.sourcetype = process.env.OBD_SOURCETYPE || config.obd.sourcetype;
+        config.obd.campaigntype = process.env.OBD_CAMPAIGNTYPE || config.obd.campaigntype;
+        config.obd.filetype = process.env.OBD_FILETYPE || config.obd.filetype;
+        config.obd.ivrtemplateid = process.env.OBD_IVRTEMPLATEID || config.obd.ivrtemplateid;
+        config.obd.retryduration = Number(process.env.OBD_RETRYDURATION ?? config.obd.retryduration);
+        config.obd.dtmflength = process.env.OBD_DTMFLENGTH || config.obd.dtmflength;
+        config.obd.waitduration = process.env.OBD_WAITDURATION || config.obd.waitduration;
+    }
 };
-
-

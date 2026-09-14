@@ -78,6 +78,10 @@ const restaurantSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    secondaryContactNumber: {
+      type: String,
+      trim: true,
+    },
     pureVegRestaurant: {
       type: Boolean,
       required: true,

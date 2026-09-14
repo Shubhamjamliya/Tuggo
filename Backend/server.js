@@ -90,7 +90,16 @@ const startServer = async () => {
             console.log(`🌐 [URL] http://localhost:${config.port}`);
         });
 
-        // Schedulers (expire offers, fssai sync) are moved to scheduler-server.js
+        // Schedulers (expire offers, fssai sync, call alerts) are in scheduler-server.js
+        if (config.nodeEnv !== 'production' && process.env.RUN_SCHEDULER_IN_DEV === 'true') {
+            try {
+                const { pollAndTriggerRestaurantCallAlerts } = await import('./src/modules/food/orders/services/order-call-alert.service.js');
+                setInterval(pollAndTriggerRestaurantCallAlerts, 30 * 1000);
+                logger.info('[Dev] Restaurant OBD call alert poller active in API server');
+            } catch (err) {
+                logger.error(`[Dev] Call alert poller startup error: ${err.message}`);
+            }
+        }
 
         process.on('SIGINT', () => gracefulShutdown('SIGINT'));
         process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
