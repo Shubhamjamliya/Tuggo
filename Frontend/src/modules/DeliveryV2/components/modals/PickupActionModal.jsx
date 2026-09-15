@@ -22,6 +22,7 @@ export const PickupActionModal = ({
   eta,
   onReachedPickup, 
   onPickedUp,
+  onMarkDelivered,
   onMinimize
 }) => {
   const [showItems, setShowItems] = useState(false);
@@ -141,6 +142,16 @@ export const PickupActionModal = ({
                 onConfirm={onReachedPickup}
                 color="bg-green-600"
               />
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => onMarkDelivered?.(order)}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs uppercase tracking-wider active:scale-95 transition-all shadow-xs"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Mark as Delivered</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -233,6 +244,17 @@ export const PickupActionModal = ({
                     color="bg-amber-600"
                   />
                 )}
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => onMarkDelivered?.(order)}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs uppercase tracking-wider active:scale-95 transition-all shadow-xs"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Mark as Delivered</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

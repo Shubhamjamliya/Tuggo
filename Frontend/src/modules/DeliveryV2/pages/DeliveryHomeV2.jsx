@@ -1279,6 +1279,18 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     navigate('/food/delivery/feed');
   }, [navigate, setActiveOrder, updateTripStatus]);
 
+  const handleTriggerMarkDelivered = useCallback((order) => {
+    const target = order || activeOrder;
+    if (!target) {
+      toast.error('No order selected to deliver');
+      return;
+    }
+    const normalized = normalizeDeliveryActiveOrder(target);
+    setActiveOrder(normalized);
+    setIsModalMinimized(false);
+    setShowVerification(true);
+  }, [activeOrder, setActiveOrder]);
+
   // Handle auto-killed order reasoning
   useEffect(() => {
     if (autoKilledOrder) {
@@ -1711,6 +1723,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
              onAccept={handleAcceptOffer}
              onPass={handlePassOffer}
              onOpen={handleOpenAcceptedOrder}
+             onMarkDelivered={handleTriggerMarkDelivered}
            />
          ) : (
            <ProfileV2 />
@@ -1789,6 +1802,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                     eta={eta}
                     onReachedPickup={reachPickup} 
                     onPickedUp={(billImageUrl, otp) => pickUpOrder(billImageUrl, otp)} 
+                    onMarkDelivered={handleTriggerMarkDelivered}
                     onMinimize={() => setIsModalMinimized(true)}
                   />
                 )}
@@ -1877,7 +1891,17 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                              </div>
                            )}
                         </div>
-                        <ActionSlider label="Slide to Arrive" successLabel="Arrived âœ“" disabled={!isWithinRange} onConfirm={reachDrop} color="bg-blue-600" />
+                        <ActionSlider label="Slide to Arrive" successLabel="Arrived ✓" disabled={!isWithinRange} onConfirm={reachDrop} color="bg-blue-600" />
+                        <div className="w-full pt-3">
+                          <button
+                            type="button"
+                            onClick={() => handleTriggerMarkDelivered(activeOrder)}
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs uppercase tracking-wider active:scale-95 transition-all shadow-xs"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>Mark as Delivered</span>
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button 
@@ -1895,22 +1919,26 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
                   </div>
                 )}
-                {showVerification && tripStatus !== 'COMPLETED' && (
-                  <DeliveryVerificationModal 
-                    order={activeOrder} 
-                    onComplete={async (otp, paymentOverride) => {
-                      const res = await completeDelivery(otp, paymentOverride);
-                      setShowVerification(false);
-                      return res;
-                    }}
-                    onClose={() => setShowVerification(false)}
-                  />
-                )}
-                {tripStatus === 'COMPLETED' && <OrderSummaryModal order={activeOrder} onDone={resetTrip} />}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+      )}
+
+      {/* ─── GLOBAL DELIVERY VERIFICATION & COMPLETION MODALS ─── */}
+      {showVerification && tripStatus !== 'COMPLETED' && activeOrder && (
+        <DeliveryVerificationModal 
+          order={activeOrder} 
+          onComplete={async (otp, paymentOverride) => {
+            const res = await completeDelivery(otp, paymentOverride, activeOrder);
+            setShowVerification(false);
+            return res;
+          }}
+          onClose={() => setShowVerification(false)}
+        />
+      )}
+      {tripStatus === 'COMPLETED' && activeOrder && (
+        <OrderSummaryModal order={activeOrder} onDone={resetTrip} />
       )}
 
       {/* â”€â”€â”€ MODALS RESTORED FROM OLD UI â”€â”€â”€ */}
