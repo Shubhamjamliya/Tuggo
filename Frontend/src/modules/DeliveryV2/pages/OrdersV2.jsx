@@ -138,7 +138,7 @@ function OrderInfo({ order }) {
   );
 }
 
-export default function OrdersV2({ incomingOrders = [], acceptedOrders = [], capacity = {}, onAccept, onPass, onOpen }) {
+export default function OrdersV2({ incomingOrders = [], acceptedOrders = [], capacity = {}, onAccept, onPass, onOpen, onMarkDelivered }) {
   const limit = Number(capacity.effectiveLimit || 1);
   const activeCount = Number(capacity.activeOrderCount ?? acceptedOrders.length);
   const canAccept = capacity.canAcceptMore !== false && activeCount < limit;
@@ -179,13 +179,26 @@ export default function OrdersV2({ incomingOrders = [], acceptedOrders = [], cap
           {acceptedOrders.map((order) => {
             const id = getOrderMongoId(order) || getOrderAcceptId(order);
             return (
-              <button key={id} type="button" onClick={() => onOpen?.(order)} className="w-full rounded-2xl border border-green-200 bg-white p-4 text-left shadow-sm transition active:scale-[0.99]">
+              <article key={id} onClick={() => onOpen?.(order)} className="w-full rounded-2xl border border-green-200 bg-white p-4 text-left shadow-sm transition active:scale-[0.99] cursor-pointer">
                 <OrderInfo order={order} />
-                <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                  <span className="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-black uppercase text-green-700">{String(order?.orderStatus || 'accepted').replaceAll('_', ' ')}</span>
-                  <span className="text-sm font-black text-gray-950">Open order →</span>
+                <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 gap-2">
+                  <span className="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-black uppercase text-green-700 truncate">{String(order?.orderStatus || 'accepted').replaceAll('_', ' ')}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkDelivered?.(order);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider shadow-sm transition-all"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Mark Delivered</span>
+                    </button>
+                    <span className="text-xs font-black text-gray-900 flex items-center">Open →</span>
+                  </div>
                 </div>
-              </button>
+              </article>
             );
           })}
         </div>
