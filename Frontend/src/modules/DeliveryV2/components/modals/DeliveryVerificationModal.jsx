@@ -14,7 +14,7 @@ const Backdrop = ({ onClose }) => (
     initial={{ opacity: 0 }} 
     animate={{ opacity: 1 }} 
     exit={{ opacity: 0 }}
-    className="absolute inset-0 bg-black/40 -z-10 pointer-events-auto" 
+    className="fixed inset-0 bg-black/60 z-[-1] pointer-events-auto" 
     onClick={onClose}
   />
 );
@@ -158,11 +158,12 @@ const OtpModal = ({ order, onVerified, onClose }) => {
   const isAlreadyVerified = order?.deliveryVerification?.dropOtp?.verified;
 
   return (
-    <div className="fixed inset-0 z-120 p-0 sm:p-4 flex items-end justify-center pointer-events-none">
+    <div className="fixed inset-0 z-[500] p-0 sm:p-4 flex items-end justify-center pointer-events-none">
       <Backdrop onClose={onClose} />
       <motion.div 
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        className="w-full max-w-md sm:max-w-lg bg-white rounded-t-3xl sm:rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.3)] p-4 sm:p-6 pb-6 sm:pb-12 pointer-events-auto max-h-[84vh] overflow-y-auto"
+        className="w-full max-w-md sm:max-w-lg bg-white rounded-t-3xl sm:rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.4)] p-4 sm:p-6 pb-8 sm:pb-12 pointer-events-auto max-h-[88vh] overflow-y-auto relative z-[501]"
+        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
       >
         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
         <div className="flex justify-between items-center mb-6">
@@ -332,11 +333,12 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-120 p-0 sm:p-4 flex items-end justify-center pointer-events-none">
+      <div className="fixed inset-0 z-[500] p-0 sm:p-4 flex items-end justify-center pointer-events-none">
         <Backdrop onClose={onClose} />
         <motion.div 
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-          className="w-full max-w-md sm:max-w-lg bg-white rounded-t-3xl sm:rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.3)] p-4 sm:p-6 pb-6 sm:pb-12 pointer-events-auto max-h-[84vh] overflow-y-auto"
+          className="w-full max-w-md sm:max-w-lg bg-white rounded-t-3xl sm:rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.4)] p-4 sm:p-6 pb-8 sm:pb-12 pointer-events-auto max-h-[88vh] overflow-y-auto relative z-[501]"
+          style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
         >
           <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
           <div className="flex justify-between items-center mb-6">
@@ -499,53 +501,13 @@ export const DeliveryVerificationModal = ({ order, onComplete, onClose }) => {
 
   return (
     <AnimatePresence mode="wait">
-      {step === 'otp' && (
-        <OtpModal 
-          key="otp-modal" 
-          order={order} 
-          onVerified={handleOtpVerified} 
-          onClose={onClose || (() => {})} 
-        />
-      )}
-      {step === 'payment' && (
-        <PaymentModal 
-          key="payment-modal" 
-          order={order} 
-          otpString={verifiedOtp} 
-          onComplete={onComplete} 
-          onClose={onClose || (() => {})} 
-        />
-      )}
-      {step === 'complete' && (
-        <div className="fixed inset-0 z-120 p-0 sm:p-4 flex items-end justify-center pointer-events-none">
-          <Backdrop onClose={onClose || (() => {})} />
-          <motion.div 
-            key="complete-modal"
-            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            className="w-full max-w-md sm:max-w-lg bg-white rounded-t-3xl sm:rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.3)] p-4 sm:p-6 pb-6 sm:pb-12 pointer-events-auto max-h-[84vh] overflow-y-auto"
-          >
-            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-green-100 text-green-600">
-                <CheckCircle2 className="w-7 h-7" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">OTP Verified</h2>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-green-600">Payment Received Online</p>
-              </div>
-            </div>
-            <ActionSlider 
-              key="action-complete"
-              label="Slide to Complete Delivery" 
-              successLabel="Delivered! ✓"
-              onConfirm={async () => {
-                await onComplete(verifiedOtp);
-              }}
-              color="bg-green-600"
-            />
-          </motion.div>
-        </div>
-      )}
+      <PaymentModal 
+        key="payment-modal" 
+        order={order} 
+        otpString={verifiedOtp} 
+        onComplete={onComplete} 
+        onClose={onClose || (() => {})} 
+      />
     </AnimatePresence>
   );
 };

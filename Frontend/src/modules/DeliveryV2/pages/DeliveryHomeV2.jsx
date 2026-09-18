@@ -1806,7 +1806,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                     onMinimize={() => setIsModalMinimized(true)}
                   />
                 )}
-                {(tripStatus === 'PICKED_UP' || tripStatus === 'REACHED_DROP') && (
+                {(tripStatus === 'PICKED_UP' || tripStatus === 'REACHED_DROP') && !showVerification && (
                   <div className="absolute inset-x-0 z-[120] px-4" style={{ bottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
                     {tripStatus === 'PICKED_UP' ? (
                       <div className="bg-white rounded-[3rem] p-8 shadow-[0_-20px_80px_rgba(0,0,0,0.4)] border border-gray-100 flex flex-col items-center">
