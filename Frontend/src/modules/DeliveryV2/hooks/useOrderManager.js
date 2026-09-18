@@ -191,9 +191,10 @@ export const useOrderManager = () => {
     }
     try {
       const isAlreadyVerified = currentTarget?.deliveryVerification?.dropOtp?.verified;
+      const isBypassed = !otp || otp === 'BYPASS' || otp === 'SKIP';
       
-      // 1. Verify OTP first (only if not already verified by modal or previous action)
-      if (!isAlreadyVerified) {
+      // 1. Verify OTP only if provided and not bypassed
+      if (!isAlreadyVerified && !isBypassed) {
         const verifyRes = await deliveryAPI.verifyDropOtp(orderId, otp);
         if (!verifyRes?.data?.success) {
           toast.error('Invalid OTP. Please check with customer.');
@@ -201,7 +202,7 @@ export const useOrderManager = () => {
         }
       }
       
-      const otpToUse = otp || currentTarget?.deliveryVerification?.dropOtp?.code;
+      const otpToUse = otp || currentTarget?.deliveryVerification?.dropOtp?.code || 'BYPASS';
       
       // 2. Proceed to mark as complete
       let finalOrder = currentTarget;

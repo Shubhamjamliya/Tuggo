@@ -345,10 +345,10 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
                  <DollarSign className="w-7 h-7" />
                </div>
                <div>
-                 <h2 className="text-xl font-bold text-gray-900">Collect Payment</h2>
-                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Step 2 of Verification</p>
-               </div>
-             </div>
+                <h2 className="text-xl font-bold text-gray-900">{isPaid ? "Payment Verified" : "Collect Payment"}</h2>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{isPaid ? "Ready to Complete" : "Payment Settlement"}</p>
+              </div>
+            </div>
              <button onClick={onClose} className="p-2 bg-gray-50 rounded-full text-gray-400 hover:text-gray-600"><X className="w-5 h-5"/></button>
           </div>
 
@@ -486,27 +486,14 @@ export const DeliveryVerificationModal = ({ order, onComplete, onClose }) => {
   ).toLowerCase();
   const isCod = ['cash', 'cod', 'cash_on_delivery', 'razorpay_qr'].includes(paymentMethod);
 
-  // Determine initial step: skip OTP if already verified
-  const [step, setStep] = useState(() => {
-    if (alreadyVerified) {
-      return isCod ? 'payment' : 'complete';
-    }
-    return 'otp';
-  });
-  const [verifiedOtp, setVerifiedOtp] = useState(alreadyVerified ? (order.deliveryVerification.dropOtp.code || '') : '');
+  // Directly bypass OTP step and open payment/settlement option
+  const [step, setStep] = useState('payment');
+  const [verifiedOtp, setVerifiedOtp] = useState(order?.deliveryVerification?.dropOtp?.code || 'BYPASS');
 
   const handleOtpVerified = (otpValue) => {
     setVerifiedOtp(otpValue);
-    // After OTP is verified: COD → show payment panel, Online → show complete button
-    setStep(isCod ? 'payment' : 'complete');
+    setStep('payment');
   };
-
-  // If OTP was already verified on mount and it's a non-COD order, auto-complete
-  useEffect(() => {
-    if (step === 'complete' && !isCod) {
-      onComplete(verifiedOtp);
-    }
-  }, []); // only on mount
 
   if (!order) return null;
 

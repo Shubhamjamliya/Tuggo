@@ -1186,9 +1186,15 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
 
   const { otp, ratings } = body;
 
-  // 1. Handover OTP Verification
+  // 1. Handover OTP Verification (Bypassable for direct rider delivery)
+  const isOtpBypassed = !otp || (typeof otp === 'string' && ['BYPASS', 'SKIP', 'NONE', 'bypass', 'skip'].includes(otp.trim()));
+
+  if (!order.deliveryVerification) order.deliveryVerification = {};
+  if (!order.deliveryVerification.dropOtp) order.deliveryVerification.dropOtp = { required: false, verified: false };
+
   if (
     otp &&
+    !isOtpBypassed &&
     order.deliveryVerification?.dropOtp?.required &&
     !order.deliveryVerification?.dropOtp?.verified
   ) {
@@ -1199,16 +1205,10 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
     } else {
       throw new ValidationError('Invalid handover OTP provided.');
     }
-  }
-
-  if (
-    order.deliveryVerification?.dropOtp?.required &&
-    !order.deliveryVerification?.dropOtp?.verified &&
-    !otp
-  ) {
-    throw new ValidationError(
-      'Customer handover OTP is required. Verify the OTP from the customer before completing delivery.',
-    );
+  } else if (isOtpBypassed) {
+    order.deliveryVerification.dropOtp.verified = true;
+    order.deliveryVerification.dropOtp.bypassed = true;
+    order.markModified('deliveryVerification.dropOtp');
   }
 
   const from = order.orderStatus;
