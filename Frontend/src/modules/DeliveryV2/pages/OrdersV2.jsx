@@ -9,12 +9,12 @@ const displayOrderId = (order) => order?.order_id || order?.displayOrderId || ge
 
 function OrderInfo({ order }) {
   const amount =
+    order?.earnings ||
+    order?.riderEarning ||
     order?.deliveryEarning ||
     order?.deliveryFee ||
     order?.pricing?.deliveryFee ||
-    order?.pricing?.total ||
-    order?.earnings ||
-    order?.riderEarning;
+    order?.pricing?.total;
   const restaurantInfo = getRestaurantDisplayInfo(order);
   const customerInfo = getCustomerDisplayInfo(order);
   const paymentInfo = getOrderPaymentInfo(order);

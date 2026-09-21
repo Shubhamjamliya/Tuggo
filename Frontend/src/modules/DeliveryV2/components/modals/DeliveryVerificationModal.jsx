@@ -251,15 +251,40 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
   const [collectQr, setCollectQr] = useState(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [isCompletingCash, setIsCompletingCash] = useState(false);
-  const isInitialPaid = ['paid', 'captured'].includes(String(order.payment?.status || "").toLowerCase());
-  const initialPaymentMethod = String(order.payment?.method || order.paymentMethod || '').toLowerCase();
+
+  const initialPaymentMethod = String(
+    order.paymentMethod ||
+    order.payment?.method ||
+    order.transaction?.payment?.method ||
+    order.transaction?.paymentMethod ||
+    ''
+  ).toLowerCase();
+
+  const isCod = ['cash', 'cod', 'cash_on_delivery', 'razorpay_qr'].includes(initialPaymentMethod);
+  const isPrepaidOnline = !isCod && Boolean(initialPaymentMethod);
+
+  const rawPaymentStatus = String(
+    order.payment?.status ||
+    order.paymentStatus ||
+    order.transactionStatus ||
+    order.transaction?.status ||
+    order.status ||
+    ''
+  ).toLowerCase();
+
+  const isInitialPaid =
+    ['paid', 'captured', 'completed', 'settled'].includes(rawPaymentStatus) ||
+    isPrepaidOnline;
+
   const [paymentStatus, setPaymentStatus] = useState(
     isInitialPaid ? 'paid' : (initialPaymentMethod === 'razorpay_qr' ? 'pending' : 'idle'),
   );
+  const isPaid = paymentStatus === 'paid';
   const pollingRef = useRef(null);
 
   const orderId = order.order_id || order.orderId || order._id || 'ORD';
-  const amountToCollect = Number(order.pricing?.total || order.amountToCollect || 0);
+  const totalBill = Number(order.pricing?.total || order.amountToCollect || 0);
+  const amountToCollect = isPaid ? totalBill : (isCod ? totalBill : 0);
 
   const checkPaymentSync = useCallback(async () => {
     try {
@@ -315,7 +340,6 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
     }
   };
 
-  const isPaid = paymentStatus === 'paid';
   const qrFlowStarted = Boolean(collectQr) || paymentStatus === 'pending';
 
   const confirmCashCollected = async () => {
@@ -422,7 +446,7 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
             successLabel="Delivered! ✓"
             disabled={!isPaid}
             onConfirm={async () => {
-              await onComplete(otpString);
+              await onComplete(otpString, isCod ? (paymentStatus === 'paid' ? 'online' : 'cash') : 'online');
             }}
             color="bg-green-600"
           />
@@ -433,12 +457,12 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
         {showQrModal && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-200 bg-black/80 flex items-center justify-center p-4 sm:p-6 pointer-events-auto"
+            className="fixed inset-0 z-[600] bg-black/80 flex items-center justify-center p-4 sm:p-6 pointer-events-auto"
             onClick={() => setShowQrModal(false)}
           >
             <motion.div 
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-              className="bg-white w-full max-w-sm rounded-3xl p-5 sm:p-8 flex flex-col items-center text-center shadow-2xl"
+              className="bg-white w-full max-w-sm rounded-3xl p-5 sm:p-8 flex flex-col items-center text-center shadow-2xl relative z-[601]"
               onClick={e => e.stopPropagation()}
             >
               <h3 className="text-gray-950 font-bold text-xl mb-2">Scan to Pay</h3>
@@ -477,20 +501,15 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
   );
 };
 
-export const DeliveryVerificationModal = ({ order, onComplete, onClose }) => {
+export const DeliveryVerificationModal = ({ order, onComplete, onClose, skipOtp = false }) => {
   const alreadyVerified = !!order?.deliveryVerification?.dropOtp?.verified;
-  const paymentMethod = (
-    order?.paymentMethod ||
-    order?.payment?.method ||
-    order?.transaction?.payment?.method ||
-    order?.transaction?.paymentMethod ||
-    'cod'
-  ).toLowerCase();
-  const isCod = ['cash', 'cod', 'cash_on_delivery', 'razorpay_qr'].includes(paymentMethod);
-
-  // Directly bypass OTP step and open payment/settlement option
-  const [step, setStep] = useState('payment');
-  const [verifiedOtp, setVerifiedOtp] = useState(order?.deliveryVerification?.dropOtp?.code || 'BYPASS');
+  
+  // If skipOtp is true (clicked "Mark as Delivered") or already verified, bypass OTP step
+  const shouldSkipOtp = Boolean(skipOtp || alreadyVerified);
+  const [step, setStep] = useState(shouldSkipOtp ? 'payment' : 'otp');
+  const [verifiedOtp, setVerifiedOtp] = useState(
+    order?.deliveryVerification?.dropOtp?.code || (shouldSkipOtp ? 'BYPASS' : '')
+  );
 
   const handleOtpVerified = (otpValue) => {
     setVerifiedOtp(otpValue);
@@ -501,13 +520,22 @@ export const DeliveryVerificationModal = ({ order, onComplete, onClose }) => {
 
   return (
     <AnimatePresence mode="wait">
-      <PaymentModal 
-        key="payment-modal" 
-        order={order} 
-        otpString={verifiedOtp} 
-        onComplete={onComplete} 
-        onClose={onClose || (() => {})} 
-      />
+      {step === 'otp' ? (
+        <OtpModal 
+          key="otp-modal" 
+          order={order} 
+          onVerified={handleOtpVerified} 
+          onClose={onClose || (() => {})} 
+        />
+      ) : (
+        <PaymentModal 
+          key="payment-modal" 
+          order={order} 
+          otpString={verifiedOtp || 'BYPASS'} 
+          onComplete={onComplete} 
+          onClose={onClose || (() => {})} 
+        />
+      )}
     </AnimatePresence>
   );
 };

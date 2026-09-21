@@ -265,6 +265,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   }, [tab]);
 
   const [showVerification, setShowVerification] = useState(false);
+  const [bypassOtp, setBypassOtp] = useState(false);
   const [showEmergencyPopup, setShowEmergencyPopup] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [emergencyNumbers, setEmergencyNumbers] = useState({
@@ -1288,6 +1289,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     const normalized = normalizeDeliveryActiveOrder(target);
     setActiveOrder(normalized);
     setIsModalMinimized(false);
+    setBypassOtp(true);
     setShowVerification(true);
   }, [activeOrder, setActiveOrder]);
 
@@ -1905,7 +1907,10 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                       </div>
                     ) : (
                       <button 
-                        onClick={() => setShowVerification(true)} 
+                        onClick={() => {
+                          setBypassOtp(false);
+                          setShowVerification(true);
+                        }} 
                         className="w-full text-white rounded-2xl py-4 sm:py-5 px-4 font-bold text-xs sm:text-sm tracking-[0.14em] transform transition-all active:scale-95 flex items-center justify-center gap-2.5 sm:gap-3 border border-white/20"
                         style={{
                           background: 'linear-gradient(33deg, #15498b 0%, #000000 100%)',
@@ -1929,12 +1934,17 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       {showVerification && tripStatus !== 'COMPLETED' && activeOrder && (
         <DeliveryVerificationModal 
           order={activeOrder} 
+          skipOtp={bypassOtp}
           onComplete={async (otp, paymentOverride) => {
             const res = await completeDelivery(otp, paymentOverride, activeOrder);
             setShowVerification(false);
+            setBypassOtp(false);
             return res;
           }}
-          onClose={() => setShowVerification(false)}
+          onClose={() => {
+            setShowVerification(false);
+            setBypassOtp(false);
+          }}
         />
       )}
       {tripStatus === 'COMPLETED' && activeOrder && (

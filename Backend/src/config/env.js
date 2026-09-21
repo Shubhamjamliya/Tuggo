@@ -9,6 +9,17 @@ const backendEnvPath = path.resolve(__dirname, '../../.env');
 dotenv.config();
 dotenv.config({ path: backendEnvPath, override: false });
 
+const resolveMongoUri = () => {
+    const mongoEnv = (process.env.MONGO_ENV || '').toLowerCase().trim();
+    if (mongoEnv === 'production' || mongoEnv === 'prod') {
+        return process.env.MONGO_URI_PRODUCTION || process.env.MONGODB_URI;
+    }
+    if (mongoEnv === 'local' || mongoEnv === 'dev') {
+        return process.env.MONGO_URI_LOCAL || 'mongodb://127.0.0.1:27017/tuggo';
+    }
+    return process.env.MONGO_URI || process.env.MONGODB_URI || process.env.MONGO_URI_LOCAL || 'mongodb://127.0.0.1:27017/tuggo';
+};
+
 export const config = {
     // Basic server config
     port: process.env.PORT || 5000,
@@ -17,7 +28,8 @@ export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
 
     // Database
-    mongodbUri: process.env.MONGO_URI || process.env.MONGODB_URI,
+    mongoEnv: (process.env.MONGO_ENV || 'local').toLowerCase().trim(),
+    mongodbUri: resolveMongoUri(),
 
     // JWT
     jwtAccessSecret: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET,
@@ -128,7 +140,8 @@ export const updateConfig = () => {
     config.socketPort = process.env.SOCKET_PORT || config.socketPort;
     config.host = process.env.HOST || config.host;
     config.nodeEnv = process.env.NODE_ENV || config.nodeEnv;
-    config.mongodbUri = process.env.MONGO_URI || process.env.MONGODB_URI || config.mongodbUri;
+    config.mongoEnv = (process.env.MONGO_ENV || config.mongoEnv || 'local').toLowerCase().trim();
+    config.mongodbUri = resolveMongoUri();
     config.jwtAccessSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || config.jwtAccessSecret;
     config.jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || config.jwtRefreshSecret;
     config.jwtAccessExpiresIn = process.env.JWT_ACCESS_EXPIRES || config.jwtAccessExpiresIn;

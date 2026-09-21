@@ -263,6 +263,11 @@ export async function getCurrentTripDelivery(deliveryPartnerId) {
     out.pricing = tx.pricing || out.pricing;
     out.amounts = tx.amounts || out.amounts;
     out.transactionStatus = tx.status || out.transactionStatus;
+    if (tx.status === 'captured' || String(order.payment?.status || '').toLowerCase() === 'paid') {
+      out.payment = { ...(out.payment || {}), status: 'paid' };
+      out.paymentStatus = 'paid';
+      out.isPaid = true;
+    }
   }
   return out;
 }
@@ -297,6 +302,11 @@ export async function getActiveOrdersDelivery(deliveryPartnerId) {
       out.pricing = tx.pricing || out.pricing;
       out.amounts = tx.amounts || out.amounts;
       out.transactionStatus = tx.status || out.transactionStatus;
+      if (tx.status === 'captured' || String(order.payment?.status || '').toLowerCase() === 'paid') {
+        out.payment = { ...(out.payment || {}), status: 'paid' };
+        out.paymentStatus = 'paid';
+        out.isPaid = true;
+      }
     }
     return out;
   });
@@ -1235,7 +1245,14 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
 
   // 3. Server-side Payment Verification (Blocking)
   let verifiedPaymentStatus = prevPayStatus.toLowerCase();
-  if (finalPayMethod === 'razorpay_qr') {
+  if (
+    tx?.status === 'captured' ||
+    String(order?.payment?.status || '').toLowerCase() === 'paid' ||
+    String(tx?.payment?.status || '').toLowerCase() === 'paid' ||
+    verifiedPaymentStatus === 'captured'
+  ) {
+    verifiedPaymentStatus = 'paid';
+  } else if (finalPayMethod === 'razorpay_qr') {
     try {
       const syncedPayment = await syncRazorpayQrPayment(order);
       verifiedPaymentStatus = String(syncedPayment?.status || '').toLowerCase();
