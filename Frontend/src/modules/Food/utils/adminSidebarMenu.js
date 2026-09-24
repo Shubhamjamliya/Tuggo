@@ -103,7 +103,14 @@ export const adminSidebarMenu = [
           { label: "Restaurant Discount", path: "/admin/food/restaurants/discount" },
           { label: "Restaurant Reviews", path: "/admin/food/restaurants/reviews" },
           { label: "Restaurant Complaints", path: "/admin/food/restaurants/complaints" },
+          { label: "Restaurant Payouts", path: "/admin/food/restaurant-payouts" },
         ],
+      },
+      {
+        type: "link",
+        label: "Restaurant Payouts",
+        path: "/admin/food/restaurant-payouts",
+        icon: "DollarSign",
       },
     ],
   },
@@ -206,6 +213,7 @@ export const adminSidebarMenu = [
     type: "section",
     label: "TRANSACTION MANAGEMENT",
     items: [
+      { type: "link", label: "Restaurant Payouts", path: "/admin/food/restaurant-payouts", icon: "DollarSign" },
       { type: "link", label: "Restaurant Withdraws", path: "/admin/food/restaurant-withdraws", icon: "CreditCard" },
     ],
   },

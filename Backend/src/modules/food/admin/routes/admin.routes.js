@@ -12,6 +12,7 @@ import { getAdminPageController, upsertAdminPageController } from '../controller
 import * as liveMonitorController from '../controllers/liveMonitor.controller.js';
 import * as appIntroAdController from '../controllers/appIntroAd.controller.js';
 import * as restaurantDelayAlertController from '../controllers/restaurantDelayAlert.controller.js';
+import * as payoutsController from '../controllers/payouts.controller.js';
 import { upload } from '../../../../middleware/upload.js';
 import menuBulkRoutes from './menuBulk.routes.js';
 
@@ -172,6 +173,12 @@ router.post('/restaurant-delay-alerts/devices/:deviceId/test', restaurantDelayAl
 // ----- Delivery Emergency Help -----
 router.get('/delivery-emergency-help', adminController.getEmergencyHelp);
 router.put('/delivery-emergency-help', adminController.createOrUpdateEmergencyHelp);
+
+// ----- Withdrawals & Payouts (admin) -----
+router.get('/payouts/summary', payoutsController.getPayoutSummaryController);
+router.get('/payouts/orders', payoutsController.getPayoutOrdersController);
+router.get('/payouts/pdf', payoutsController.getPayoutPdfDataController);
+router.post('/payouts/mark-as-paid', payoutsController.markPayoutAsPaidController);
 
 // ----- Withdrawals (admin) -----
 router.get('/withdrawals', adminController.getWithdrawals);

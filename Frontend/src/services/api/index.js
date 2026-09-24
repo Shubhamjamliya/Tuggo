@@ -349,6 +349,15 @@ export const adminAPI = {
   getWithdrawalRequests: (params) => adminAPI.getWithdrawals(params),
   approveWithdrawalRequest: (id) => adminAPI.updateWithdrawalStatus(id, { status: "approved" }),
   rejectWithdrawalRequest: (id, reason) => adminAPI.updateWithdrawalStatus(id, { status: "rejected", rejectionReason: reason }),
+  // Restaurant Payouts APIs
+  getPayoutSummary: (params = {}) =>
+    adminClient.get("/food/admin/payouts/summary", { params }),
+  getPayoutOrders: (params = {}) =>
+    adminClient.get("/food/admin/payouts/orders", { params }),
+  getPayoutPdfData: (params = {}) =>
+    adminClient.get("/food/admin/payouts/pdf", { params }),
+  markPayoutAsPaid: (body = {}) =>
+    adminClient.post("/food/admin/payouts/mark-as-paid", body),
   /** Delivery boy wallets (stub until backend implements - returns empty so list still loads) */
   getDeliveryBoyWallets: (params) =>
     adminClient.get("/food/admin/delivery/wallets", { params }),
