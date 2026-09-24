@@ -1340,6 +1340,7 @@ export default function Home() {
                 pureVegRestaurant: restaurant.pureVegRestaurant === true,
                 location: restaurant.location, // Store location for distance recalculation
                 isActive: restaurant.isActive !== false, // Default to true if not specified
+                isBanned: Boolean(restaurant.isBanned || restaurant.status === 'banned' || (restaurant.status === 'rejected' && /disabled by admin|banned/i.test(restaurant.rejectionReason || ''))),
                 isAcceptingOrders: restaurant.isAcceptingOrders !== false, // Default to true if not specified
                 openDays: Array.isArray(restaurant.openDays)
                   ? restaurant.openDays
@@ -1357,8 +1358,13 @@ export default function Home() {
             );
 
           const sortRestaurantsForDisplay = (restaurants) => {
-            if (!userLat || !userLng) return restaurants;
             return [...restaurants].sort((a, b) => {
+              const aBanned = Boolean(a.isBanned);
+              const bBanned = Boolean(b.isBanned);
+              if (aBanned !== bBanned) {
+                return aBanned ? 1 : -1;
+              }
+              if (!userLat || !userLng) return 0;
               // Available restaurants first, then unavailable
               const aAvailable = getRestaurantAvailabilityStatus(
                 a,
@@ -2388,7 +2394,7 @@ export default function Home() {
           {!shouldShowOutOfZoneHome && (
             <>
               {/* Premium Restaurants Horizontal Scroll */}
-              {filteredRestaurants.filter(r => (r.rating || 0) >= 4.5).length > 0 && (
+              {filteredRestaurants.filter(r => !r.isBanned && (r.rating || 0) >= 4.5).length > 0 && (
                 <div className="mb-6 lg:mb-8">
                   <div className="px-4 mb-3">
                     <h2 className="text-lg sm:text-xl lg:text-2xl font-black text-gray-900 dark:text-white tracking-tight">

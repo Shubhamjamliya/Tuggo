@@ -1336,7 +1336,14 @@ export const listApprovedRestaurants = async (query = {}) => {
     const page = parseQueryPage(query.page, 1);
     const skip = (page - 1) * limit;
 
-    const filter = { status: 'approved' };
+    const filter = {
+        $or: [
+            { status: 'approved' },
+            { isBanned: true },
+            { status: 'banned' },
+            { status: 'rejected', rejectionReason: { $regex: /disabled by admin|banned/i } }
+        ]
+    };
 
     const locOr = [];
     if (query.city && String(query.city).trim()) {
@@ -1467,7 +1474,9 @@ export const listApprovedRestaurants = async (query = {}) => {
         itemDiscounts: 1,
         discountRules: 1,
         menu: 1,
-        isActive: 1
+        isActive: 1,
+        isBanned: 1,
+        rejectionReason: 1
     };
 
     // Use $geoNear only when geo is explicitly needed (radius filter or nearest sorting).
@@ -1595,8 +1604,14 @@ export const listApprovedRestaurants = async (query = {}) => {
         
         const restaurants = (restaurantsRawGeo || []).map((r) => {
             const drivingInfo = drivingDistances.get(String(r._id));
+            const isBanned = Boolean(
+                r.isBanned === true || 
+                r.status === 'banned' || 
+                (r.status === 'rejected' && /disabled by admin|banned/i.test(r.rejectionReason || ''))
+            );
             return {
                 ...r,
+                isBanned,
                 restaurantId: r._id,
                 id: r._id,
                 name: r.restaurantName || '',
@@ -1723,8 +1738,14 @@ export const listApprovedRestaurants = async (query = {}) => {
 
     const restaurants = (restaurantsRaw || []).map((r) => {
         const drivingInfo = drivingDistances.get(String(r._id));
+        const isBanned = Boolean(
+            r.isBanned === true || 
+            r.status === 'banned' || 
+            (r.status === 'rejected' && /disabled by admin|banned/i.test(r.rejectionReason || ''))
+        );
         return {
             ...r,
+            isBanned,
             // Frontend user app expects `name` and often checks `profileImage.url`
             restaurantId: r._id,
             id: r._id,
@@ -1820,6 +1841,12 @@ export const getApprovedRestaurantByIdOrSlug = async (idOrSlug, query = {}) => {
     }
 
     if (!doc) return null;
+    const isDocBanned = Boolean(
+        doc.isBanned === true || 
+        doc.status === 'banned' || 
+        (doc.status === 'rejected' && /disabled by admin|banned/i.test(doc.rejectionReason || ''))
+    );
+    if (isDocBanned) return null;
 
     const lat = toFiniteNumber(query.lat);
     const lng = toFiniteNumber(query.lng);

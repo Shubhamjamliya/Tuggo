@@ -44,6 +44,12 @@ function HomeRestaurantCard({
   animateEntrance = false,
 }) {
   const navigate = useNavigate();
+  const isBanned = Boolean(
+    restaurant?.isBanned === true || 
+    restaurant?.status === 'banned' || 
+    (restaurant?.status === 'rejected' && /disabled by admin|banned/i.test(restaurant?.rejectionReason || ''))
+  );
+
   const { ref, outletTimings } = useDeferredOutletTimings(
     restaurant?.mongoId,
     restaurant?.outletTimings ?? null,
@@ -54,16 +60,22 @@ function HomeRestaurantCard({
     [restaurant, outletTimings],
   );
 
-  const availability = getRestaurantAvailabilityStatus(
+  const rawAvailability = getRestaurantAvailabilityStatus(
     restaurantForAvailability,
     new Date()
   );
 
+  // If banned, it visually presents exactly like an approved restaurant when offline
+  const availability = isBanned
+    ? { ...rawAvailability, isOpen: false, closingCountdownLabel: null }
+    : rawAvailability;
+
   const restaurantSlug = resolveRestaurantSlug(restaurant, index);
-  const favorite = isFavorite(restaurantSlug);
+  const favorite = !isBanned && typeof isFavorite === 'function' ? isFavorite(restaurantSlug) : false;
   const priority = index < 3;
 
   const handleSlideClick = (slide, event) => {
+    if (isBanned) return;
     if (slide?.id && slide?.isRecommended) {
       if (event) {
         event.preventDefault();
@@ -73,10 +85,19 @@ function HomeRestaurantCard({
     }
   };
 
+  const CardWrapper = isBanned ? "div" : Link;
+  const cardWrapperProps = isBanned
+    ? { className: "h-full flex cursor-not-allowed select-none" }
+    : { to: `/user/restaurants/${restaurantSlug}`, className: "h-full flex" };
+
   return (
     <div
       ref={ref}
-      className="h-full transform transition-all duration-300 hover:-translate-y-3 hover:scale-[1.02]"
+      className={`h-full ${
+        isBanned
+          ? "cursor-not-allowed select-none"
+          : "transform transition-all duration-300 hover:-translate-y-3 hover:scale-[1.02]"
+      }`}
       style={{
         perspective: 1000,
         animation: animateEntrance
@@ -85,46 +106,48 @@ function HomeRestaurantCard({
       }}
     >
       <div className="h-full group">
-        <Link to={`/user/restaurants/${restaurantSlug}`} className="h-full flex">
+        <CardWrapper {...cardWrapperProps}>
           <RestaurantCarouselStateProvider>
             <Card
-              className={`overflow-hidden gap-0 cursor-pointer border-0 dark:border-gray-800 group bg-white dark:bg-[#1a1a1a] border-background transition-all duration-500 py-0 rounded-[28px] flex flex-col h-full w-full relative shadow-sm hover:shadow-xl ${
-                isOutOfService || !availability.isOpen
+              className={`overflow-hidden gap-0 border-0 dark:border-gray-800 group bg-white dark:bg-[#1a1a1a] border-background transition-all duration-500 py-0 rounded-[28px] flex flex-col h-full w-full relative shadow-sm ${
+                isBanned || isOutOfService || !availability.isOpen
                   ? "grayscale opacity-75"
                   : ""
-              }`}
+              } ${isBanned ? "cursor-not-allowed" : "cursor-pointer hover:shadow-xl"}`}
             >
             <div className="relative">
               <RestaurantImageCarousel
                 restaurant={restaurant}
                 priority={priority}
-                autoPlay
+                autoPlay={!isBanned && availability.isOpen}
                 backendOrigin={backendOrigin}
                 onSlideClick={handleSlideClick}
               />
 
-              <div className="absolute top-4 right-4 z-10 transform transition-transform duration-300 group-hover:scale-110">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(event) => onToggleFavorite(event, restaurant, restaurantSlug, favorite)}
-                  aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
-                  className={`h-11 w-11 rounded-[20px] shadow-xl flex items-center justify-center transition-all duration-300 ${
-                    favorite
-                      ? "bg-red-500 text-white"
-                      : "bg-white/90 backdrop-blur-sm text-gray-800 hover:bg-white"
-                  }`}
-                >
-                  <Bookmark
-                    className={`h-5 w-5 transition-all duration-300 ${
-                      favorite ? "fill-white" : ""
+              {!isBanned && (
+                <div className="absolute top-4 right-4 z-10 transform transition-transform duration-300 group-hover:scale-110">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(event) => onToggleFavorite(event, restaurant, restaurantSlug, favorite)}
+                    aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+                    className={`h-11 w-11 rounded-[20px] shadow-xl flex items-center justify-center transition-all duration-300 ${
+                      favorite
+                        ? "bg-red-500 text-white"
+                        : "bg-white/90 backdrop-blur-sm text-gray-800 hover:bg-white"
                     }`}
-                  />
-                </Button>
-              </div>
+                  >
+                    <Bookmark
+                      className={`h-5 w-5 transition-all duration-300 ${
+                        favorite ? "fill-white" : ""
+                      }`}
+                    />
+                  </Button>
+                </div>
+              )}
             </div>
 
-            <div className="transform transition-transform duration-300 group-hover:-translate-y-1">
+            <div className={`transform transition-transform duration-300 ${isBanned ? "" : "group-hover:-translate-y-1"}`}>
               <CardContent className="p-3 sm:p-4 lg:p-5 pt-3 sm:pt-4 lg:pt-5 flex flex-col flex-grow">
                 <div className="flex items-start justify-between gap-2 mb-2 lg:mb-3">
                   <div className="flex-1 min-w-0">
@@ -187,10 +210,10 @@ function HomeRestaurantCard({
               </CardContent>
             </div>
 
-            <div className="absolute inset-0 rounded-md pointer-events-none z-0 transition-all duration-300 border border-transparent group-hover:border-primary/30 group-hover:shadow-[inset_0_0_0_1px_rgba(235,89,14,0.2)]" />
+            <div className={`absolute inset-0 rounded-md pointer-events-none z-0 transition-all duration-300 border border-transparent ${isBanned ? "" : "group-hover:border-primary/30 group-hover:shadow-[inset_0_0_0_1px_rgba(235,89,14,0.2)]"}`} />
             </Card>
           </RestaurantCarouselStateProvider>
-        </Link>
+        </CardWrapper>
       </div>
     </div>
   );
