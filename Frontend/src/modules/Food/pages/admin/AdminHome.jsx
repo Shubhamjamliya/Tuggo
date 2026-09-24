@@ -97,7 +97,7 @@ export default function AdminHome() {
       return [
         { label: "Delivered", value: 0, color: "#0ea5e9" },
         { label: "Cancelled", value: 0, color: "#ef4444" },
-        { label: "Refunded", value: 0, color: "#f59e0b" },
+        { label: "Processing", value: 0, color: "#f59e0b" },
         { label: "Pending", value: 0, color: "#10b981" },
       ]
     }
@@ -106,7 +106,7 @@ export default function AdminHome() {
     return [
       { label: "Delivered", value: byStatus.delivered || 0, color: "#0ea5e9" },
       { label: "Cancelled", value: byStatus.cancelled || 0, color: "#ef4444" },
-      { label: "Refunded", value: 0, color: "#f59e0b" }, // Refunded not tracked separately
+      { label: "Processing", value: byStatus.processing || 0, color: "#f59e0b" },
       { label: "Pending", value: byStatus.pending || 0, color: "#10b981" },
     ]
   }
@@ -158,6 +158,8 @@ export default function AdminHome() {
     fill: item.color,
   }))
 
+  const platformTotal = Number(deliveryFeeTotal || 0) + Number(commissionTotal || 0) + Number(platformFeeTotal || 0) + Number(gstTotal || 0)
+
   const deliveryProfit = dashboardData?.deliveryProfit || 0
   const periodLabel = selectedPeriod === "overall" ? "Overall" : 
                     selectedPeriod === "today" ? "Today's" : 
@@ -165,9 +167,9 @@ export default function AdminHome() {
 
   const activityFeed = dashboardData?.liveSignals || []
   const totalRevenueHelper = [
+    `Delivery: ${formatCurrency(deliveryFeeTotal)}`,
     `Comm: ${formatCurrency(commissionTotal)}`,
     `Platform: ${formatCurrency(platformFeeTotal)}`,
-    `Delivery Net: ${formatCurrency(deliveryProfit)}`,
     `GST: ${formatCurrency(gstTotal)}`,
   ].join(" + ")
 
@@ -221,136 +223,163 @@ export default function AdminHome() {
           </div>
         </div>
 
-        <div className="space-y-6 px-6 py-6">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <MetricCard
-              title="Gross revenue"
-              value={formatCurrency(revenueTotal)}
-              helper={`${periodLabel} transaction volume`}
-              icon={<ShoppingBag className="h-5 w-5 text-emerald-600" />}
-              accent="bg-emerald-200/40"
-              path="/admin/food/transaction-report"
-            />
-            <MetricCard
-              title="Commission earned"
-              value={formatCurrency(commissionTotal)}
-              helper={`${periodLabel} restaurant cut`}
-              icon={<ArrowUpRight className="h-5 w-5 text-indigo-600" />}
-              accent="bg-indigo-200/40"
-              path="/admin/food/restaurants/commission"
-            />
-            <MetricCard
-              title="Orders processed"
-              value={processingOrders.toLocaleString("en-IN")}
-              helper="Orders currently being processed"
-              icon={<Activity className="h-5 w-5 text-amber-600" />}
-              accent="bg-amber-200/40"
-              path="/admin/food/orders/processing"
-            />
-            <MetricCard
-              title="Platform fee"
-              value={formatCurrency(platformFeeTotal)}
-              helper={`Platform service fees: ${periodLabel}`}
-              icon={<CreditCard className="h-5 w-5 text-purple-600" />}
-              accent="bg-purple-200/40"
-              path="/admin/food/fee-settings"
-            />
-            <MetricCard
-              title="Delivery fee"
-              value={formatCurrency(deliveryFeeTotal)}
-              helper={`Total delivery fees: ${periodLabel}`}
-              icon={<Truck className="h-5 w-5 text-blue-600" />}
-              accent="bg-blue-200/40"
-              path="/admin/food/transaction-report"
-            />
-            <MetricCard
-              title="GST"
-              value={formatCurrency(gstTotal)}
-              helper={`Total tax collected: ${periodLabel}`}
-              icon={<Receipt className="h-5 w-5 text-orange-600" />}
-              accent="bg-orange-200/40"
-              path="/admin/food/tax-report"
-            />
-            <MetricCard
-              title="Platform Total"
-              value={formatCurrency(totalAdminEarnings, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              helper={totalRevenueHelper}
-              icon={<DollarSign className="h-5 w-5 text-green-600" />}
-              accent="bg-green-200/40"
-              path="/admin/food/transaction-report"
-            />
-            <MetricCard
-              title="Total restaurants"
-              value={totalRestaurants.toLocaleString("en-IN")}
-              helper="Approved restaurants"
-              icon={<Store className="h-5 w-5 text-blue-600" />}
-              accent="bg-blue-200/40"
-              path="/admin/food/restaurants"
-            />
-            <MetricCard
-              title="Restaurant request pending"
-              value={pendingRestaurantRequests.toLocaleString("en-IN")}
-              helper="Awaiting approval"
-              icon={<UserCheck className="h-5 w-5 text-orange-600" />}
-              accent="bg-orange-200/40"
-              path="/admin/food/restaurants/joining-request"
-            />
-            <MetricCard
-              title="Total delivery boy"
-              value={totalDeliveryBoys.toLocaleString("en-IN")}
-              helper="Approved delivery partners"
-              icon={<Truck className="h-5 w-5 text-indigo-600" />}
-              accent="bg-indigo-200/40"
-              path="/admin/food/delivery-partners"
-            />
-            <MetricCard
-              title="Delivery boy request pending"
-              value={pendingDeliveryBoyRequests.toLocaleString("en-IN")}
-              helper="Awaiting verification"
-              icon={<Clock className="h-5 w-5 text-yellow-600" />}
-              accent="bg-yellow-200/40"
-              path="/admin/food/delivery-partners/join-request"
-            />
-            <MetricCard
-              title="Total foods"
-              value={totalFoods.toLocaleString("en-IN")}
-              helper="Approved menu items"
-              icon={<Package className="h-5 w-5 text-purple-600" />}
-              accent="bg-purple-200/40"
-              path="/admin/food/foods"
-            />
-            <MetricCard
-              title="Total addons"
-              value={totalAddons.toLocaleString("en-IN")}
-              helper="Approved addon items"
-              icon={<Plus className="h-5 w-5 text-pink-600" />}
-              accent="bg-pink-200/40"
-              path="/admin/food/addons"
-            />
-            <MetricCard
-              title="Total customers"
-              value={totalCustomers.toLocaleString("en-IN")}
-              helper="Registered users"
-              icon={<UserCircle className="h-5 w-5 text-cyan-600" />}
-              accent="bg-cyan-200/40"
-              path="/admin/food/customers"
-            />
-            <MetricCard
-              title="Pending orders"
-              value={pendingOrders.toLocaleString("en-IN")}
-              helper="Orders awaiting processing"
-              icon={<Clock className="h-5 w-5 text-red-600" />}
-              accent="bg-red-200/40"
-              path="/admin/food/orders/pending"
-            />
-            <MetricCard
-              title="Completed orders"
-              value={completedOrders.toLocaleString("en-IN")}
-              helper="Successfully delivered"
-              icon={<CheckCircle className="h-5 w-5 text-emerald-600" />}
-              accent="bg-emerald-200/40"
-              path="/admin/food/orders/delivered"
-            />
+        <div className="space-y-8 px-6 py-6">
+          {/* Financial Overview (6 cards in balanced 3x2 grid) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold tracking-wide uppercase text-neutral-500">Financial Overview</h3>
+                <p className="text-xs text-neutral-400">Revenue, commissions, fees and total platform earnings</p>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {/* 1. Gross revenue */}
+              <MetricCard
+                title="Gross revenue"
+                value={formatCurrency(revenueTotal)}
+                helper={`${periodLabel} transaction volume`}
+                icon={<ShoppingBag className="h-5 w-5 text-emerald-600" />}
+                accent="bg-emerald-200/40"
+                path="/admin/food/transaction-report"
+              />
+              {/* 2. Commission earned */}
+              <MetricCard
+                title="Commission earned"
+                value={formatCurrency(commissionTotal)}
+                helper={`${periodLabel} restaurant cut`}
+                icon={<ArrowUpRight className="h-5 w-5 text-indigo-600" />}
+                accent="bg-indigo-200/40"
+                path="/admin/food/restaurants/commission"
+              />
+              {/* 3. Delivery fee (from users) */}
+              <MetricCard
+                title="Delivery fee (from users)"
+                value={formatCurrency(deliveryFeeTotal)}
+                helper={`Customer paid delivery: ${periodLabel}`}
+                icon={<Truck className="h-5 w-5 text-blue-600" />}
+                accent="bg-blue-200/40"
+                path="/admin/food/transaction-report"
+              />
+              {/* 4. Platform fee */}
+              <MetricCard
+                title="Platform fee"
+                value={formatCurrency(platformFeeTotal)}
+                helper={`Platform service fees: ${periodLabel}`}
+                icon={<CreditCard className="h-5 w-5 text-purple-600" />}
+                accent="bg-purple-200/40"
+                path="/admin/food/fee-settings"
+              />
+              {/* 5. GST */}
+              <MetricCard
+                title="GST"
+                value={formatCurrency(gstTotal)}
+                helper={`Total tax collected: ${periodLabel}`}
+                icon={<Receipt className="h-5 w-5 text-orange-600" />}
+                accent="bg-orange-200/40"
+                path="/admin/food/tax-report"
+              />
+              {/* 6. Platform Total */}
+              <MetricCard
+                title="Platform Total"
+                value={formatCurrency(platformTotal, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                helper={totalRevenueHelper}
+                icon={<DollarSign className="h-5 w-5 text-emerald-600" />}
+                accent="bg-emerald-200/50 border border-emerald-300/50"
+                path="/admin/food/transaction-report"
+              />
+            </div>
+          </div>
+
+          {/* Operations & Platform Metrics (10 cards in balanced 5x2 grid) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold tracking-wide uppercase text-neutral-500">Platform & Operations</h3>
+                <p className="text-xs text-neutral-400">Order pipelines, partners, catalog, and customers</p>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+              <MetricCard
+                title="Orders processed"
+                value={processingOrders.toLocaleString("en-IN")}
+                helper="Orders currently in kitchen"
+                icon={<Activity className="h-5 w-5 text-amber-600" />}
+                accent="bg-amber-200/40"
+                path="/admin/food/orders/processing"
+              />
+              <MetricCard
+                title="Pending orders"
+                value={pendingOrders.toLocaleString("en-IN")}
+                helper="Awaiting restaurant acceptance"
+                icon={<Clock className="h-5 w-5 text-red-600" />}
+                accent="bg-red-200/40"
+                path="/admin/food/orders/pending"
+              />
+              <MetricCard
+                title="Completed orders"
+                value={completedOrders.toLocaleString("en-IN")}
+                helper="Successfully delivered"
+                icon={<CheckCircle className="h-5 w-5 text-emerald-600" />}
+                accent="bg-emerald-200/40"
+                path="/admin/food/orders/delivered"
+              />
+              <MetricCard
+                title="Total restaurants"
+                value={totalRestaurants.toLocaleString("en-IN")}
+                helper="Approved restaurants"
+                icon={<Store className="h-5 w-5 text-blue-600" />}
+                accent="bg-blue-200/40"
+                path="/admin/food/restaurants"
+              />
+              <MetricCard
+                title="Restaurant request pending"
+                value={pendingRestaurantRequests.toLocaleString("en-IN")}
+                helper="Awaiting approval"
+                icon={<UserCheck className="h-5 w-5 text-orange-600" />}
+                accent="bg-orange-200/40"
+                path="/admin/food/restaurants/joining-request"
+              />
+              <MetricCard
+                title="Total delivery boy"
+                value={totalDeliveryBoys.toLocaleString("en-IN")}
+                helper="Approved delivery partners"
+                icon={<Truck className="h-5 w-5 text-indigo-600" />}
+                accent="bg-indigo-200/40"
+                path="/admin/food/delivery-partners"
+              />
+              <MetricCard
+                title="Delivery boy request pending"
+                value={pendingDeliveryBoyRequests.toLocaleString("en-IN")}
+                helper="Awaiting verification"
+                icon={<Clock className="h-5 w-5 text-yellow-600" />}
+                accent="bg-yellow-200/40"
+                path="/admin/food/delivery-partners/join-request"
+              />
+              <MetricCard
+                title="Total foods"
+                value={totalFoods.toLocaleString("en-IN")}
+                helper="Approved menu items"
+                icon={<Package className="h-5 w-5 text-purple-600" />}
+                accent="bg-purple-200/40"
+                path="/admin/food/foods"
+              />
+              <MetricCard
+                title="Total addons"
+                value={totalAddons.toLocaleString("en-IN")}
+                helper="Approved addon items"
+                icon={<Plus className="h-5 w-5 text-pink-600" />}
+                accent="bg-pink-200/40"
+                path="/admin/food/addons"
+              />
+              <MetricCard
+                title="Total customers"
+                value={totalCustomers.toLocaleString("en-IN")}
+                helper="Registered users"
+                icon={<UserCircle className="h-5 w-5 text-cyan-600" />}
+                accent="bg-cyan-200/40"
+                path="/admin/food/customers"
+              />
+            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
@@ -454,11 +483,11 @@ export default function AdminHome() {
                   {orderStats.map((item) => (
                     <div
                       key={item.label}
-                    onClick={() => {
+                      onClick={() => {
                         const routes = {
                           'Delivered': '/admin/food/orders/delivered',
                           'Cancelled': '/admin/food/orders/canceled',
-                          'Refunded': '/admin/food/orders/refunded',
+                          'Processing': '/admin/food/orders/processing',
                           'Pending': '/admin/food/orders/pending'
                         }
                         navigate(routes[item.label] || '/admin/food/orders/all')
@@ -588,7 +617,7 @@ export default function AdminHome() {
                       const routes = {
                         'Delivered': '/admin/food/orders/delivered',
                         'Cancelled': '/admin/food/orders/canceled',
-                        'Refunded': '/admin/food/orders/refunded',
+                        'Processing': '/admin/food/orders/processing',
                         'Pending': '/admin/food/orders/pending'
                       }
                       navigate(routes[item.label] || '/admin/food/orders/all')

@@ -714,7 +714,8 @@ export async function getDashboardStats(query = {}) {
             byStatus: {
                 delivered: Number(totals.delivered || 0),
                 cancelled: Number(totals.cancelled || 0),
-                pending: Number(totals.pending || 0)
+                processing: Number(totals.dashboardProcessing || 0),
+                pending: Number(totals.dashboardPending || 0)
             }
         },
         revenue: { total: Number(totals.revenueTotal || 0) },
