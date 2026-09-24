@@ -17,6 +17,8 @@ const obdCallAlertSchema = new mongoose.Schema({
   delayMinutes: { type: Number, min: 1, max: 30, default: 3 },
   escalationDelaySeconds: { type: Number, min: 30, max: 600, default: 90 },
   voiceFile: { type: String, default: 'Ravi.wav', trim: true },
+  autoCancelEnabled: { type: Boolean, default: true },
+  autoCancelDelaySeconds: { type: Number, min: 30, max: 600, default: 90 },
 }, { _id: false });
 
 const restaurantDelayAlertSettingsSchema = new mongoose.Schema({
@@ -26,7 +28,7 @@ const restaurantDelayAlertSettingsSchema = new mongoose.Schema({
   devices: { type: [alertDeviceSchema], default: [] },
   obdCallAlert: {
     type: obdCallAlertSchema,
-    default: () => ({ enabled: true, delayMinutes: 3, escalationDelaySeconds: 90, voiceFile: 'Ravi.wav' }),
+    default: () => ({ enabled: true, delayMinutes: 3, escalationDelaySeconds: 90, voiceFile: 'Ravi.wav', autoCancelEnabled: true, autoCancelDelaySeconds: 90 }),
   },
 }, { collection: 'food_restaurant_delay_alert_settings', timestamps: true });
 

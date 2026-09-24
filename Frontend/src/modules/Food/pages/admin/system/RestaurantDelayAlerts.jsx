@@ -27,7 +27,14 @@ export default function RestaurantDelayAlerts() {
     enabled: false,
     delayMinutes: 5,
     devices: [],
-    obdCallAlert: { enabled: true, delayMinutes: 3, escalationDelaySeconds: 90, voiceFile: 'Ravi.wav' }
+    obdCallAlert: {
+      enabled: true,
+      delayMinutes: 3,
+      escalationDelaySeconds: 90,
+      voiceFile: 'Ravi.wav',
+      autoCancelEnabled: true,
+      autoCancelDelaySeconds: 90
+    }
   });
   const [deviceName, setDeviceName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -50,6 +57,8 @@ export default function RestaurantDelayAlerts() {
           delayMinutes: Number(data.obdCallAlert?.delayMinutes || 3),
           escalationDelaySeconds: Number(data.obdCallAlert?.escalationDelaySeconds || 90),
           voiceFile: String(data.obdCallAlert?.voiceFile || 'Ravi.wav'),
+          autoCancelEnabled: data.obdCallAlert?.autoCancelEnabled !== undefined ? Boolean(data.obdCallAlert.autoCancelEnabled) : true,
+          autoCancelDelaySeconds: Number(data.obdCallAlert?.autoCancelDelaySeconds || 90),
         }
       });
     } catch (error) {
@@ -290,6 +299,62 @@ export default function RestaurantDelayAlerts() {
               </div>
               <p className="mt-1 text-xs text-slate-400">File uploaded in OBD portal</p>
             </div>
+          </div>
+
+          {/* Auto-Cancel Sub-section */}
+          <div className="mt-6 pt-5 border-t border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900">Auto-Cancel Order after Call 2</h3>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${settings.obdCallAlert?.autoCancelEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                    {settings.obdCallAlert?.autoCancelEnabled ? 'Active' : 'Disabled'}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  If the restaurant does not accept the order after the 2nd OBD call, auto-cancel the order, process instant refund, and politely notify the customer via FCM push notification.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <Switch
+                  checked={settings.obdCallAlert?.autoCancelEnabled}
+                  onCheckedChange={(autoCancelEnabled) =>
+                    setSettings((current) => ({
+                      ...current,
+                      obdCallAlert: { ...current.obdCallAlert, autoCancelEnabled }
+                    }))
+                  }
+                  className="data-[state=checked]:bg-emerald-600"
+                />
+              </div>
+            </div>
+
+            {settings.obdCallAlert?.autoCancelEnabled && (
+              <div className="mt-4 max-w-xs">
+                <label className="text-xs font-semibold text-slate-700" htmlFor="autoCancelDelaySeconds">
+                  Grace Period after Call 2
+                </label>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input
+                    id="autoCancelDelaySeconds"
+                    type="number"
+                    min="30"
+                    max="600"
+                    value={settings.obdCallAlert?.autoCancelDelaySeconds || 90}
+                    onChange={(event) =>
+                      setSettings((current) => ({
+                        ...current,
+                        obdCallAlert: { ...current.obdCallAlert, autoCancelDelaySeconds: event.target.value }
+                      }))
+                    }
+                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2 outline-none focus:border-emerald-600 text-sm"
+                  />
+                  <span className="text-sm font-semibold text-slate-500 whitespace-nowrap">sec</span>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-400">Order cancels if unaccepted this long after Call 2</p>
+              </div>
+            )}
           </div>
         </section>
 

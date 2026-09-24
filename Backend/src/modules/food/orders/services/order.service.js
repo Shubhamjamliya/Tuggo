@@ -2021,3 +2021,204 @@ export async function deleteOrderAdmin(orderId, adminId) {
   };
 }
 
+/**
+ * Automatically cancels an unaccepted order when the restaurant does not respond/pickup OBD call.
+ * Performs atomic status transition, automated refunds (Razorpay/Wallet), dispatch cleanup,
+ * and sends polite FCM push notification and socket update to the user.
+ * 
+ * @param {string|mongoose.Types.ObjectId} orderMongoId 
+ * @param {string} [reason]
+ * @returns {Promise<{ success: boolean, order?: any, error?: string }>}
+ */
+export async function autoCancelUnresponsiveOrder(orderMongoId, reason = 'Restaurant did not respond to automated call alerts') {
+  if (!orderMongoId) return { success: false, error: 'Missing order ID' };
+
+  // 1. Atomic claim: Only cancel if status is strictly 'created'
+  const order = await FoodOrder.findOneAndUpdate(
+    {
+      _id: orderMongoId,
+      orderStatus: 'created'
+    },
+    {
+      $set: {
+        orderStatus: 'cancelled_by_restaurant',
+        cancellationReason: reason,
+        'callAlert.autoCancelStatus': 'cancelled',
+        'callAlert.autoCancelledAt': new Date(),
+        'callAlert.autoCancelReason': reason
+      },
+      $push: {
+        statusHistory: {
+          byRole: 'SYSTEM',
+          from: 'created',
+          to: 'cancelled_by_restaurant',
+          note: reason,
+          timestamp: new Date()
+        }
+      }
+    },
+    { new: true }
+  ).populate('restaurantId', 'restaurantName name');
+
+  if (!order) {
+    // Order was already accepted, cancelled, or transitioned
+    return { success: false, error: 'Order not in created status or already processed' };
+  }
+
+  const restaurantName = order.restaurantId?.restaurantName || order.restaurantId?.name || 'the restaurant';
+  const orderCode = order.order_id || order._id;
+  const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
+  const paymentStatus = String(order.payment?.status || 'cod_pending').toLowerCase();
+  const totalAmount = order.pricing?.total || 0;
+  const hasRefundProcessed = String(order.payment?.refund?.status || 'none').toLowerCase() === 'processed';
+
+  // 2. Automated Refunds
+  let refundDetailText = '';
+  if (paymentStatus === 'paid' && paymentMethod === 'razorpay' && order.payment?.razorpay?.paymentId && !hasRefundProcessed) {
+    try {
+      const refundResult = await initiateRazorpayRefund(order.payment.razorpay.paymentId, totalAmount);
+      if (refundResult.success) {
+        order.payment.status = 'refunded';
+        order.payment.refund = {
+          status: 'processed',
+          destination: 'source',
+          amount: totalAmount,
+          refundId: refundResult.refundId || '',
+          processedAt: new Date()
+        };
+        refundDetailText = ` Your full refund of ₹${totalAmount} has been initiated back to your original payment method (3-5 business days).`;
+      } else {
+        order.payment.refund = {
+          status: 'failed',
+          destination: 'source',
+          amount: totalAmount
+        };
+        refundDetailText = ` Your refund of ₹${totalAmount} is being processed.`;
+      }
+    } catch (err) {
+      logger.error(`[AutoCancel] Razorpay refund error for order ${orderCode}: ${err.message}`);
+      order.payment.refund = {
+        status: 'failed',
+        destination: 'source',
+        amount: totalAmount
+      };
+      refundDetailText = ` Your refund of ₹${totalAmount} is being processed.`;
+    }
+  } else if (paymentStatus === 'paid' && paymentMethod === 'wallet' && !hasRefundProcessed) {
+    try {
+      await userWalletService.refundWalletBalance(
+        order.userId,
+        totalAmount,
+        `Refund for unaccepted order #${orderCode}`,
+        { orderId: order._id, source: 'order_refund_wallet' }
+      );
+      order.payment.status = 'refunded';
+      order.payment.refund = {
+        status: 'processed',
+        destination: 'wallet',
+        amount: totalAmount,
+        refundId: '',
+        processedAt: new Date()
+      };
+      refundDetailText = ` Your refund of ₹${totalAmount} has been credited back to your Tuggo Wallet.`;
+    } catch (err) {
+      logger.error(`[AutoCancel] Wallet refund error for order ${orderCode}: ${err.message}`);
+      order.payment.refund = { status: 'failed', destination: 'wallet', amount: totalAmount };
+      refundDetailText = ` Your refund of ₹${totalAmount} is being processed.`;
+    }
+  }
+
+  await order.save();
+
+  // 3. Sync transaction record
+  try {
+    const isOnlinePaid = (paymentMethod === 'razorpay' || paymentMethod === 'wallet') && (paymentStatus === 'paid' || order.payment.status === 'refunded');
+    await foodTransactionService.updateTransactionStatus(order._id, 'cancelled_by_restaurant', {
+      status: isOnlinePaid ? 'refunded' : 'failed',
+      note: `Auto-cancelled by system: ${reason}`,
+      recordedByRole: 'SYSTEM'
+    });
+  } catch (err) {
+    logger.warn(`[AutoCancel] Transaction sync failed for order ${orderCode}: ${err?.message || err}`);
+  }
+
+  // 4. Clear any delivery offers & rider notifications
+  try {
+    const io = getIO();
+    if (io) {
+      const claimedPayload = {
+        orderId: order._id.toString(),
+        orderMongoId: order._id.toString(),
+        claimedBy: 'cancelled'
+      };
+      if (Array.isArray(order.dispatch?.offeredTo)) {
+        for (const offer of order.dispatch.offeredTo) {
+          io.to(rooms.delivery(offer.partnerId)).emit('order_claimed', claimedPayload);
+        }
+      }
+      void clearDeliveryOffersForOrder(order);
+    }
+  } catch (err) {
+    logger.warn(`[AutoCancel] Delivery offers clear failed: ${err?.message || err}`);
+  }
+
+  // 5. Send Polite FCM Push Notification to Customer App
+  const politeTitle = "We're so sorry! Order Update 😔";
+  const politeBody = `We sincerely apologize, but ${restaurantName} is currently unable to accept your order #${orderCode}. We've cancelled it so you don't wait.${refundDetailText} Please explore other delicious restaurants near you!`;
+
+  try {
+    await notifyOwnersSafely(
+      [
+        { ownerType: 'USER', ownerId: order.userId },
+        { ownerType: 'RESTAURANT', ownerId: order.restaurantId?._id || order.restaurantId }
+      ],
+      {
+        title: politeTitle,
+        body: politeBody,
+        image: 'https://i.ibb.co/3m2Yh7r/Tuggo-Brand-Image.png',
+        dataOnly: false,
+        data: {
+          type: 'order_cancelled',
+          orderId: order._id.toString(),
+          orderMongoId: order._id.toString(),
+          orderStatus: 'cancelled_by_restaurant',
+          cancelReason: 'restaurant_unresponsive',
+          link: `/food/user/orders/${order._id.toString()}`
+        }
+      }
+    );
+  } catch (err) {
+    logger.warn(`[AutoCancel] Push notification failed: ${err?.message || err}`);
+  }
+
+  // 6. Real-time Socket status update
+  try {
+    const io = getIO();
+    if (io) {
+      const payload = {
+        orderMongoId: order._id.toString(),
+        orderId: order._id.toString(),
+        orderStatus: 'cancelled_by_restaurant',
+        title: politeTitle,
+        message: politeBody
+      };
+      io.to(rooms.user(order.userId)).emit('order_status_update', payload);
+      io.to(rooms.restaurant(order.restaurantId?._id || order.restaurantId)).emit('order_status_update', payload);
+    }
+  } catch (err) {
+    logger.warn(`[AutoCancel] Socket status update failed: ${err?.message || err}`);
+  }
+
+  // 7. Enqueue audit event
+  enqueueOrderEvent('order_cancelled_by_system', {
+    orderMongoId: order._id.toString(),
+    orderId: order._id.toString(),
+    restaurantId: String(order.restaurantId?._id || order.restaurantId || ''),
+    reason
+  });
+
+  logger.info(`[AutoCancel] Order #${orderCode} auto-cancelled successfully due to restaurant non-response after Call 2.`);
+  return { success: true, order: normalizeOrderForClient(order) };
+}
+
+

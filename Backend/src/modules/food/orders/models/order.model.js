@@ -221,7 +221,15 @@ const callAlertSchema = new mongoose.Schema(
         },
         secondaryCalledAt: { type: Date, default: null },
         secondaryPhoneNumber: { type: String, default: '', trim: true },
-        secondaryCampaignResponse: { type: mongoose.Schema.Types.Mixed, default: null }
+        secondaryCampaignResponse: { type: mongoose.Schema.Types.Mixed, default: null },
+
+        autoCancelStatus: {
+            type: String,
+            enum: ['none', 'in_progress', 'cancelled', 'skipped'],
+            default: 'none'
+        },
+        autoCancelledAt: { type: Date, default: null },
+        autoCancelReason: { type: String, default: '' }
     },
     { _id: false }
 );
@@ -358,6 +366,7 @@ orderSchema.index({ 'dispatch.deliveryPartnerId': 1, orderStatus: 1 });
 orderSchema.index({ 'dispatch.status': 1, orderStatus: 1 });
 orderSchema.index({ orderStatus: 1, 'callAlert.primaryCallStatus': 1, createdAt: 1 });
 orderSchema.index({ orderStatus: 1, 'callAlert.secondaryCallStatus': 1, 'callAlert.primaryCalledAt': 1 });
+orderSchema.index({ orderStatus: 1, 'callAlert.secondaryCallStatus': 1, 'callAlert.secondaryCalledAt': 1, 'callAlert.autoCancelStatus': 1 });
 orderSchema.index({ 'dispatch.status': 1, orderStatus: 1, updatedAt: -1 });
 orderSchema.index({ 'dispatch.deliveryPartnerId': 1, 'dispatch.status': 1, updatedAt: -1 });
 orderSchema.index({ 'payment.status': 1, createdAt: -1 });

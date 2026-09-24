@@ -1,6 +1,7 @@
 import { FoodOrder } from '../models/order.model.js';
 import { FoodRestaurantDelayAlertSettings } from '../../admin/models/restaurantDelayAlertSettings.model.js';
 import { triggerObdVoiceCall } from '../../../../services/obd.service.js';
+import { autoCancelUnresponsiveOrder } from './order.service.js';
 import { config } from '../../../../config/env.js';
 import { logger } from '../../../../utils/logger.js';
 
@@ -18,7 +19,9 @@ export async function getCallAlertConfig() {
             enabled: obd?.enabled !== undefined ? Boolean(obd.enabled) : true,
             delayMinutes: Math.max(1, Number(obd?.delayMinutes || 3)),
             escalationDelaySeconds: Math.max(30, Number(obd?.escalationDelaySeconds || 90)),
-            voiceFile: String(obd?.voiceFile || config.obd?.voicefile || 'Ravi.wav').trim()
+            voiceFile: String(obd?.voiceFile || config.obd?.voicefile || 'Ravi.wav').trim(),
+            autoCancelEnabled: obd?.autoCancelEnabled !== undefined ? Boolean(obd.autoCancelEnabled) : true,
+            autoCancelDelaySeconds: Math.max(30, Number(obd?.autoCancelDelaySeconds || 90))
         };
     } catch (err) {
         logger.error(`[CallAlert] Error reading call alert config: ${err.message}`);
@@ -26,7 +29,9 @@ export async function getCallAlertConfig() {
             enabled: true,
             delayMinutes: 3,
             escalationDelaySeconds: 90,
-            voiceFile: config.obd?.voicefile || 'Ravi.wav'
+            voiceFile: config.obd?.voicefile || 'Ravi.wav',
+            autoCancelEnabled: true,
+            autoCancelDelaySeconds: 90
         };
     }
 }
@@ -212,6 +217,60 @@ export async function pollAndTriggerRestaurantCallAlerts() {
 
             stats.secondaryCalls++;
             logger.info(`[CallAlert] Secondary escalation call dispatched for order #${claimed.order_id || claimed._id} to ${secondaryPhone} (Success: ${callResult.success})`);
+        }
+
+        // ==========================================
+        // 3. AUTO-CANCELLATION (When Restaurant does not pickup/accept after Call 2)
+        // ==========================================
+        if (alertConfig.autoCancelEnabled) {
+            const autoCancelCutoff = new Date(now - alertConfig.autoCancelDelaySeconds * 1000);
+
+            const ordersForAutoCancel = await FoodOrder.find({
+                orderStatus: 'created',
+                'callAlert.secondaryCallStatus': { $in: ['completed', 'failed', 'skipped'] },
+                'callAlert.secondaryCalledAt': { $lte: autoCancelCutoff, $gte: safetyMinDate },
+                'callAlert.autoCancelStatus': { $in: [null, 'none'] }
+            })
+                .select('_id order_id orderId restaurantId createdAt callAlert')
+                .limit(10)
+                .lean();
+
+            for (const order of ordersForAutoCancel) {
+                // Atomic lock claiming this order for auto-cancel
+                const claimed = await FoodOrder.findOneAndUpdate(
+                    {
+                        _id: order._id,
+                        orderStatus: 'created',
+                        'callAlert.autoCancelStatus': { $in: [null, 'none'] }
+                    },
+                    {
+                        $set: {
+                            'callAlert.autoCancelStatus': 'in_progress'
+                        }
+                    },
+                    { new: true }
+                );
+
+                if (!claimed) continue; // Concurrently claimed or order was accepted
+
+                logger.warn(`[CallAlert] Auto-cancelling order #${claimed.order_id || claimed._id}: Restaurant did not respond to OBD Call 2 within ${alertConfig.autoCancelDelaySeconds}s`);
+
+                const cancelResult = await autoCancelUnresponsiveOrder(
+                    claimed._id,
+                    `Restaurant did not respond to automated call alerts within ${alertConfig.autoCancelDelaySeconds} seconds after second call.`
+                );
+
+                if (cancelResult.success) {
+                    stats.autoCancelled = (stats.autoCancelled || 0) + 1;
+                } else {
+                    logger.error(`[CallAlert] Auto-cancel failed for order ${claimed._id}: ${cancelResult.error}`);
+                    // Revert status lock if failed so it can be retried or inspected
+                    await FoodOrder.updateOne(
+                        { _id: claimed._id, 'callAlert.autoCancelStatus': 'in_progress' },
+                        { $set: { 'callAlert.autoCancelStatus': 'none' } }
+                    );
+                }
+            }
         }
 
         return { status: 'ok', ...stats };

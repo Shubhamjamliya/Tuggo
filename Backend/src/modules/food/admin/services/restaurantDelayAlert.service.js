@@ -29,6 +29,8 @@ const serializeSettings = (settings) => ({
     delayMinutes: Number(settings?.obdCallAlert?.delayMinutes || 3),
     escalationDelaySeconds: Number(settings?.obdCallAlert?.escalationDelaySeconds || 90),
     voiceFile: String(settings?.obdCallAlert?.voiceFile || 'Ravi.wav'),
+    autoCancelEnabled: settings?.obdCallAlert?.autoCancelEnabled !== undefined ? Boolean(settings.obdCallAlert.autoCancelEnabled) : true,
+    autoCancelDelaySeconds: Number(settings?.obdCallAlert?.autoCancelDelaySeconds || 90),
   },
 });
 
@@ -74,6 +76,12 @@ export async function updateRestaurantDelayAlertSettings({ enabled, delayMinutes
     }
     if (obdCallAlert.voiceFile !== undefined) {
       settings.obdCallAlert.voiceFile = String(obdCallAlert.voiceFile || 'Ravi.wav').trim();
+    }
+    if (obdCallAlert.autoCancelEnabled !== undefined) {
+      settings.obdCallAlert.autoCancelEnabled = Boolean(obdCallAlert.autoCancelEnabled);
+    }
+    if (obdCallAlert.autoCancelDelaySeconds !== undefined) {
+      settings.obdCallAlert.autoCancelDelaySeconds = Math.min(600, Math.max(30, Math.trunc(Number(obdCallAlert.autoCancelDelaySeconds) || 90)));
     }
   }
   await settings.save();
